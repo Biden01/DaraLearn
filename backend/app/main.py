@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
@@ -14,6 +15,8 @@ from app.modules.school.router import router as school_router
 from app.modules.state.router import router as state_router
 from app.modules.tutor.router import router as tutor_router
 from app.modules.verification.router import router as verification_router
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: [%(name)s] %(message)s")
 
 
 @asynccontextmanager
