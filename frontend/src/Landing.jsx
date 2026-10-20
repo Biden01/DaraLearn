@@ -23,6 +23,7 @@ export default function Landing() {
         <a href="#top" className="logo" aria-label="DaraLearn">Dara<span>Learn</span></a>
         <nav className="nav-links" aria-label="Разделы">
           {nav.map(([href, label]) => <a key={href} href={href}>{label}</a>)}
+          <a href="/demo">Демо</a>
         </nav>
         <a href="#start" className="btn btn-small">Оставить заявку</a>
       </header>
@@ -37,7 +38,7 @@ export default function Landing() {
           </p>
           <div className="hero-actions">
             <a href="#start" className="btn">Подключить школу</a>
-            <a href="#how" className="btn btn-ghost">Как это работает</a>
+            <a href="/demo" className="btn btn-ghost">Открыть демо</a>
           </div>
           <ul className="hero-facts" aria-label="Три шага">
             <li><b>Понять</b> выявить учебные пробелы</li>
@@ -181,6 +182,7 @@ export default function Landing() {
               <p>Оставьте контакты. Расскажем, как проходит пилот, что нужно от школы, и ответим на вопросы.</p>
               <ul className="cta-list">
                 <li>Короткий звонок: 20–30 минут</li>
+                <li><a href="/demo">Интерактивное демо</a> уже доступно без регистрации</li>
                 <li>Демо на одном ученике и одном навыке</li>
                 <li>Предложение по объёму и срокам пилота</li>
               </ul>

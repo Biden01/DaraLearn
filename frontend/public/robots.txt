@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /demo
 Sitemap: https://daralearn.kz/sitemap.xml
