@@ -23,8 +23,14 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title=settings.app_name, lifespan=lifespan,
-              docs_url="/api/docs", openapi_url="/api/openapi.json")
+# В проде Swagger и схему не публикуем.
+app = FastAPI(
+    title=settings.app_name,
+    lifespan=lifespan,
+    docs_url=None if settings.is_production else "/api/docs",
+    redoc_url=None,
+    openapi_url=None if settings.is_production else "/api/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,

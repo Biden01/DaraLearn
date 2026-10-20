@@ -26,10 +26,20 @@
 Цикл: событие → состояние → решение → помощь → проверка → обновлённое состояние.
 
 ## Фронтенд (`frontend/`)
-React + Vite. Сейчас — лендинг. Дальше: кабинеты ученика, учителя, куратора и администратора.
+React + Vite, без UI-библиотек. Сейчас — лендинг: `src/Landing.jsx` (секции),
+`src/content.js` (тексты из презентации), `src/sections/LeadForm.jsx` (заявка → `POST /api/leads`),
+`public/` (favicon, robots, sitemap). Дальше: кабинеты ученика, учителя, куратора и администратора.
+
+## Переменные окружения (`.env`)
+
+| Переменная | Назначение |
+|---|---|
+| `ENVIRONMENT` | `production` отключает `/api/docs` |
+| `POSTGRES_PASSWORD`, `DATABASE_URL` | база |
+| `CORS_ORIGINS` | JSON-список разрешённых origin |
+| `LLM_API_KEY` | ключ для AI Gateway (пока не используется) |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | уведомление о новой заявке |
+| `ADMIN_TOKEN` | доступ к `GET /api/leads` через заголовок `X-Admin-Token` |
 
 ## Что дальше
-- Alembic-миграции вместо `create_all`.
-- Авторизация и роли.
-- Модель данных для `content`, `events`, `state`.
-- Автодеплой из GitHub при мерже в `main`.
+План первой версии с этапами, моделью данных и API — в [PLAN.md](PLAN.md).
