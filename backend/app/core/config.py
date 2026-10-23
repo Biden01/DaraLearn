@@ -9,6 +9,12 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://daralearn:daralearn@localhost:5432/daralearn"
     cors_origins: list[str] = ["http://localhost:5173"]
     llm_api_key: str = ""
+    llm_model: str = "claude-opus-5-5"
+    tutor_daily_limit: int = 60       # сообщений AI Tutor на ученика в сутки
+
+    # Подпись сессионных JWT (обязательно задать в .env на проде)
+    jwt_secret: str = "dev-secret-change-me"
+    session_days: int = 30
 
     # Заявки с лендинга: уведомление в Telegram (если заданы) и токен для просмотра списка.
     telegram_bot_token: str = ""

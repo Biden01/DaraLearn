@@ -37,6 +37,10 @@ def format_lead(lead: Lead) -> str:
 def notify_lead(lead: Lead) -> None:
     text = format_lead(lead)
     log.info("lead created: %s", text.replace("\n", " | "))
+    send_telegram(text)
+
+
+def send_telegram(text: str) -> None:
     if not (settings.telegram_bot_token and settings.telegram_chat_id):
         return
     url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
