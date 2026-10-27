@@ -1,4 +1,4 @@
-"""Root Cause Investigation + Decision Engine: правила из docs/PLAN.md.
+"""Root Cause Investigation + Decision Engine: пороги в decisions/rules.py.
 
 Для каждого урока со слабым результатом определяем вероятную причину и следующее действие.
 """
@@ -10,9 +10,15 @@ from app.modules.state.engine import SkillState
 from app.modules.tutor.models import TutorSession
 from app.modules.verification.models import Outcome
 
-TUTOR_LIMIT = 0.6        # ниже — занятие с AI Tutor
-SESSIONS_NO_GROWTH = 2   # столько сессий Tutor без роста → учитель
-PRACTICE_OK = 0.7        # практика с подсказками получается, а самостоятельно — нет
+from app.modules.decisions.rules import RULES
+
+TUTOR_LIMIT = RULES.tutor_limit
+PRACTICE_OK = RULES.practice_ok
+
+
+def _teacher_due(failed: int) -> bool:
+    n = RULES.teacher_after_failed_sessions
+    return n is not None and failed >= n
 
 
 def tutor_sessions_by_lesson(db: Session, user_id: int) -> dict[int, int]:
@@ -46,12 +52,12 @@ def decide(lessons: list[Lesson], states: dict[int, SkillState], tutor_counts: d
         elif st == "gap":
             if s.n_practice >= 2 and s.practice >= PRACTICE_OK:
                 rec = dict(action="tutor", cause="strategy", priority=3)
-            elif tutor_counts.get(l.id, 0) >= SESSIONS_NO_GROWTH:
+            elif _teacher_due(tutor_counts.get(l.id, 0)):
                 rec = dict(action="teacher", cause="topic", priority=3)
             else:
                 rec = dict(action="lesson", cause="topic", priority=3)
         elif st == "learning":
-            if tutor_counts.get(l.id, 0) >= SESSIONS_NO_GROWTH:
+            if _teacher_due(tutor_counts.get(l.id, 0)):
                 rec = dict(action="teacher", cause="topic", priority=2)
             elif s.indep < TUTOR_LIMIT:
                 rec = dict(action="tutor", cause="topic", priority=2)

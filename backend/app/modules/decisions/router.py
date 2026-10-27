@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.security import current_user, require_role
+from app.modules.decisions import rules
 from app.modules.decisions.models import Recommendation
 from app.modules.decisions.service import OPEN, rec_out, subject_lessons, sync_class_group, sync_student
 from app.modules.school.access import class_students, get_class, visible_classes, visible_student_ids
@@ -18,6 +19,12 @@ from app.modules.school.router import audit
 from app.modules.state.engine import SkillState, compute_states
 
 router = APIRouter(prefix="/decisions", tags=["decisions"])
+
+
+@router.get("/rules")
+def active_rules(user: User = Depends(require_role("teacher", "curator"))) -> dict:
+    """Действующая версия правил и пороги: чтобы объяснить любую рекомендацию."""
+    return rules.as_dict()
 
 
 class DecisionIn(BaseModel):

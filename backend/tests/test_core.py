@@ -132,7 +132,7 @@ def test_tutor_stages_and_teacher_rule(db):
         fin = s.ok("POST", f"/api/tutor/sessions/{sess['id']}/check", json={"answers": wrong})
         assert fin["session"]["result"] == "failed" and fin["session"]["stage"] == 9
     recs = {r["lesson"]: r for r in s.ok("GET", "/api/decisions/me")["recommendations"]}
-    assert recs["sqrt"]["action"] == "teacher"  # 2 помощи без роста → учитель
+    assert recs["sqrt"]["action"] != "teacher"  # автоэскалации по числу попыток нет: только low confidence или кнопка
 
 
 def test_events_import(school):

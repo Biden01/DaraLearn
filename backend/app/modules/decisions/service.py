@@ -8,12 +8,13 @@ from app.modules.content.models import Lesson
 from app.modules.content.service import lessons_of, subject_by_slug
 from app.modules.decisions.engine import decide, tutor_sessions_by_lesson
 from app.modules.decisions.models import Hypothesis, Recommendation
+from app.modules.decisions.rules import RULES
 from app.modules.school.access import class_students
 from app.modules.state.engine import SkillState, compute_states
 
 OPEN = ("new", "accepted", "changed")
-GROUP_SHARE = 0.3   # доля класса с пробелом в навыке → групповое объяснение
-GROUP_MIN = 2
+GROUP_SHARE = RULES.group_share
+GROUP_MIN = RULES.group_min
 TEACHER_ACTIONS = ("teacher", "group")
 
 
@@ -59,7 +60,8 @@ def sync_student(db: Session, user_id: int, lessons: list[Lesson] | None = None)
             continue
         if rec is None:
             rec = Recommendation(user_id=user_id, lesson_id=lesson.id, action=r["action"], cause=r["cause"],
-                                 rule=f"{r['action']}:{r['cause']}", needs_teacher=r["action"] in TEACHER_ACTIONS)
+                                 rule=f"{r['action']}:{r['cause']}", needs_teacher=r["action"] in TEACHER_ACTIONS,
+                                 rules_version=RULES.version)
             db.add(rec)
         elif rec.status == "new":
             rec.action, rec.rule = r["action"], f"{r['action']}:{r['cause']}"
@@ -104,7 +106,7 @@ def sync_class_group(db: Session, class_id: int, lessons: list[Lesson] | None = 
         hit = n >= GROUP_MIN and n / len(students) >= GROUP_SHARE
         rec = existing.get(l.id)
         if hit and rec is None:
-            db.add(Recommendation(class_id=class_id, lesson_id=l.id, action="group", cause="topic", rule="group:30pct",
+            db.add(Recommendation(class_id=class_id, lesson_id=l.id, action="group", cause="topic", rule="group:30pct", rules_version=RULES.version,
                                   priority=3, proof=round(1 - n / len(students), 2), needs_teacher=True,
                                   comment=f"{n}/{len(students)}"))
         elif hit and rec:

@@ -31,6 +31,7 @@ class Recommendation(Base):
     target_lesson_id: Mapped[int | None] = mapped_column(ForeignKey("lessons.id"), nullable=True)
     hypothesis_id: Mapped[int | None] = mapped_column(ForeignKey("hypotheses.id", ondelete="SET NULL"), nullable=True)
     rule: Mapped[str] = mapped_column(String(40))
+    rules_version: Mapped[str] = mapped_column(String(20), default="", server_default="")
     action: Mapped[str] = mapped_column(String(20))
     cause: Mapped[str] = mapped_column(String(20))
     priority: Mapped[int] = mapped_column(Integer, default=1)
