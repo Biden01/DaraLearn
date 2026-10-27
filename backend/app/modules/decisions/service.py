@@ -31,7 +31,8 @@ def sync_student(db: Session, user_id: int, lessons: list[Lesson] | None = None)
 
     # одна открытая рекомендация на навык: решение учителя (accepted/changed) не перезаписывается
     existing = {r.lesson_id: r for r in db.scalars(
-        select(Recommendation).where(Recommendation.user_id == user_id, Recommendation.status.in_(OPEN)))}
+        select(Recommendation).where(Recommendation.user_id == user_id, Recommendation.status.in_(OPEN),
+                                     Recommendation.rule.not_like("escalation:%")))}  # вызовы учителя ведёт сам Tutor
     # отклонённое учителем не создаём заново, пока Decision Engine предлагает то же действие
     rejected = {(r.lesson_id, r.action) for r in db.scalars(
         select(Recommendation).where(Recommendation.user_id == user_id, Recommendation.status == "rejected"))}

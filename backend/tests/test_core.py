@@ -120,6 +120,9 @@ def test_tutor_stages_and_teacher_rule(db):
     for _ in range(2):
         sess = s.ok("POST", "/api/tutor/sessions", 201, json={"lesson": "sqrt"})
         s.ok("POST", f"/api/tutor/sessions/{sess['id']}/messages", json={"text": "Помоги"})  # заглушка без ключа
+        assert s.post(f"/api/tutor/sessions/{sess['id']}/stage", json={"stage": 6}).status_code == 409  # сначала сам
+        s.ok("GET", f"/api/tutor/sessions/{sess['id']}/task")
+        s.ok("POST", f"/api/tutor/sessions/{sess['id']}/hint")
         s.ok("POST", f"/api/tutor/sessions/{sess['id']}/stage", json={"stage": 6})
         chk = s.ok("GET", f"/api/tutor/sessions/{sess['id']}/check")
         assert chk["session"]["stage"] == 7 and len(chk["tasks"]) == 3
