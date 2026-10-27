@@ -63,11 +63,20 @@ def plan_rate(db: Session, user_id: int, now: datetime | None = None) -> tuple[f
 
 def refresh_cases(db: Session, students: list[User]) -> None:
     """Открыть случай, если план выполняется меньше чем на 50%; закрыть «наблюдение», если план выполняется."""
+    from app.modules.plan.service import adherence, needs_curator  # ленивый импорт: plan зависит от verification
+
     today = date.today()
     for s in students:
         rate, total = plan_rate(db, s.id)
         case = db.scalar(select(AdviserCase).where(AdviserCase.user_id == s.id, AdviserCase.status != "closed"))
-        if total >= PLAN_MIN_ITEMS and rate < PLAN_RATE_LIMIT:
+        if needs_curator(db, s.id, today):
+            d_rate, d_days, d_miss = adherence(db, s.id, today)
+            if case is None:
+                db.add(AdviserCase(user_id=s.id, school_id=s.school_id, plan_rate=round(d_rate, 2),
+                                   reason=f"daily plan {round(d_rate * 100)}% / {d_days} d, missed {d_miss}"))
+            else:
+                case.plan_rate = round(d_rate, 2)
+        elif total >= PLAN_MIN_ITEMS and rate < PLAN_RATE_LIMIT:
             if case is None:
                 db.add(AdviserCase(user_id=s.id, school_id=s.school_id, plan_rate=round(rate, 2),
                                    reason=f"plan {round(rate * 100)}% / {total}"))

@@ -11,6 +11,7 @@ from app.modules.content.router import router as content_router
 from app.modules.decisions.router import router as decisions_router
 from app.modules.events.router import router as events_router
 from app.modules.leads.router import router as leads_router
+from app.modules.plan.router import router as plan_router
 from app.modules.school.auth import router as auth_router
 from app.modules.school.router import router as school_router
 from app.modules.state.router import router as state_router
@@ -44,7 +45,7 @@ def health() -> dict:
 
 
 for r in (auth_router, school_router, admin_router, content_admin_router, content_router, events_router, state_router,
-          decisions_router, tutor_router, verification_router, leads_router):
+          decisions_router, plan_router, tutor_router, verification_router, leads_router):
     api.include_router(r)
 
 app.include_router(api)
