@@ -1,4 +1,5 @@
 """Learning Events: импорт Excel/CSV, проверка ответов, привязка к навыкам, сохранение событий."""
+import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -10,6 +11,7 @@ from app.core.db import get_db
 from app.core.security import current_user, require_role
 from app.modules.content.models import Lesson, Task
 from app.modules.decisions.service import subject_lessons, sync_student
+from app.modules.events import pqs
 from app.modules.events.models import LearningEvent
 from app.modules.school import people_import
 from app.modules.school.access import visible_student_ids
@@ -20,8 +22,6 @@ from app.modules.verification.service import schedule_check
 
 router = APIRouter(prefix="/events", tags=["events"])
 
-TRUE = {"1", "+", "да", "иә", "yes", "true", "верно", "дұрыс", "y"}
-FALSE = {"0", "-", "нет", "жоқ", "no", "false", "неверно", "қате", "n"}
 MAX_ROWS = 5000
 
 
@@ -57,55 +57,87 @@ def _parse_date(v: str) -> datetime | None:
     return None
 
 
-@router.post("/import")
-async def import_results(file: UploadFile = File(...), user: User = Depends(require_role("teacher")),
-                         db: Session = Depends(get_db)) -> dict:
-    """Колонки: логин/email ученика; slug задания или урока; верно (1/0, да/нет); дата (необязательно).
+def _name_key(name: str) -> str:
+    """«Иванов Мария» и «Мария Иванова» не склеиваем, но порядок слов и регистр не важны."""
+    return " ".join(sorted(re.sub(r"[^\w\s]", " ", name.casefold()).split()))
 
-    Строка по уроку без конкретного задания привязывается к его диагностическому заданию.
-    Ошибочные строки не сохраняются и возвращаются для ручного разбора.
+
+@router.post("/import")
+async def import_results(dry_run: bool = False, threshold: float = pqs.THRESHOLD, file: UploadFile = File(...),
+                         user: User = Depends(require_role("teacher")), db: Session = Depends(get_db)) -> dict:
+    """Результаты ПҚС / БС из Excel или CSV: длинный (ученик, навык, результат, дата) или широкий (колонка на навык) формат.
+
+    Ученик: логин, email или ФИО. Навык или задание: slug либо название. Результат: 1/0, да/нет, %, доля; не ниже threshold — верно.
+    Строка по навыку без задания привязывается к его диагностическому заданию. Ошибочные строки не сохраняются и
+    возвращаются для ручного разбора; dry_run=true только проверяет файл. Повторная загрузка того же файла не дублирует события.
     """
     data = await file.read(5 * 1024 * 1024)
     try:
-        rows = people_import.read_rows(file.filename or "", data)[:MAX_ROWS]
+        rows = people_import.read_rows(file.filename or "", data, keep_header=True)[:MAX_ROWS]
     except Exception:  # noqa: BLE001
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "bad_file")
     allowed = visible_student_ids(db, user)
-    users = {}
+    users, names = {}, {}
     for u in db.scalars(select(User).where(User.role == "student")):
         if allowed is None or u.id in allowed:
             for key in (u.login, u.email):
                 if key:
                     users[key.lower()] = u
+            names.setdefault(_name_key(u.name), []).append(u)
     tasks = {t.slug: t for t in db.scalars(select(Task))}
     lessons = {l.slug: l for l in db.scalars(select(Lesson))}
+    titles = {t.casefold(): l.slug for l in lessons.values() for t in (l.title or {}).values() if t}
     diag = {}
     for t in sorted(tasks.values(), key=lambda x: x.id):
         if t.purpose == "diagnostic":
             diag.setdefault(t.lesson_id, t)
 
-    saved, errors, touched = 0, [], set()
-    for i, r in enumerate(rows, start=1):
-        r = (r + ["", "", "", ""])[:4]
-        who, what, ok, when = r[0].lower(), r[1].strip(), r[2].strip().lower(), r[3].strip()
+    def resolve(text: str) -> str | None:
+        key = text.strip()
+        return key if key in tasks or key in lessons else titles.get(key.casefold())
+
+    fmt, records, errors = pqs.parse(rows, resolve, threshold,
+                                     default_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    prepared = []
+    for rec in records:
+        who = rec.who.lower()
         student = users.get(who)
-        task = tasks.get(what) or (diag.get(lessons[what].id) if what in lessons else None)
-        err = (None if student else "student") or (None if task else "task") or (None if ok in TRUE | FALSE else "result")
-        at = _parse_date(when) if when else datetime.now(timezone.utc)
-        if not err and at is None:
-            err = "date"
+        if student is None:
+            found = names.get(_name_key(rec.who), [])
+            if len(found) > 1:
+                errors.append({"row": rec.row, "field": "student_ambiguous", "values": [rec.who]})
+                continue
+            student = found[0] if found else None
+        task = tasks.get(rec.what) or (diag.get(lessons[rec.what].id) if rec.what in lessons else None) \
+            or (diag.get(lessons[titles[rec.what.casefold()]].id) if rec.what.casefold() in titles else None)
+        at = _parse_date(rec.date)
+        err = (None if student else "student") or (None if task else "task") or (None if at else "date")
         if err:
-            errors.append({"row": i, "field": err, "values": r[:4]})
+            errors.append({"row": rec.row, "field": err, "values": [rec.who, rec.what, rec.date]})
             continue
-        correct = ok in TRUE
-        db.add(LearningEvent(user_id=student.id, lesson_id=task.lesson_id, task_id=task.id, source="import",
-                             correct=correct, choice=task.answer if correct else -1, created_at=at))
+        prepared.append((student, task, rec.correct, at))
+
+    # повторная загрузка того же файла: уже сохранённые события пропускаем
+    seen = {(e.user_id, e.task_id, e.created_at, e.correct) for e in db.scalars(select(LearningEvent).where(
+        LearningEvent.source == "import", LearningEvent.user_id.in_({p[0].id for p in prepared} or {-1})))}
+    saved, duplicates, touched = 0, 0, set()
+    for student, task, correct, at in prepared:
+        if (student.id, task.id, at, correct) in seen:
+            duplicates += 1
+            continue
+        if not dry_run:
+            db.add(LearningEvent(user_id=student.id, lesson_id=task.lesson_id, task_id=task.id, source="import",
+                                 correct=correct, choice=task.answer if correct else -1, created_at=at))
+            seen.add((student.id, task.id, at, correct))
         saved += 1
         touched.add(student.id)
-    db.flush()
-    lessons_list = subject_lessons(db)
-    for sid in touched:
-        sync_student(db, sid, lessons_list)
-    audit(db, user, "events.import", "events", None, saved=saved, errors=len(errors))
-    db.commit()
-    return {"saved": saved, "students": len(touched), "errors": errors[:200], "error_count": len(errors)}
+    if not dry_run:
+        db.flush()
+        lessons_list = subject_lessons(db)
+        for sid in touched:
+            sync_student(db, sid, lessons_list)
+        audit(db, user, "events.import", "events", None, saved=saved, errors=len(errors), format=fmt)
+        db.commit()
+    errors.sort(key=lambda e: e["row"])
+    return {"format": fmt, "dry_run": dry_run, "saved": saved, "duplicates": duplicates, "students": len(touched),
+            "errors": errors[:200], "error_count": len(errors)}

@@ -31,8 +31,8 @@ def temp_password() -> str:
     return "".join(secrets.choice("abcdefghjkmnpqrstuvwxyz23456789") for _ in range(8))
 
 
-def read_rows(filename: str, data: bytes) -> list[list[str]]:
-    """Строки таблицы без заголовка. Поддерживаются .xlsx и .csv (; или ,)."""
+def read_rows(filename: str, data: bytes, keep_header: bool = False) -> list[list[str]]:
+    """Строки таблицы (по умолчанию без заголовка). Поддерживаются .xlsx и .csv (; или ,)."""
     if filename.lower().endswith(".xlsx"):
         ws = load_workbook(io.BytesIO(data), read_only=True, data_only=True).active
         rows = [[("" if v is None else str(v)).strip() for v in r] for r in ws.iter_rows(values_only=True)]
@@ -41,7 +41,7 @@ def read_rows(filename: str, data: bytes) -> list[list[str]]:
         dialect = csv.Sniffer().sniff(text[:2000], delimiters=";,\t") if text.strip() else csv.excel
         rows = [[c.strip() for c in r] for r in csv.reader(io.StringIO(text), dialect)]
     rows = [r for r in rows if any(r)]
-    if rows and not any(ch.isdigit() for ch in "".join(rows[0])) and len(rows) > 1:
+    if not keep_header and rows and not any(ch.isdigit() for ch in "".join(rows[0])) and len(rows) > 1:
         header = " ".join(rows[0]).lower()
         if any(w in header for w in ("фио", "name", "аты", "имя", "логин", "login", "задание", "task")):
             rows = rows[1:]
