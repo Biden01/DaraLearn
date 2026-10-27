@@ -4,6 +4,7 @@ import { STRINGS } from "./i18n.js";
 import { Ctx, Icon, pick, useApp } from "./ui.jsx";
 import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
+import Plan from "./pages/Plan.jsx";
 import Subjects from "./pages/Subjects.jsx";
 import Courses from "./pages/Courses.jsx";
 import Lesson from "./pages/Lesson.jsx";
@@ -39,10 +40,10 @@ const STAFF_VIEW = { class: ClassMap, student: StudentCard };
 // меню и страницы по ролям
 const ROLES = {
   student: {
-    nav: [["", "home", "home"], ["subjects", "subjects", "book"], ["courses", "courses", "case"],
+    nav: [["", "home", "home"], ["plan", "plan", "clip"], ["subjects", "subjects", "book"], ["courses", "courses", "case"],
       ["diagnostics", "diagnostics", "doc"], ["gaps", "gaps", "target"], ["tutor", "tutor", "bot"],
       ["quiz", "quiz", "clip"], ["progress", "progress", "chart"], ["calendar", "calendar", "cal"]],
-    pages: { "": Home, subjects: Subjects, courses: Courses, diagnostics: Diagnostics, gaps: Gaps, tutor: Tutor,
+    pages: { "": Home, plan: Plan, subjects: Subjects, courses: Courses, diagnostics: Diagnostics, gaps: Gaps, tutor: Tutor,
       quiz: Quiz, result: Result, progress: Progress, calendar: Calendar },
   },
   teacher: {

@@ -12,10 +12,13 @@ from app.modules.content.models import Course, Lesson, Task
 from app.modules.content.service import subject_by_slug, task_public
 from app.modules.decisions.models import AuditLog
 from app.modules.plan import rules
-from app.modules.plan.models import DailyPlan
+from app.modules.decisions.service import sync_student
+from app.modules.events.models import LearningEvent
+from app.modules.plan.models import DailyPlan, PlanItem
 from app.modules.plan.service import build_plan, current_topic, refresh_progress, set_topic
 from app.modules.school.access import class_students, get_class
 from app.modules.school.models import User
+from app.modules.verification.service import schedule_check
 
 router = APIRouter(prefix="/plan", tags=["plan"])
 
@@ -31,11 +34,15 @@ def plan_out(db: Session, plan: DailyPlan) -> dict:
     lessons = {l.id: l for l in db.scalars(select(Lesson).where(Lesson.id.in_([i.lesson_id for i in items] or [-1])))}
     tasks = {t.id: t for t in db.scalars(select(Task).where(Task.id.in_([t for i in items for t in i.task_ids] or [-1])))}
     done_min = sum(i.minutes for i in items if i.status == "done")
+    answered = set(db.scalars(select(LearningEvent.task_id).where(
+        LearningEvent.user_id == plan.user_id, LearningEvent.created_at >= plan.created_at,
+        LearningEvent.task_id.in_(list(tasks) or [-1]))))
     return {
         "id": plan.id, "day": plan.day.isoformat(), "rules_version": plan.rules_version, "total_minutes": plan.total_minutes,
         "done_minutes": done_min, "rate": round(sum(i.status == "done" for i in items) / len(items), 2) if items else 0,
         "items": [{"id": i.id, "block": i.block, "reason": i.reason, "minutes": i.minutes, "status": i.status,
                    "lesson": lessons[i.lesson_id].slug, "title": lessons[i.lesson_id].title,
+                   "answered": [t for t in i.task_ids if t in answered],
                    "tasks": [task_public(tasks[t]) for t in i.task_ids if t in tasks]} for i in items],
     }
 
@@ -91,3 +98,38 @@ def put_topic(class_id: int, body: TopicIn, user: User = Depends(require_role("t
                     data={"course": course.slug, "starts_on": day.isoformat()}))
     db.commit()
     return {"course": course.slug, "starts_on": t.starts_on.isoformat()}
+
+
+class AnswerIn(BaseModel):
+    task_id: int
+    choice: int
+
+
+@router.post("/items/{item_id}/answer")
+def answer(item_id: int, payload: AnswerIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Ответ на задание пункта плана. Закрепление — практика с разбором; мини-проверка — независимый результат без разбора."""
+    item = db.get(PlanItem, item_id)
+    plan = db.get(DailyPlan, item.plan_id) if item else None
+    if not item or plan.user_id != user.id or item.block == "tutor" or payload.task_id not in item.task_ids:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    task = db.get(Task, payload.task_id)
+    if not 0 <= payload.choice < len(task.options):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "bad_choice")
+    if db.scalar(select(LearningEvent.id).where(LearningEvent.user_id == user.id, LearningEvent.task_id == task.id,
+                                                LearningEvent.created_at >= plan.created_at).limit(1)):
+        raise HTTPException(status.HTTP_409_CONFLICT, "already_answered")
+    correct = payload.choice == task.answer
+    db.add(LearningEvent(user_id=user.id, lesson_id=task.lesson_id, task_id=task.id, choice=payload.choice,
+                         correct=correct, source="verification" if item.block == "check" else "practice"))
+    db.flush()
+    if item.block == "practice":
+        schedule_check(db, user.id, task.lesson_id, "lesson")
+    items = refresh_progress(db, plan)
+    if all(i.status == "done" for i in items if i.block == item.block):
+        sync_student(db, user.id)
+    db.commit()
+    done = next(i for i in items if i.id == item.id).status == "done"
+    # проверка не подсказывает: результат и разбор открываются, когда все задания блока отвечены
+    reveal = item.block == "practice" or done
+    return {"item_status": "done" if done else "pending", "correct": correct if reveal else None,
+            "answer": task.answer if reveal else None, "explanation": task.explanation if reveal else None}

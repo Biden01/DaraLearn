@@ -1,4 +1,5 @@
 // Строки интерфейса кабинета.
+import { PLAN } from "./i18n_plan.js";
 import { STAFF } from "./i18n_staff.js";
 
 const kk = {
@@ -221,4 +222,4 @@ const ru = {
     toSite: "На главный сайт" },
 };
 
-export const STRINGS = { kk: { ...kk, ...STAFF.kk }, ru: { ...ru, ...STAFF.ru } };
+export const STRINGS = { kk: { ...kk, ...STAFF.kk, ...PLAN.kk }, ru: { ...ru, ...STAFF.ru, ...PLAN.ru } };

@@ -2,7 +2,7 @@
 export const STAFF = {
   kk: {
     roles: { student: "Оқушы", teacher: "Мұғалім", curator: "Куратор", admin: "Әкімші" },
-    snav: { classes: "Сыныптарым", feed: "Әрекеттер лентасы", import: "Бағалауларды жүктеу", cases: "Кейстер",
+    snav: { plan: "Бүгінгі жоспар", classes: "Сыныптарым", feed: "Әрекеттер лентасы", import: "Бағалауларды жүктеу", cases: "Кейстер",
       metrics: "Метрикалар", schools: "Мектептер", users: "Пайдаланушылар", content: "Материалдар", leads: "Өтінімдер", audit: "Журнал" },
     rec: { new: "Жаңа", accepted: "Қабылданды", changed: "Өзгертілді", rejected: "Қабылданбады", done: "Орындалды", obsolete: "Өзекті емес",
       accept: "Қабылдау", change: "Өзгерту", reject: "Қабылдамау", markDone: "Орындалды", comment: "Пікір (міндетті емес)",
@@ -54,7 +54,7 @@ export const STAFF = {
   },
   ru: {
     roles: { student: "Ученик", teacher: "Учитель", curator: "Куратор", admin: "Администратор" },
-    snav: { classes: "Мои классы", feed: "Лента действий", import: "Загрузка оценок", cases: "Случаи",
+    snav: { plan: "План на сегодня", classes: "Мои классы", feed: "Лента действий", import: "Загрузка оценок", cases: "Случаи",
       metrics: "Метрики", schools: "Школы", users: "Пользователи", content: "Материалы", leads: "Заявки", audit: "Журнал" },
     rec: { new: "Новая", accepted: "Принята", changed: "Изменена", rejected: "Отклонена", done: "Выполнена", obsolete: "Неактуальна",
       accept: "Принять", change: "Изменить", reject: "Отклонить", markDone: "Выполнено", comment: "Комментарий (необязательно)",

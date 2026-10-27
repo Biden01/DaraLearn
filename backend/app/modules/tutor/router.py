@@ -111,6 +111,7 @@ def _session_out(db: Session, s: TutorSession) -> dict:
     msgs = db.scalars(select(TutorMessage).where(TutorMessage.session_id == s.id).order_by(TutorMessage.id))
     return {"id": s.id, "lesson": {"slug": lesson.slug, "title": lesson.title} if lesson else None,
             "stage": s.stage, "goal": s.goal, "result": s.result, "finished": s.finished_at is not None,
+            "hints_used": s.hints_used, "first_attempt_correct": s.first_attempt_correct, "escalated": s.escalated,
             "messages": [{"id": m.id, "role": m.role, "content": m.content, "at": m.created_at.isoformat()} for m in msgs]}
 
 

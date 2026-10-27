@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { Bar, Box, Crumb, Icon, Rich, useApp } from "../ui.jsx";
+import TutorTask from "./TutorTask.jsx";
 
 const hhmm = (iso) => new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 
@@ -92,6 +93,7 @@ export default function Tutor() {
       </div>
       <div className="grid g-main">
         <div className="card chat">
+          {session?.lesson && !locked && !check && <TutorTask session={session} setSession={setSession} onCheck={startCheck} />}
           <div className="chat-body" ref={body} aria-live="polite">
             <div className="msg bot">
               <div className="avatar" style={{ width: 32, height: 32, background: "var(--accent-soft)", color: "var(--accent)" }}><Icon n="bot" s={18} /></div>
@@ -163,8 +165,10 @@ export default function Tutor() {
               ))}
               {!locked && (
                 <div className="row wrap" style={{ marginTop: 8 }}>
-                  {session.stage < 6 && <button className="btn sm ghost" onClick={nextStage}>{sg.next}</button>}
-                  <button className="btn sm" onClick={startCheck}>{sg.toCheck}</button>
+                  {session.stage < 6 && (session.first_attempt_correct === false || session.hints_used > 0) &&
+                    <button className="btn sm ghost" onClick={nextStage}>{sg.next}</button>}
+                  {session.first_attempt_correct !== null && session.first_attempt_correct !== undefined &&
+                    <button className="btn sm" onClick={startCheck}>{sg.toCheck}</button>}
                 </div>
               )}
             </div>

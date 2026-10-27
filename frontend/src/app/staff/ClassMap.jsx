@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Crumb, Loading, Ring, useApp } from "../ui.jsx";
+import ClassPlan from "./ClassPlan.jsx";
 import RecItem from "./RecItem.jsx";
 import { feedView } from "./feedView.js";
 
@@ -38,6 +39,7 @@ export default function ClassMap() {
       <Crumb items={[[t.classes.title, "#/" + (user.role === "teacher" ? "" : "classes")], [d.class.name]]} />
       <h1>{d.class.name}</h1>
       <p className="subtitle">{t.classes.students(d.students.length)} · Математика · {t.grade(d.class.grade)}</p>
+      <ClassPlan classId={id} />
       <div className="grid g-main" style={{ marginBottom: 20 }}>
         <div className="card">
           <div className="row wrap" style={{ gap: 24, alignItems: "flex-start" }}>

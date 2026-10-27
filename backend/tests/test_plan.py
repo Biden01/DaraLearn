@@ -72,3 +72,23 @@ def test_missed_days_go_to_curator(db):
         db.add(PlanItem(plan_id=plan.id, block="practice", lesson_id=lesson.id, minutes=12, task_ids=[]))
     db.commit()
     assert needs_curator(db, uid_, today)
+
+
+def test_plan_answer_endpoint(db):
+    from app.modules.content.models import Task
+
+    s = register()
+    diagnostic(s, wrong={"sqrt"})
+    items = _items(s.ok("GET", "/api/plan/today"))
+    p = items["practice"]
+    t = p["tasks"][0]
+    r = s.ok("POST", f"/api/plan/items/{p['id']}/answer", json={"task_id": t["id"], "choice": db.get(Task, t["id"]).answer})
+    assert r["correct"] is True and r["explanation"]
+    assert _items(s.ok("GET", "/api/plan/today"))["practice"]["answered"] == [t["id"]]
+    assert s.post(f"/api/plan/items/{p['id']}/answer", json={"task_id": t["id"], "choice": 0}).status_code == 409
+    assert s.post(f"/api/plan/items/{items['tutor']['id']}/answer", json={"task_id": t["id"], "choice": 0}).status_code == 404
+    c = items.get("check")
+    if c:  # мини-проверка: пока не отвечены все, результат скрыт
+        first = c["tasks"][0]
+        r = s.ok("POST", f"/api/plan/items/{c['id']}/answer", json={"task_id": first["id"], "choice": 0})
+        assert r["correct"] is None and r["explanation"] is None

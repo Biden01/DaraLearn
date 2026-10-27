@@ -8,7 +8,9 @@ export default function Home() {
   const [d, setD] = useState(null);
   const [checks, setChecks] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [plan, setPlan] = useState(null);
   useEffect(() => {
+    api("/plan/today").then(setPlan).catch(() => {});
     api("/state/me").then(setD).catch(() => setD(false));
     api("/verification/checks").then((c) => setChecks(c.filter((x) => x.due))).catch(() => {});
     api("/auth/me/classes").then(setClasses).catch(() => {});
@@ -30,6 +32,14 @@ export default function Home() {
           <div className="grow"><div className="card-title">{t.me.checksTitle}</div>
             <div className="muted small">{t.me.checksText} · {checks.map((c) => L(c.lesson.title)).join(", ")}</div></div>
           <button className="btn" onClick={() => startTest({ kind: "verification", check_id: checks[0].id })}>{t.me.checkBtn}</button>
+        </div>
+      )}
+      {plan && plan.items.length > 0 && (
+        <div className="card row wrap" style={{ marginBottom: 20, gap: 16 }}>
+          <Box icon="clip" c="orange" />
+          <div className="grow"><div className="card-title">{t.plan.title}</div>
+            <div className="muted small">{t.plan.done(plan.done_minutes, plan.total_minutes)}</div></div>
+          <a className="btn" href="#/plan">{t.open}</a>
         </div>
       )}
       <div className="grid g-main">
