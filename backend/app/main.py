@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import models  # noqa: F401  регистрирует таблицы
 from app.core.config import settings
 from app.modules.admin.router import router as admin_router
+from app.modules.analytics.router import router as analytics_router
 from app.modules.content.admin import router as content_admin_router
 from app.modules.content.router import router as content_router
 from app.modules.decisions.router import router as decisions_router
@@ -44,7 +45,7 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-for r in (auth_router, school_router, admin_router, content_admin_router, content_router, events_router, state_router,
+for r in (analytics_router, auth_router, school_router, admin_router, content_admin_router, content_router, events_router, state_router,
           decisions_router, plan_router, tutor_router, verification_router, leads_router):
     api.include_router(r)
 
