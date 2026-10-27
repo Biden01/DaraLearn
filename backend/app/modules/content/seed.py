@@ -13,6 +13,8 @@ def _upsert(db: Session, model, slug: str, **fields):
     if obj is None:
         obj = model(slug=slug)
         db.add(obj)
+    elif getattr(obj, "source", "seed") == "admin":
+        return obj  # отредактировано в админке — seed не перетирает
     for k, v in fields.items():
         setattr(obj, k, v)
     db.flush()

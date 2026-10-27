@@ -48,3 +48,12 @@ def current_user(dl_session: str = Cookie(default=""), db: Session = Depends(get
     if not user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Нужно войти")
     return user
+
+
+def require_role(*roles: str):
+    """Зависимость: пользователь с одной из ролей (админ проходит всегда)."""
+    def dep(user=Depends(current_user)):
+        if user.role != "admin" and user.role not in roles:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "forbidden")
+        return user
+    return dep

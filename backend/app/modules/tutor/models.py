@@ -12,6 +12,11 @@ class TutorSession(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     lesson_id: Mapped[int | None] = mapped_column(ForeignKey("lessons.id"), nullable=True)
+    recommendation_id: Mapped[int | None] = mapped_column(ForeignKey("recommendations.id", ondelete="SET NULL"), nullable=True)
+    goal: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    stage: Mapped[int] = mapped_column(Integer, default=1, server_default="1")  # 1–9
+    result: Mapped[str | None] = mapped_column(String(20), nullable=True)      # passed | failed
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

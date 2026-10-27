@@ -17,16 +17,50 @@ import Progress from "./pages/Progress.jsx";
 import Calendar from "./pages/Calendar.jsx";
 import Settings from "./pages/Settings.jsx";
 import Help from "./pages/Help.jsx";
+import Classes from "./staff/Classes.jsx";
+import ClassMap from "./staff/ClassMap.jsx";
+import StudentCard from "./staff/StudentCard.jsx";
+import Feed from "./staff/Feed.jsx";
+import ImportResults from "./staff/ImportResults.jsx";
+import Cases from "./staff/Cases.jsx";
+import Metrics from "./staff/Metrics.jsx";
+import Schools from "./staff/Schools.jsx";
+import Users from "./staff/Users.jsx";
+import Content from "./staff/Content.jsx";
+import LessonEdit from "./staff/LessonEdit.jsx";
+import { Leads, Audit } from "./staff/Lists.jsx";
+import ForcePassword from "./pages/ForcePassword.jsx";
 import "@fontsource-variable/onest";
 import "./app.css";
 
-const NAV = [["", "home", "home"], ["subjects", "subjects", "book"], ["courses", "courses", "case"],
-  ["diagnostics", "diagnostics", "doc"], ["gaps", "gaps", "target"], ["tutor", "tutor", "bot"],
-  ["quiz", "quiz", "clip"], ["progress", "progress", "chart"], ["calendar", "calendar", "cal"]];
 const NAV_BOTTOM = [["settings", "settings", "gear"], ["help", "help", "help"]];
-const PAGES = { "": Home, subjects: Subjects, courses: Courses, lesson: Lesson, diagnostics: Diagnostics, gaps: Gaps,
-  tutor: Tutor, quiz: Quiz, result: Result, progress: Progress, calendar: Calendar, settings: Settings, help: Help };
-const ACTIVE = { lesson: "courses", result: "quiz" };
+const COMMON = { settings: Settings, help: Help, lesson: Lesson };
+const STAFF_VIEW = { class: ClassMap, student: StudentCard };
+// меню и страницы по ролям
+const ROLES = {
+  student: {
+    nav: [["", "home", "home"], ["subjects", "subjects", "book"], ["courses", "courses", "case"],
+      ["diagnostics", "diagnostics", "doc"], ["gaps", "gaps", "target"], ["tutor", "tutor", "bot"],
+      ["quiz", "quiz", "clip"], ["progress", "progress", "chart"], ["calendar", "calendar", "cal"]],
+    pages: { "": Home, subjects: Subjects, courses: Courses, diagnostics: Diagnostics, gaps: Gaps, tutor: Tutor,
+      quiz: Quiz, result: Result, progress: Progress, calendar: Calendar },
+  },
+  teacher: {
+    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"]],
+    pages: { "": Classes, feed: Feed, import: ImportResults, courses: Courses, calendar: Calendar, ...STAFF_VIEW },
+  },
+  curator: {
+    nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"]],
+    pages: { "": Cases, classes: Classes, feed: Feed, ...STAFF_VIEW },
+  },
+  admin: {
+    nav: [["", "metrics", "chart"], ["schools", "schools", "home"], ["users", "users", "user"], ["classes", "classes", "case"],
+      ["content", "content", "book"], ["leads", "leads", "doc"], ["audit", "audit", "clip"]],
+    pages: { "": Metrics, schools: Schools, users: Users, classes: Classes, content: Content, edit: LessonEdit, leads: Leads,
+      audit: Audit, feed: Feed, import: ImportResults, ...STAFF_VIEW },
+  },
+};
+const ACTIVE = { lesson: "courses", result: "quiz", class: "classes", student: "classes", edit: "content" };
 
 function parseHash() {
   const h = window.location.hash.replace(/^#\/?/, "");
@@ -78,7 +112,7 @@ export default function App() {
 
   // число важных рекомендаций для колокольчика
   useEffect(() => {
-    if (!user) return;
+    if (user?.role !== "student") return;
     api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2).length)).catch(() => {});
   }, [user, route.page]);
 
@@ -98,13 +132,19 @@ export default function App() {
 
   let body;
   if (!user) body = <Auth />;
+  else if (user.must_change_password) body = <ForcePassword />;
   else if (route.page === "test") body = <TestRun key={route.param} id={route.param} />;
   else {
-    const Page = PAGES[route.page] || Home;
-    const active = ACTIVE[route.page] ?? route.page;
+    const role = ROLES[user.role] || ROLES.student;
+    const pages = { ...COMMON, ...role.pages };
+    const Page = pages[route.page] || pages[""];
+    // вложенные страницы подсвечивают родительский пункт; если его нет в меню роли — главный
+    const mapped = ACTIVE[route.page] ?? route.page;
+    const active = [...role.nav, ...NAV_BOTTOM].some(([k]) => k === mapped) ? mapped : "";
+    const NAV = role.nav;
     const link = ([k, label, icon]) => (
       <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}>
-        <Icon n={icon} /><span>{t.nav[label]}</span>
+        <Icon n={icon} /><span>{t.nav[label] ?? t.snav[label]}</span>
       </a>
     );
     body = (
@@ -150,7 +190,8 @@ function Header({ alerts, onMenu }) {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const navItems = [...NAV, ...NAV_BOTTOM].map(([k, label]) => ({ title: t.nav[label], href: `#/${k}`, hint: "" }));
+  const navItems = [...(ROLES[user.role] || ROLES.student).nav, ...NAV_BOTTOM]
+    .map(([k, label]) => ({ title: t.nav[label] ?? t.snav[label], href: `#/${k}`, hint: "" }));
   const hits = q.trim()
     ? [...navItems, ...index.map((x) => ({ ...x, title: L(x.title), hint: L(x.hint) }))]
       .filter((x) => x.title.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 7)
@@ -187,12 +228,15 @@ function Header({ alerts, onMenu }) {
             <button key={l} aria-pressed={lang === l} onClick={() => setLang(l)}>{l === "kk" ? "ҚАЗ" : "РУС"}</button>
           ))}
         </div>
-        <a href="#/gaps" className={`bell ${alerts ? "has" : ""}`} aria-label={t.nav.gaps}>
-          <Icon n="bell" s={22} />{alerts > 0 && <span className="bell-count">{alerts}</span>}
-        </a>
+        {user.role === "student" && (
+          <a href="#/gaps" className={`bell ${alerts ? "has" : ""}`} aria-label={t.nav.gaps}>
+            <Icon n="bell" s={22} />{alerts > 0 && <span className="bell-count">{alerts}</span>}
+          </a>
+        )}
         <a href="#/settings" className="user">
           <div className="avatar">{(user.name || "?")[0].toUpperCase()}</div>
-          <div className="user-info"><div className="user-name">{user.name}</div><div className="user-sub">{t.grade(user.grade)}</div></div>
+          <div className="user-info"><div className="user-name">{user.name}</div>
+            <div className="user-sub">{user.role === "student" ? t.grade(user.grade) : t.roles[user.role]}</div></div>
         </a>
       </div>
     </header>

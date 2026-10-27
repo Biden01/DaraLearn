@@ -341,3 +341,27 @@ h2 { letter-spacing: -.3px; }
   .header-right .lang { display: none; } /* язык меняется в «Настройках» */
   .search { min-width: 0; }
 }
+
+/* тьютор: этапы и проверка */
+.stages { display: flex; flex-direction: column; gap: 4px; }
+.stages span { font-size: 13px; padding: 6px 10px; border-radius: 8px; color: var(--muted); border: 1px solid var(--line); }
+.stages span.cur { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.stages span.done { color: var(--green); border-color: #bfe6d3; }
+.tutor-check { border-top: 1px solid var(--line); padding: 16px 18px; max-height: 60vh; overflow-y: auto; }
+
+/* учитель: тепловая карта и распределение */
+.heat { border-collapse: collapse; width: 100%; font-size: 13px; }
+.heat th, .heat td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.heat th { font-size: 11px; color: var(--muted); font-weight: 600; text-align: center; }
+.heat td:first-child { white-space: nowrap; font-weight: 600; }
+.heat select { border: 1px solid var(--line); border-radius: 7px; padding: 5px; font: inherit; font-size: 13px; }
+.cell { display: block; width: 18px; height: 18px; border-radius: 5px; margin: 0 auto; background: #e9edf2; }
+.cell.mastered { background: var(--green); }
+.cell.likely { background: #8fb3fb; }
+.cell.learning { background: var(--amber); }
+.cell.gap { background: var(--red); }
+.dist { display: flex; height: 16px; border-radius: 6px; overflow: hidden; background: #eef0f5; font-size: 10px; color: #fff; font-weight: 700; }
+.dist span { display: grid; place-items: center; min-width: 14px; }
+.d-mastered { background: var(--green); } .d-likely { background: #8fb3fb; } .d-learning { background: var(--amber); }
+.d-gap { background: var(--red); } .d-unknown { background: #d6dae2; color: #555 !important; }
+.dot.unknown { background: #d6dae2; }

@@ -15,13 +15,16 @@ export default function Tutor() {
   const body = useRef();
   const tp = t.tutor;
   const wanted = route.query.get("lesson");
+  const wantedRec = route.query.get("rec");
+  const [check, setCheck] = useState(null); // этапы 7–9: {tasks, answers, result}
 
   useEffect(() => {
     api("/tutor/status").then(setStatus).catch(() => {});
     api("/content/courses?subject=math").then((cs) => setLessons(cs.flatMap((c) => c.lessons))).catch(() => {});
     api("/tutor/sessions/current").then((s) => {
       // новая тема из ссылки — новый диалог
-      if (!s || (wanted && s.lesson?.slug !== wanted)) return newSession(wanted);
+      if (!s || s.finished || (wanted && s.lesson?.slug !== wanted)) return newSession(wanted);
+      if (s.stage >= 7) api(`/tutor/sessions/${s.id}/check`).then((c) => setCheck({ tasks: c.tasks, answers: {} })).catch(() => {});
       setSession(s);
     }).catch(() => newSession(wanted));
   }, []);
@@ -30,7 +33,30 @@ export default function Tutor() {
 
   async function newSession(lesson) {
     setPicking(false);
-    try { setSession(await api("/tutor/sessions", { method: "POST", body: { lesson: lesson || null } })); } catch { toast(t.error); }
+    setCheck(null);
+    const rec = lesson && lesson === wanted && wantedRec ? Number(wantedRec) : null;
+    try { setSession(await api("/tutor/sessions", { method: "POST", body: { lesson: lesson || null, recommendation_id: rec } })); } catch { toast(t.error); }
+  }
+
+  async function nextStage() {
+    try { setSession(await api(`/tutor/sessions/${session.id}/stage`, { method: "POST", body: { stage: Math.min(6, session.stage + 1) } })); }
+    catch { toast(t.error); }
+  }
+
+  async function startCheck() {
+    try {
+      const c = await api(`/tutor/sessions/${session.id}/check`);
+      setSession((s) => ({ ...s, ...c.session, messages: s.messages }));
+      setCheck({ tasks: c.tasks, answers: {} });
+    } catch { toast(t.error); }
+  }
+
+  async function finishCheck() {
+    try {
+      const r = await api(`/tutor/sessions/${session.id}/check`, { method: "POST", body: { answers: check.answers } });
+      setSession((s) => ({ ...s, ...r.session, messages: s.messages }));
+      setCheck((c) => ({ ...c, result: r }));
+    } catch { toast(t.error); }
   }
 
   async function send(msg) {
@@ -54,6 +80,8 @@ export default function Tutor() {
   }
 
   const cur = session?.lesson ? lessons.find((l) => l.slug === session.lesson.slug) : null;
+  const sg = t.stages;
+  const locked = !session || session.stage >= 7 || session.finished;
   return (
     <>
       <Crumb items={[[t.nav.tutor]]} />
@@ -80,16 +108,67 @@ export default function Tutor() {
             ))}
             {busy && <div className="msg bot"><div className="avatar" style={{ width: 32, height: 32, background: "var(--accent-soft)", color: "var(--accent)" }}><Icon n="bot" s={18} /></div><div className="bubble muted">{tp.thinking}</div></div>}
           </div>
-          <form className="chat-input" onSubmit={(e) => { e.preventDefault(); send(text); }}>
-            <input value={text} onChange={(e) => setText(e.target.value)} placeholder={tp.placeholder} maxLength={2000} aria-label={tp.placeholder} />
-            <button className="btn" aria-label={tp.send} disabled={busy || !text.trim()}><Icon n="send" s={18} /></button>
-          </form>
+          {check ? (
+            <div className="tutor-check">
+              <p className="card-title" style={{ marginBottom: 10 }}><Icon n="lock" s={16} /> {sg.checkTitle}</p>
+              {check.tasks.map((task, i) => {
+                const res = check.result?.results.find((x) => x.task_id === task.id);
+                return (
+                  <div className="task" key={task.id}>
+                    <div className="q">{i + 7}. {L(task.question)}</div>
+                    <div className="opts">
+                      {task.options.map((o, j) => (
+                        <button key={j} disabled={!!check.result}
+                          className={res ? (j === res.answer ? "right" : j === res.choice ? "wrong" : "") : check.answers[task.id] === j ? "right" : ""}
+                          onClick={() => setCheck((c) => ({ ...c, answers: { ...c.answers, [task.id]: j } }))}>{L(o)}</button>
+                      ))}
+                    </div>
+                    {res && !res.correct && <div className="feedback">{L(res.explanation)}</div>}
+                  </div>
+                );
+              })}
+              {check.result ? (
+                <div className="row between wrap">
+                  <b className={check.result.session.result === "passed" ? "st-mastered" : "st-gap"}>
+                    {check.result.session.result === "passed" ? sg.passed : sg.failed}</b>
+                  <button className="btn sm" onClick={() => newSession(session.lesson?.slug)}>{sg.newSession}</button>
+                </div>
+              ) : <button className="btn" disabled={Object.keys(check.answers).length < check.tasks.length} onClick={finishCheck}>{sg.submit}</button>}
+            </div>
+          ) : (
+            <form className="chat-input" onSubmit={(e) => { e.preventDefault(); send(text); }}>
+              <input value={text} onChange={(e) => setText(e.target.value)} placeholder={tp.placeholder} maxLength={2000} aria-label={tp.placeholder} disabled={locked} />
+              <button className="btn" aria-label={tp.send} disabled={busy || !text.trim() || locked}><Icon n="send" s={18} /></button>
+            </form>
+          )}
           <div className="row between small muted" style={{ padding: "0 18px 14px" }}>
             <span>{status && !status.enabled ? tp.off : status ? tp.left(status.remaining) : ""}</span>
             <button className="link" onClick={() => newSession(session?.lesson?.slug)}>{tp.newChat}</button>
           </div>
         </div>
         <div className="stack">
+          {session?.lesson && (
+            <div className="card">
+              <p className="card-title" style={{ marginBottom: 12 }}>{sg.title}</p>
+              {sg.groups.map((g, gi) => (
+                <div key={g} style={{ marginBottom: 10 }}>
+                  <div className="muted small" style={{ marginBottom: 6 }}>{g}</div>
+                  <div className="stages">
+                    {sg.names.slice(gi * 3, gi * 3 + 3).map((n, k) => {
+                      const st = gi * 3 + k + 1;
+                      return <span key={n} className={st < session.stage || session.finished ? "done" : st === session.stage ? "cur" : ""} title={n}>{st}. {n}</span>;
+                    })}
+                  </div>
+                </div>
+              ))}
+              {!locked && (
+                <div className="row wrap" style={{ marginTop: 8 }}>
+                  {session.stage < 6 && <button className="btn sm ghost" onClick={nextStage}>{sg.next}</button>}
+                  <button className="btn sm" onClick={startCheck}>{sg.toCheck}</button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="card">
             <div className="card-head"><p className="card-title">{tp.context}</p><button className="link" onClick={() => setPicking(!picking)}>{tp.change}</button></div>
             <div className="row"><Box sym="√x" /><div><div className="t-strong">{cur ? L(cur.title) : tp.free}</div><div className="muted small">Математика · {t.grade(user.grade)}</div></div></div>

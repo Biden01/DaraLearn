@@ -24,3 +24,30 @@ export async function api(path, { method = "GET", body } = {}) {
   }
   return data;
 }
+
+// Загрузка файла (multipart). blob=true — ответ файлом (например, Excel с логинами).
+export async function upload(path, file, { blob = false } = {}) {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`/api${path}`, { method: "POST", body: fd, credentials: "same-origin" });
+  if (!res.ok) {
+    let code = null;
+    try { code = (await res.json()).detail; } catch { /* */ }
+    throw new ApiError(res.status, typeof code === "string" ? code : null);
+  }
+  return blob ? res.blob() : res.json();
+}
+
+export function saveBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+export async function download(path, name) {
+  const res = await fetch(`/api${path}`, { credentials: "same-origin" });
+  if (!res.ok) throw new ApiError(res.status, null);
+  saveBlob(await res.blob(), name);
+}
