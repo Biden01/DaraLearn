@@ -7,7 +7,11 @@ export default function Quiz() {
   const { t, L, route, startTest } = useApp();
   const [courses, setCourses] = useState([]);
   const [lesson, setLesson] = useState(route.query.get("lesson") || "");
-  useEffect(() => { api("/content/courses?subject=math").then(setCourses).catch(() => {}); }, []);
+  const [checks, setChecks] = useState([]);
+  useEffect(() => {
+    api("/content/courses?subject=math").then(setCourses).catch(() => {});
+    api("/verification/checks").then(setChecks).catch(() => {});
+  }, []);
   const q = t.quiz;
   return (
     <>
@@ -16,6 +20,20 @@ export default function Quiz() {
       <p className="subtitle">{q.sub}</p>
       <div className="grid g-main">
         <div className="stack">
+          {checks.length > 0 && (
+            <div className="card" style={{ borderColor: "var(--amber)" }}>
+              <p className="card-title" style={{ marginBottom: 6 }}>{t.me.checksTitle}</p>
+              <p className="muted small" style={{ marginTop: 0 }}>{t.me.checksText}</p>
+              {checks.map((c) => (
+                <div className="list-item" key={c.id}>
+                  <Box icon="clock" c="orange" size={36} />
+                  <div className="grow"><div className="t-strong">{L(c.lesson.title)}</div>
+                    <div className="muted small">{new Date(c.due_at).toLocaleDateString()}</div></div>
+                  <button className="btn sm" disabled={!c.due} onClick={() => startTest({ kind: "verification", check_id: c.id })}>{t.me.checkBtn}</button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="card">
             <p className="card-title" style={{ marginBottom: 6 }}>{q.choose}</p>
             <p className="muted" style={{ marginTop: 0 }}>{q.chooseText}</p>

@@ -50,6 +50,7 @@ export default function Gaps() {
                     <div className="grow" style={{ minWidth: 180 }}>
                       <div className="t-strong">{L(r.title)}</div>
                       <div className="muted small">{t.causes[r.cause]}{r.action === "prereq" ? ` → ${L(r.target_title)}` : ""}</div>
+                      {["accepted", "changed"].includes(r.status) && <div className="small st-mastered">{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>}
                       <div style={{ marginTop: 8, maxWidth: 260 }}><Bar p={r.proof * 100} /></div>
                     </div>
                     <b style={{ width: 44, textAlign: "right" }}>{Math.round(r.proof * 100)}%</b>
@@ -64,7 +65,7 @@ export default function Gaps() {
                   <p className="muted small" style={{ marginTop: -8 }}>{t.causeHelp.not_enough}</p>
                   {verify.map((r) => (
                     <div className="list-item" key={r.lesson}>
-                      <span className={`dot ${r.status}`} /><span className="grow t-strong">{L(r.title)}</span>
+                      <span className={`dot ${r.skill_status || r.status}`} /><span className="grow t-strong">{L(r.title)}</span>
                       <a href={actionHref(r)} className="btn sm ghost">{t.actions[r.action][0]}</a>
                     </div>
                   ))}

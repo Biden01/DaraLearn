@@ -58,7 +58,7 @@ export default function Result() {
             <p className="card-title" style={{ marginBottom: 12 }}>{q.nextSteps}</p>
             {recs.length ? recs.map((r) => (
               <div className="list-item" key={r.lesson} style={{ alignItems: "flex-start" }}>
-                <span className={`dot ${r.status}`} style={{ marginTop: 5 }} />
+                <span className={`dot ${r.skill_status || r.status}`} style={{ marginTop: 5 }} />
                 <div className="grow">
                   <div className="t-strong small">{L(r.title)}</div>
                   <div className="muted small">{t.causes[r.cause]}{r.action === "prereq" ? ` → ${L(r.target_title)}` : ""}</div>

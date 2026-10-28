@@ -14,15 +14,15 @@ export default function Auth() {
     setBusy(true);
     setErr("");
     const f = Object.fromEntries(new FormData(e.target));
-    const body = mode === "login" ? { email: f.email, password: f.password }
-      : { email: f.email, password: f.password, name: f.name, grade: Number(f.grade), lang };
+    const body = mode === "login" ? { login: f.email, password: f.password }
+      : { email: f.email, password: f.password, name: f.name, grade: Number(f.grade), lang, code: f.code || "" };
     try {
       const u = await api(`/auth/${mode}`, { method: "POST", body });
       setUser(u);
       setLang(u.lang);
-      window.location.hash = mode === "register" ? "#/diagnostics" : "#/";
+      window.location.hash = mode === "register" && u.role === "student" ? "#/diagnostics" : "#/";
     } catch (ex) {
-      setErr(a.errors[ex.code] || (ex.status === 422 ? a.errors.invalid : t.error));
+      setErr(ex.code === "invalid_code" ? t.me.badCode : a.errors[ex.code] || (ex.status === 422 ? a.errors.invalid : t.error));
     } finally {
       setBusy(false);
     }
@@ -54,12 +54,18 @@ export default function Auth() {
               </label>
             </div>
           )}
-          <label className="field">{a.email}<input name="email" type="email" required autoComplete="email" /></label>
+          <label className="field">{mode === "login" ? t.me.loginOrEmail : a.email}
+            <input name="email" type={mode === "login" ? "text" : "email"} required autoComplete={mode === "login" ? "username" : "email"} /></label>
           <label className="field">{a.password}
             <input name="password" type="password" required minLength={mode === "register" ? 8 : undefined}
               autoComplete={mode === "login" ? "current-password" : "new-password"} />
             {mode === "register" && <span className="small">{a.min8}</span>}
           </label>
+          {mode === "register" && (
+            <label className="field">{t.me.codeOpt}
+              <input name="code" maxLength={12} defaultValue={new URLSearchParams(window.location.hash.split("?")[1] || "").get("code") || ""}
+                style={{ textTransform: "uppercase", letterSpacing: 2 }} /></label>
+          )}
           {err && <p className="form-error" role="alert">{err}</p>}
           <button className="btn block" disabled={busy}>{mode === "login" ? a.login : a.register}</button>
           <p className="muted" style={{ textAlign: "center" }}>

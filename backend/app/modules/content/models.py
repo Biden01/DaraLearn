@@ -46,6 +46,7 @@ class Lesson(Base):
     examples: Mapped[list] = mapped_column(JSON)  # [{"q": str, "steps": [str], "note": {kk, ru}}]
     prereqs: Mapped[list] = mapped_column(JSON, default=list)  # slug'и базовых уроков
     order: Mapped[int] = mapped_column(Integer, default=0)
+    source: Mapped[str] = mapped_column(String(10), default="seed", server_default="seed")  # seed | admin
 
 
 class Task(Base):
@@ -59,3 +60,4 @@ class Task(Base):
     options: Mapped[list] = mapped_column(JSON)       # строка или {kk, ru}
     answer: Mapped[int] = mapped_column(Integer)
     explanation: Mapped[dict] = mapped_column(JSON)
+    source: Mapped[str] = mapped_column(String(10), default="seed", server_default="seed")  # seed | admin

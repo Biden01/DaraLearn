@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.modules.content.models import Lesson
 from app.modules.state.engine import SkillState
 from app.modules.tutor.models import TutorSession
+from app.modules.verification.models import Outcome
 
 TUTOR_LIMIT = 0.6        # ниже — занятие с AI Tutor
 SESSIONS_NO_GROWTH = 2   # столько сессий Tutor без роста → учитель
@@ -15,9 +16,16 @@ PRACTICE_OK = 0.7        # практика с подсказками получ
 
 
 def tutor_sessions_by_lesson(db: Session, user_id: int) -> dict[int, int]:
-    rows = db.execute(select(TutorSession.lesson_id, func.count()).where(TutorSession.user_id == user_id)
-                      .group_by(TutorSession.lesson_id)).all()
-    return {lid: n for lid, n in rows if lid}
+    """Сколько раз помощь по навыку не дала роста: проваленные сессии Tutor + Outcome «не помогло»."""
+    out: dict[int, int] = {}
+    rows = db.execute(select(TutorSession.lesson_id, func.count()).where(
+        TutorSession.user_id == user_id, TutorSession.result == "failed").group_by(TutorSession.lesson_id)).all()
+    rows += db.execute(select(Outcome.lesson_id, func.count()).where(
+        Outcome.user_id == user_id, Outcome.helped.is_(False)).group_by(Outcome.lesson_id)).all()
+    for lid, n in rows:
+        if lid:
+            out[lid] = out.get(lid, 0) + n
+    return out
 
 
 def decide(lessons: list[Lesson], states: dict[int, SkillState], tutor_counts: dict[int, int]) -> list[dict]:
@@ -38,12 +46,14 @@ def decide(lessons: list[Lesson], states: dict[int, SkillState], tutor_counts: d
         elif st == "gap":
             if s.n_practice >= 2 and s.practice >= PRACTICE_OK:
                 rec = dict(action="tutor", cause="strategy", priority=3)
-            elif tutor_counts.get(l.id, 0) >= SESSIONS_NO_GROWTH and not _growing(s):
+            elif tutor_counts.get(l.id, 0) >= SESSIONS_NO_GROWTH:
                 rec = dict(action="teacher", cause="topic", priority=3)
             else:
                 rec = dict(action="lesson", cause="topic", priority=3)
         elif st == "learning":
-            if s.indep < TUTOR_LIMIT:
+            if tutor_counts.get(l.id, 0) >= SESSIONS_NO_GROWTH:
+                rec = dict(action="teacher", cause="topic", priority=2)
+            elif s.indep < TUTOR_LIMIT:
                 rec = dict(action="tutor", cause="topic", priority=2)
             else:
                 rec = dict(action="practice", cause="not_enough", priority=1)
@@ -74,14 +84,6 @@ def _root_gap(lesson: Lesson, by_slug: dict[str, Lesson], states: dict[int, Skil
             found = found or cur
         frontier.extend(deeper)
     return found
-
-
-def _growing(s: SkillState) -> bool:
-    h = s.history
-    if len(h) < 4:
-        return False
-    half = len(h) // 2
-    return sum(h[half:]) / (len(h) - half) > sum(h[:half]) / half
 
 
 def next_step(lessons: list[Lesson], states: dict[int, SkillState], recs: list[dict]) -> dict:
