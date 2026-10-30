@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { STRINGS } from "./i18n.js";
 import { Ctx, Icon, pick, useApp } from "./ui.jsx";
+import { actionHref } from "./pages/actions.js";
 import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
 import Plan from "./pages/Plan.jsx";
@@ -86,7 +87,7 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(storedCollapsed);
-  const [alerts, setAlerts] = useState(0);
+  const [alerts, setAlerts] = useState([]);
   const toastTimer = useRef();
   const t = STRINGS[lang];
 
@@ -116,10 +117,10 @@ export default function App() {
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
-  // число важных рекомендаций для колокольчика
+  // важные рекомендации — уведомления колокольчика
   useEffect(() => {
     if (user?.role !== "student") return;
-    api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2).length)).catch(() => {});
+    api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2))).catch(() => {});
   }, [user, route.page]);
 
   const ctx = useMemo(() => ({
@@ -185,6 +186,62 @@ export default function App() {
   );
 }
 
+// Колокольчик: по нажатию — панель с полным текстом уведомлений платформы.
+function Bell({ alerts }) {
+  const { t, L } = useApp();
+  const [open, setOpen] = useState(false);
+  const box = useRef();
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    const onHash = () => setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("hashchange", onHash);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("hashchange", onHash);
+    };
+  }, [open]);
+  const n = alerts.length;
+  const badge = { 3: "red", 2: "orange", 1: "gray" };
+  return (
+    <div className="bell-wrap" ref={box}>
+      <button className="bell" aria-label={t.notif.title} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <Icon n="bell" s={22} />{n > 0 && <span className="bell-count">{n > 9 ? "9+" : n}</span>}
+      </button>
+      {open && (
+        <div className="bell-pop" role="dialog" aria-label={t.notif.title}>
+          <div className="bell-head"><b>{t.notif.title}</b><span className="muted small">{t.notif.from}</span></div>
+          <div className="bell-list">
+            {n ? alerts.map((r) => (
+              <div className="bell-item" key={r.id ?? r.lesson + r.action}>
+                <div className="row between" style={{ gap: 8, alignItems: "flex-start" }}>
+                  <div className="t-strong">{L(r.title)}</div>
+                  <span className={`badge ${badge[r.priority]}`}>{t.gaps.priority[r.priority]}</span>
+                </div>
+                <div className="muted small" style={{ marginTop: 4 }}>{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
+                  {r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}</div>
+                {t.causeHelp[r.cause] && <p className="small" style={{ margin: "8px 0 0", lineHeight: 1.45 }}>{t.causeHelp[r.cause]}</p>}
+                {["accepted", "changed"].includes(r.status) && (
+                  <div className="small st-mastered" style={{ marginTop: 6 }}>{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>
+                )}
+                <div className="row between" style={{ marginTop: 10, gap: 8 }}>
+                  <span className="muted small">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}</span>
+                  <a href={actionHref(r)} className="btn sm">{t.actions[r.action]?.[0] || t.open}</a>
+                </div>
+              </div>
+            )) : <p className="muted small" style={{ padding: 14, margin: 0 }}>{t.notif.empty}</p>}
+          </div>
+          <a href="#/gaps" className="bell-foot link">{t.notif.all}</a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Header({ alerts, onMenu, collapsed }) {
   const { t, lang, setLang, user, L } = useApp();
   const [q, setQ] = useState("");
@@ -245,9 +302,7 @@ function Header({ alerts, onMenu, collapsed }) {
           ))}
         </div>
         {user.role === "student" && (
-          <a href="#/gaps" className="bell" aria-label={t.nav.gaps}>
-            <Icon n="bell" s={22} />{alerts > 0 && <span className="bell-count">{alerts > 9 ? "9+" : alerts}</span>}
-          </a>
+          <Bell alerts={alerts} />
         )}
         <a href="#/settings" className="user">
           <div className="avatar">{(user.name || "?")[0].toUpperCase()}</div>
