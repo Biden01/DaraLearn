@@ -230,8 +230,8 @@ function Header({ alerts, onMenu }) {
           ))}
         </div>
         {user.role === "student" && (
-          <a href="#/gaps" className={`bell ${alerts ? "has" : ""}`} aria-label={t.nav.gaps}>
-            <Icon n="bell" s={22} />{alerts > 0 && <span className="bell-count">{alerts}</span>}
+          <a href="#/gaps" className="bell" aria-label={t.nav.gaps}>
+            <Icon n="bell" s={22} />{alerts > 0 && <span className="bell-count">{alerts > 9 ? "9+" : alerts}</span>}
           </a>
         )}
         <a href="#/settings" className="user">
