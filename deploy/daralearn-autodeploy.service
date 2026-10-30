@@ -1,0 +1,9 @@
+[Unit]
+Description=DaraLearn autodeploy (git pull + deploy.sh)
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=era
+ExecStart=/home/era/daralearn/deploy/autodeploy.sh
