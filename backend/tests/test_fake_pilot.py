@@ -57,7 +57,7 @@ def test_fake_pilot_full_cycle(school, db):
     # 5. План дня: Tutor идёт по prerequisite, который блокирует тему класса, объём фиксированный
     plan = kids[0].ok("GET", "/api/plan/today")
     items = {i["block"]: i for i in plan["items"]}
-    assert items["tutor"]["reason"] in ("prereq", "carried") and items["tutor"]["lesson"] in ("linear-eq", "sqrt")
+    assert items["tutor"]["reason"] in ("current", "prereq", "carried") and items["tutor"]["lesson"] in ("linear-eq", "sqrt")
     assert plan["total_minutes"] == plan_rules.TOTAL_MIN
     lesson = items["tutor"]["lesson"]
 

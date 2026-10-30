@@ -38,7 +38,8 @@ export default function Home() {
         <div className="card row wrap" style={{ marginBottom: 20, gap: 16 }}>
           <Box icon="clip" c="orange" />
           <div className="grow"><div className="card-title">{t.plan.title}</div>
-            <div className="muted small">{t.plan.done(plan.done_minutes, plan.total_minutes)}</div></div>
+            <div className="muted small">{t.plan.done(plan.done_minutes, plan.total_minutes)}
+              {plan.goal?.total > 0 && ` · ${t.plan.goalDone(plan.goal.done, plan.goal.total)}`}</div></div>
           <a className="btn" href="#/plan">{t.open}</a>
         </div>
       )}

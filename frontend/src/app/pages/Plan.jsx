@@ -3,9 +3,15 @@ import { api } from "../api.js";
 import { Bar, Box, Icon, Loading, Ring, useApp } from "../ui.jsx";
 
 const ICON = { tutor: "bot", practice: "target", check: "lock" };
+export const TOPIC_DOT = { done: "mastered", learning: "learning", todo: "gap" };
+
+export function monthName(iso, lang) {
+  const m = new Date(`${iso}T00:00:00`).toLocaleString(lang === "kk" ? "kk-KZ" : "ru-RU", { month: "long" });
+  return lang === "kk" ? m.charAt(0).toUpperCase() + m.slice(1) : m;
+}
 
 export default function Plan() {
-  const { t, L, toast } = useApp();
+  const { t, L, lang, toast } = useApp();
   const [plan, setPlan] = useState(null);
   const p = t.plan;
   const load = () => api("/plan/today").then(setPlan).catch(() => setPlan(false));
@@ -17,6 +23,7 @@ export default function Plan() {
   const allDone = plan.items.length > 0 && plan.items.every((i) => i.status === "done");
   return (
     <>
+      {plan.goal && <Goal goal={plan.goal} today={plan.items.find((i) => i.block === "tutor")?.lesson} L={L} lang={lang} p={p} />}
       <h1>{p.title}</h1>
       <p className="subtitle">{p.sub(plan.total_minutes)}</p>
       <div className="card row wrap" style={{ gap: 22, marginBottom: 20 }}>
@@ -33,6 +40,32 @@ export default function Plan() {
         {plan.items.map((item) => <Block key={item.id} item={item} onChange={load} toast={toast} L={L} p={p} t={t} />)}
       </div>
     </>
+  );
+}
+
+// Цель месяца к ПҚС: ученик видит только её, темы и их состояние — без разбивки по неделям.
+function Goal({ goal, today, L, lang, p }) {
+  const pct = goal.total ? Math.round((100 * goal.done) / goal.total) : 0;
+  return (
+    <div className="card" style={{ marginBottom: 24 }}>
+      <div className="row wrap" style={{ gap: 22, marginBottom: 14 }}>
+        <Ring p={pct} size={72} />
+        <div className="grow" style={{ minWidth: 220 }}>
+          <h2 style={{ margin: "0 0 4px" }}>{p.goal(monthName(goal.month, lang))}</h2>
+          <p className="muted small" style={{ margin: "0 0 8px" }}>{p.goalSub}</p>
+          <div className="t-strong small">{goal.total && goal.done === goal.total ? p.goalAll : p.goalDone(goal.done, goal.total)}</div>
+        </div>
+      </div>
+      {goal.topics.length === 0 && <p className="muted small" style={{ margin: 0 }}>{p.goalEmpty}</p>}
+      {goal.topics.map((x) => (
+        <div className="list-item" key={x.lesson}>
+          <span className={`dot ${TOPIC_DOT[x.status]}`} />
+          <div className="grow small" style={{ fontWeight: 600 }}>{L(x.title)}</div>
+          {x.lesson === today && x.status !== "done" && <span className="badge orange">{p.today}</span>}
+          <span className={`small st-${TOPIC_DOT[x.status]}`}>{p.topic[x.status]}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 

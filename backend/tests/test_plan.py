@@ -3,7 +3,8 @@ from datetime import date, datetime, timedelta, timezone
 from app.modules.content.models import Lesson
 from app.modules.plan import rules
 from app.modules.plan.models import DailyPlan, PlanItem
-from app.modules.plan.service import needs_curator
+from app.modules.plan.service import build_plan, needs_curator, week_of
+from app.modules.school.models import User
 from tests.conftest import diagnostic, register
 
 
@@ -16,7 +17,7 @@ def test_plan_fixed_volume_and_idempotent():
     diagnostic(s, wrong={"sqrt", "brackets"})
     p = s.ok("GET", "/api/plan/today")
     items = _items(p)
-    assert p["total_minutes"] == rules.TOTAL_MIN and p["rules_version"] == rules.RULES_VERSION
+    assert p["total_minutes"] == rules.TOTAL_MIN
     assert sum(i["minutes"] for i in p["items"]) == rules.TOTAL_MIN
     assert {"tutor", "practice"} <= set(items)
     assert 3 <= len(items["practice"]["tasks"]) <= 5
@@ -29,9 +30,11 @@ def test_plan_tutor_goes_to_prerequisite_gap(school):
     t.ok("PUT", f"/api/plan/classes/{cls['id']}/topic", json={"course": "quadratic-equations"})
     kid = register(code=cls["code"])
     diagnostic(kid, wrong={"linear-eq", "qe-def", "discriminant"})
-    tutor = _items(kid.ok("GET", "/api/plan/today"))["tutor"]
-    # тема класса — квадратные уравнения, но её блокирует линейное уравнение
-    assert tutor["lesson"] == "linear-eq" and tutor["reason"] == "prereq"
+    p = kid.ok("GET", "/api/plan/today")
+    tutor = _items(p)["tutor"]
+    # тема класса — квадратные уравнения, но цель месяца ставит базу первой: линейное уравнение
+    assert p["goal"]["topics"][0]["lesson"] == "linear-eq"
+    assert tutor["lesson"] == "linear-eq" and tutor["reason"] in ("current", "prereq")
     overview = t.ok("GET", f"/api/plan/classes/{cls['id']}")
     assert overview["topic"]["course"] == "quadratic-equations" and overview["students"][0]["has_plan"]
 
@@ -92,3 +95,47 @@ def test_plan_answer_endpoint(db):
         first = c["tasks"][0]
         r = s.ok("POST", f"/api/plan/items/{c['id']}/answer", json={"task_id": first["id"], "choice": 0})
         assert r["correct"] is None and r["explanation"] is None
+
+
+def test_goal_topics_from_gaps_student_sees_no_weeks(school):
+    t, cls = school["teacher"], school["class"]
+    kid = register(code=cls["code"])
+    diagnostic(kid, wrong={"vieta", "sqrt", "word-problems", "brackets"})
+    goal = kid.ok("GET", "/api/plan/today")["goal"]
+    # базовые темы раньше зависимых, ученику — только цель, темы и их состояние
+    assert [x["lesson"] for x in goal["topics"]] == ["brackets", "sqrt", "word-problems", "vieta"]
+    assert goal["done"] == 0 and goal["total"] == 4
+    assert all(set(x) == {"lesson", "title", "status"} for x in goal["topics"])
+    assert "weeks" not in goal and "rules_version" not in goal
+    sid = kid.ok("GET", "/api/auth/me")["id"]
+    month = t.ok("GET", f"/api/plan/students/{sid}/month")["goal"]
+    assert [w["topics"] for w in month["weeks"]] == [["brackets"], ["sqrt"], ["word-problems"], ["vieta"]]
+    assert month["topics"][0]["start_status"] == "gap"
+    assert kid.get(f"/api/plan/students/{sid}/month").status_code == 403
+    assert t.ok("GET", f"/api/plan/classes/{cls['id']}")["students"][0]["goal"] == {"done": 0, "total": 4}
+
+
+def test_daily_plan_follows_week_of_goal(db):
+    s = register()
+    diagnostic(s, wrong={"vieta", "sqrt", "word-problems", "brackets"})
+    user = db.get(User, s.ok("GET", "/api/auth/me")["id"])
+    by_week = {}
+    for day in (date(2026, 11, 2), date(2026, 11, 9), date(2026, 11, 16), date(2026, 11, 24)):
+        plan = build_plan(db, user, day)
+        tutor = db.query(PlanItem).filter_by(plan_id=plan.id, block="tutor").one()
+        by_week[week_of(day)] = db.get(Lesson, tutor.lesson_id).slug
+    db.rollback()
+    assert by_week == {1: "brackets", 2: "sqrt", 3: "word-problems", 4: "vieta"}
+    assert week_of(date(2026, 11, 30)) == 4
+
+
+def test_teacher_rebuilds_goals_after_pqs(school):
+    t, cls = school["teacher"], school["class"]
+    kid = register(code=cls["code"])
+    diagnostic(kid, wrong={"sqrt"})
+    assert [x["lesson"] for x in kid.ok("GET", "/api/plan/today")["goal"]["topics"]] == ["sqrt"]
+    assert school["curator"].post(f"/api/plan/classes/{cls['id']}/goals/rebuild").status_code == 403
+    diagnostic(kid, wrong={"sqrt", "brackets"})  # новые результаты: появился ещё один пробел
+    assert [x["lesson"] for x in kid.ok("GET", "/api/plan/today")["goal"]["topics"]] == ["sqrt"]  # цель месяца не скачет сама
+    assert t.ok("POST", f"/api/plan/classes/{cls['id']}/goals/rebuild")["rebuilt"] == 1
+    assert [x["lesson"] for x in kid.ok("GET", "/api/plan/today")["goal"]["topics"]] == ["brackets", "sqrt"]

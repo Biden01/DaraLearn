@@ -1,4 +1,7 @@
-"""Ежедневный план ученика: занятие с Tutor, закрепление, мини-проверка. Объём фиксирован (rules.py)."""
+"""План ученика от цели месяца к ПҚС: месяц → 4 недели по непокрытым темам → план на день.
+
+План на день: занятие с Tutor, закрепление, мини-проверка. Объём фиксирован (rules.py).
+"""
 from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
@@ -9,7 +12,7 @@ from app.modules.content.service import lessons_of, subject_by_slug
 from app.modules.decisions.engine import _root_gap
 from app.modules.events.models import LearningEvent
 from app.modules.plan import rules
-from app.modules.plan.models import ClassTopic, DailyPlan, PlanItem
+from app.modules.plan.models import ClassTopic, DailyPlan, GoalTopic, MonthlyGoal, PlanItem
 from app.modules.school.models import ClassMember, SchoolClass, User
 from app.modules.state.engine import SkillState, compute_states
 from app.modules.tutor.models import TutorSession
@@ -75,26 +78,94 @@ def _pick_course(db: Session, user: User, lessons: list[Lesson], states: dict[in
     return lessons[-1].course_id
 
 
-def build_plan(db: Session, user: User, day: date) -> DailyPlan:
-    """Собрать план на день. Повторный вызов возвращает уже собранный план."""
-    plan = db.scalar(select(DailyPlan).where(DailyPlan.user_id == user.id, DailyPlan.day == day))
-    if plan:
-        return plan
+def week_of(day: date) -> int:
+    """Неделя месяца 1–4: 1–7, 8–14, 15–21, с 22-го до конца месяца."""
+    return min(rules.WEEKS, (day.day - 1) // 7 + 1)
+
+
+def _subject_lessons(db: Session, user: User) -> list[Lesson]:
     cls = student_class(db, user.id)
-    subject = subject_by_slug(db, cls.subject if cls else "math")
-    lessons = lessons_of(db, subject.id)
+    return lessons_of(db, subject_by_slug(db, cls.subject if cls else "math").id)
+
+
+def build_goal(db: Session, user: User, day: date) -> MonthlyGoal:
+    """Цель месяца: темы с пробелом или ещё не закреплённые (в том числе по ПҚС), в порядке программы —
+    базовые раньше зависимых. Делятся поровну на 4 недели. Нет таких тем — берём неосвоенные уроки темы класса."""
+    month = day.replace(day=1)
+    goal = db.scalar(select(MonthlyGoal).where(MonthlyGoal.user_id == user.id, MonthlyGoal.month == month))
+    if goal:
+        return goal
+    lessons = _subject_lessons(db, user)
     states = compute_states(db, user.id)
-    by_id = {l.id: l for l in lessons}
-    by_slug = {l.slug: l for l in lessons}
-    carried = _carried_lessons(db, user.id, day)
-    course_id = _pick_course(db, user, lessons, states, day)
-    topic_lessons = [l for l in lessons if l.course_id == course_id]
 
     def st(l: Lesson) -> SkillState:
         return states.get(l.id, SkillState())
 
-    # 1. Занятие с Tutor: первый не освоенный урок темы; если его блокирует prerequisite — занимаемся им.
-    target = next((l for l in topic_lessons if st(l).status != "mastered"), None) or min(topic_lessons, key=lambda l: st(l).indep)
+    picked = [l for l in lessons if st(l).status in ("gap", "learning")][:rules.GOAL_TOPICS]
+    if not picked and lessons:
+        course_id = _pick_course(db, user, lessons, states, day)
+        picked = [l for l in lessons if l.course_id == course_id and st(l).status != "mastered"][:rules.GOAL_TOPICS]
+    goal = MonthlyGoal(user_id=user.id, month=month, rules_version=rules.RULES_VERSION)
+    db.add(goal)
+    db.flush()
+    n = len(picked)
+    db.add_all([GoalTopic(goal_id=goal.id, lesson_id=l.id, week=i * rules.WEEKS // n + 1 if n >= rules.WEEKS else i + 1,
+                          order=i, start_status=st(l).status, start_proof=round(st(l).indep, 2))
+                for i, l in enumerate(picked)])
+    db.flush()
+    return goal
+
+
+def goal_topics(db: Session, goal: MonthlyGoal) -> list[GoalTopic]:
+    return list(db.scalars(select(GoalTopic).where(GoalTopic.goal_id == goal.id).order_by(GoalTopic.order)))
+
+
+def rebuild_goal(db: Session, user: User, day: date) -> MonthlyGoal:
+    """Собрать цель месяца заново (например, после загрузки новых результатов ПҚС).
+    Начатый план на сегодня не трогаем, не начатый пересоберётся от новой цели."""
+    month = day.replace(day=1)
+    old = db.scalar(select(MonthlyGoal).where(MonthlyGoal.user_id == user.id, MonthlyGoal.month == month))
+    if old:
+        db.delete(old)
+        db.flush()
+    plan = db.scalar(select(DailyPlan).where(DailyPlan.user_id == user.id, DailyPlan.day == day))
+    if plan and not any(i.status == "done" for i in refresh_progress(db, plan)):
+        db.delete(plan)
+        db.flush()
+    return build_goal(db, user, day)
+
+
+def build_plan(db: Session, user: User, day: date) -> DailyPlan:
+    """Собрать план на день от цели месяца. Повторный вызов возвращает уже собранный план."""
+    plan = db.scalar(select(DailyPlan).where(DailyPlan.user_id == user.id, DailyPlan.day == day))
+    if plan:
+        return plan
+    lessons = _subject_lessons(db, user)
+    states = compute_states(db, user.id)
+    by_id = {l.id: l for l in lessons}
+    by_slug = {l.slug: l for l in lessons}
+    carried = _carried_lessons(db, user.id, day)
+    topics = [t for t in goal_topics(db, build_goal(db, user, day)) if t.lesson_id in by_id]
+    goal_ids = {t.lesson_id for t in topics}
+
+    def st(l: Lesson) -> SkillState:
+        return states.get(l.id, SkillState())
+
+    # 1. Занятие с Tutor: тема цели на эту неделю; закрыты — оставшиеся с прошлых недель, потом следующие.
+    #    Вся цель освоена — повторяем самую слабую её тему. Если тему блокирует prerequisite — занимаемся им.
+    week = week_of(day)
+    open_ = [t for t in topics if st(by_id[t.lesson_id]).status != "mastered"]
+    queue = ([t for t in open_ if t.week == week] + [t for t in open_ if t.week < week]
+             + [t for t in open_ if t.week > week])
+    if queue:
+        target = by_id[queue[0].lesson_id]
+    elif topics:
+        target = min((by_id[t.lesson_id] for t in topics), key=lambda l: st(l).indep)
+    else:
+        course_id = _pick_course(db, user, lessons, states, day)
+        topic_lessons = [l for l in lessons if l.course_id == course_id]
+        target = next((l for l in topic_lessons if st(l).status != "mastered"), None) \
+            or min(topic_lessons, key=lambda l: st(l).indep)
     root = _root_gap(target, by_slug, states)
     tutor_lesson, tutor_reason = (root, "prereq") if root else (target, "current")
     if tutor_lesson.id in carried:
@@ -106,10 +177,10 @@ def build_plan(db: Session, user: User, day: date) -> DailyPlan:
     items = [PlanItem(plan_id=plan.id, block="tutor", lesson_id=tutor_lesson.id, reason=tutor_reason,
                       minutes=rules.TUTOR_MIN, task_ids=[], order=0)]
 
-    # 2. Закрепление: текущая тема + самые слабые пройденные навыки (пропущенное вчера — первым).
+    # 2. Закрепление: тема дня + самые слабые навыки, сначала из цели месяца (пропущенное вчера — первым).
     weak = [l for l in lessons if l.id != target.id and l.id != tutor_lesson.id
             and st(l).n_indep + st(l).n_practice > 0 and st(l).status in ("gap", "learning")]
-    weak.sort(key=lambda l: (l.id not in carried, st(l).indep - (0.1 if _dropping(st(l)) else 0)))
+    weak.sort(key=lambda l: (l.id not in goal_ids, l.id not in carried, st(l).indep - (0.1 if _dropping(st(l)) else 0)))
     weak = weak[:rules.WEAK_SKILLS]
     taken: set[int] = set()
     quotas = [(target, max(rules.PRACTICE_TASKS - len(weak), 2) if weak else rules.PRACTICE_TASKS, "current")]
@@ -127,13 +198,13 @@ def build_plan(db: Session, user: User, day: date) -> DailyPlan:
         items.append(PlanItem(plan_id=plan.id, block="practice", lesson_id=target.id, reason="current",
                               minutes=rules.PRACTICE_MIN, task_ids=practice_ids, order=1))
 
-    # 3. Мини-проверка: навык, который дольше всех не проверяли после помощи.
+    # 3. Мини-проверка: навык, который дольше всех не проверяли после помощи; темы цели — первыми.
     helped = {tid for tid in db.scalars(select(Check.lesson_id).where(Check.user_id == user.id))}
     helped |= {l.id for l in lessons if st(l).n_practice}
     helped |= set(db.scalars(select(TutorSession.lesson_id).where(TutorSession.user_id == user.id,
                                                                     TutorSession.lesson_id.is_not(None))))
     pool = [by_id[i] for i in helped if i in by_id] or [l for l in lessons if st(l).n_indep]
-    pool.sort(key=lambda l: st(l).last_check or datetime.min.replace(tzinfo=timezone.utc))
+    pool.sort(key=lambda l: (l.id not in goal_ids, st(l).last_check or datetime.min.replace(tzinfo=timezone.utc)))
     for l in pool:
         ids = _unseen_tasks(db, user.id, l.id, "verification", rules.CHECK_TASKS, set())
         if ids:

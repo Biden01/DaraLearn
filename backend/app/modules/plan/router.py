@@ -1,4 +1,4 @@
-"""Ежедневный план ученика и тема класса."""
+"""План ученика: цель месяца к ПҚС, недели (видны только учителю и куратору), план на день; тема класса."""
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,10 +14,12 @@ from app.modules.decisions.models import AuditLog
 from app.modules.plan import rules
 from app.modules.decisions.service import sync_student
 from app.modules.events.models import LearningEvent
-from app.modules.plan.models import DailyPlan, PlanItem
-from app.modules.plan.service import build_plan, current_topic, refresh_progress, set_topic
-from app.modules.school.access import class_students, get_class
+from app.modules.plan.models import DailyPlan, MonthlyGoal, PlanItem
+from app.modules.plan.service import (build_goal, build_plan, current_topic, goal_topics, rebuild_goal,
+                                      refresh_progress, set_topic, week_of)
+from app.modules.school.access import class_students, get_class, get_student
 from app.modules.school.models import User
+from app.modules.state.engine import SkillState, compute_states
 from app.modules.verification.service import schedule_check
 
 router = APIRouter(prefix="/plan", tags=["plan"])
@@ -38,7 +40,7 @@ def plan_out(db: Session, plan: DailyPlan) -> dict:
         LearningEvent.user_id == plan.user_id, LearningEvent.created_at >= plan.created_at,
         LearningEvent.task_id.in_(list(tasks) or [-1]))))
     return {
-        "id": plan.id, "day": plan.day.isoformat(), "rules_version": plan.rules_version, "total_minutes": plan.total_minutes,
+        "id": plan.id, "day": plan.day.isoformat(), "total_minutes": plan.total_minutes,
         "done_minutes": done_min, "rate": round(sum(i.status == "done" for i in items) / len(items), 2) if items else 0,
         "items": [{"id": i.id, "block": i.block, "reason": i.reason, "minutes": i.minutes, "status": i.status,
                    "lesson": lessons[i.lesson_id].slug, "title": lessons[i.lesson_id].title,
@@ -47,11 +49,75 @@ def plan_out(db: Session, plan: DailyPlan) -> dict:
     }
 
 
+def topic_status(s: SkillState) -> str:
+    """Для ученика три состояния: закрыта / в работе / впереди."""
+    return "done" if s.status == "mastered" else "learning" if s.status in ("learning", "likely") else "todo"
+
+
+def goal_out(db: Session, goal: MonthlyGoal, staff: bool = False) -> dict:
+    """Ученику — цель и список тем. Учителю и куратору — ещё недели, состояние на старте и выполнение планов по неделям."""
+    topics = goal_topics(db, goal)
+    lessons = {l.id: l for l in db.scalars(select(Lesson).where(Lesson.id.in_([t.lesson_id for t in topics] or [-1])))}
+    topics = [t for t in topics if t.lesson_id in lessons]
+    states = compute_states(db, goal.user_id)
+    rows = []
+    for t in topics:
+        s = states.get(t.lesson_id, SkillState())
+        row = {"lesson": lessons[t.lesson_id].slug, "title": lessons[t.lesson_id].title, "status": topic_status(s)}
+        if staff:
+            row |= {"week": t.week, "start_status": t.start_status, "start_proof": t.start_proof, "proof": round(s.indep, 2)}
+        rows.append(row)
+    out = {"month": goal.month.isoformat(), "total": len(rows), "done": sum(r["status"] == "done" for r in rows), "topics": rows}
+    if staff:
+        plans = list(db.scalars(select(DailyPlan).where(DailyPlan.user_id == goal.user_id, DailyPlan.day >= goal.month,
+                                                        DailyPlan.day < _next_month(goal.month))))
+        weeks = []
+        for w in range(1, rules.WEEKS + 1):
+            items = [i for p in plans if week_of(p.day) == w for i in refresh_progress(db, p)]
+            weeks.append({"week": w, "topics": [r["lesson"] for r in rows if r["week"] == w], "days": sum(week_of(p.day) == w for p in plans),
+                          "rate": round(sum(i.status == "done" for i in items) / len(items), 2) if items else None})
+        out |= {"rules_version": goal.rules_version, "current_week": week_of(today_local()) if goal.month == today_local().replace(day=1) else None,
+                "weeks": weeks}
+    return out
+
+
+def _next_month(m: date) -> date:
+    return (m.replace(day=28) + timedelta(days=4)).replace(day=1)
+
+
 @router.get("/today")
 def today(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
-    out = plan_out(db, build_plan(db, user, today_local()))
+    """Ученику: цель месяца, темы для повторения и план на сегодня. Разбивка по неделям сюда не входит."""
+    day = today_local()
+    plan = build_plan(db, user, day)
+    out = plan_out(db, plan) | {"goal": goal_out(db, build_goal(db, user, day))}
     db.commit()
     return out
+
+
+@router.get("/students/{student_id}/month")
+def student_month(student_id: int, user: User = Depends(require_role("teacher", "curator")),
+                  db: Session = Depends(get_db)) -> dict:
+    """Цель месяца ученика с разбивкой по неделям. Пока ученик не открыл план в этом месяце, цели нет."""
+    s = get_student(db, user, student_id)
+    goal = db.scalar(select(MonthlyGoal).where(MonthlyGoal.user_id == s.id, MonthlyGoal.month == today_local().replace(day=1)))
+    out = {"goal": goal_out(db, goal, staff=True) if goal else None}
+    db.commit()
+    return out
+
+
+@router.post("/classes/{class_id}/goals/rebuild")
+def rebuild_goals(class_id: int, user: User = Depends(require_role("teacher")), db: Session = Depends(get_db)) -> dict:
+    """Пересобрать цели месяца класса по свежим результатам (после загрузки ПҚС)."""
+    c = get_class(db, user, class_id)
+    day = today_local()
+    students = class_students(db, c.id)
+    for s in students:
+        rebuild_goal(db, s, day)
+    db.add(AuditLog(actor_id=user.id, action="plan.goals_rebuild", entity="class", entity_id=c.id,
+                    data={"month": day.replace(day=1).isoformat(), "students": len(students)}))
+    db.commit()
+    return {"rebuilt": len(students)}
 
 
 class TopicIn(BaseModel):
@@ -62,7 +128,7 @@ class TopicIn(BaseModel):
 @router.get("/classes/{class_id}")
 def class_plan(class_id: int, user: User = Depends(require_role("teacher", "curator")),
                db: Session = Depends(get_db)) -> dict:
-    """Тема класса и выполнение сегодняшнего плана учениками."""
+    """Тема класса, цель месяца и выполнение сегодняшнего плана учениками."""
     c = get_class(db, user, class_id)
     day = today_local()
     topic = current_topic(db, c.id, day)
@@ -71,11 +137,14 @@ def class_plan(class_id: int, user: User = Depends(require_role("teacher", "cura
     for s in class_students(db, c.id):
         plan = db.scalar(select(DailyPlan).where(DailyPlan.user_id == s.id, DailyPlan.day == day))
         p = plan_out(db, plan) if plan else None
-        students.append({"id": s.id, "name": s.name, "has_plan": bool(p), "rate": p["rate"] if p else 0})
+        goal = db.scalar(select(MonthlyGoal).where(MonthlyGoal.user_id == s.id, MonthlyGoal.month == day.replace(day=1)))
+        g = goal_out(db, goal) if goal else None
+        students.append({"id": s.id, "name": s.name, "has_plan": bool(p), "rate": p["rate"] if p else 0,
+                         "goal": {"done": g["done"], "total": g["total"]} if g else None})
     db.commit()
     return {"day": day.isoformat(), "topic": {"course": course.slug, "title": course.title,
                                               "starts_on": topic.starts_on.isoformat()} if course else None,
-            "students": students, "minutes": rules.TOTAL_MIN}
+            "students": students, "minutes": rules.TOTAL_MIN, "week": week_of(day)}
 
 
 @router.put("/classes/{class_id}/topic")

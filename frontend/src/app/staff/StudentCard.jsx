@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Bar, Crumb, Loading, Ring, useApp } from "../ui.jsx";
 import RecItem from "./RecItem.jsx";
+import StudentMonth from "./StudentMonth.jsx";
 
 export default function StudentCard() {
   const { t, L, route } = useApp();
@@ -26,6 +27,7 @@ export default function StudentCard() {
         <div className="card"><div className="muted small">{s.outcomes}</div><div style={{ fontSize: 22, fontWeight: 700 }}>{d.outcomes.total ? `${d.outcomes.helped}/${d.outcomes.total}` : "—"}</div></div>
         <div className="card"><div className="muted small">{t.progress.accuracy}</div><div style={{ fontSize: 22, fontWeight: 700 }}>{d.stats.acc_this_week != null ? `${Math.round(d.stats.acc_this_week * 100)}%` : "—"}</div></div>
       </div>
+      <StudentMonth studentId={route.param} />
       <div className="grid g-main">
         <div className="card">
           <p className="card-title" style={{ marginBottom: 6 }}>{s.recs}</p>
