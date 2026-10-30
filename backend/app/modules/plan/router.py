@@ -15,8 +15,8 @@ from app.modules.plan import rules
 from app.modules.decisions.service import sync_student
 from app.modules.events.models import LearningEvent
 from app.modules.plan.models import DailyPlan, MonthlyGoal, PlanItem
-from app.modules.plan.service import (build_goal, build_plan, current_topic, goal_topics, rebuild_goal,
-                                      refresh_progress, set_topic, week_of)
+from app.modules.plan.service import (build_goal, build_plan, current_topic, goal_schedule, goal_topics, next_month,
+                                      rebuild_goal, refresh_progress, set_topic, week_of)
 from app.modules.school.access import class_students, get_class, get_student
 from app.modules.school.models import User
 from app.modules.state.engine import SkillState, compute_states
@@ -55,7 +55,8 @@ def topic_status(s: SkillState) -> str:
 
 
 def goal_out(db: Session, goal: MonthlyGoal, staff: bool = False) -> dict:
-    """Ученику — цель и список тем. Учителю и куратору — ещё недели, состояние на старте и выполнение планов по неделям."""
+    """Ученику — цель, список тем и темы по дням. Учителю и куратору — ещё недели, состояние на старте
+    и выполнение планов по неделям."""
     topics = goal_topics(db, goal)
     lessons = {l.id: l for l in db.scalars(select(Lesson).where(Lesson.id.in_([t.lesson_id for t in topics] or [-1])))}
     topics = [t for t in topics if t.lesson_id in lessons]
@@ -67,27 +68,37 @@ def goal_out(db: Session, goal: MonthlyGoal, staff: bool = False) -> dict:
         if staff:
             row |= {"week": t.week, "start_status": t.start_status, "start_proof": t.start_proof, "proof": round(s.indep, 2)}
         rows.append(row)
-    out = {"month": goal.month.isoformat(), "total": len(rows), "done": sum(r["status"] == "done" for r in rows), "topics": rows}
+    plans = list(db.scalars(select(DailyPlan).where(DailyPlan.user_id == goal.user_id, DailyPlan.day >= goal.month,
+                                                    DailyPlan.day < next_month(goal.month))))
+    by_day = {p.day: p for p in plans}
+    slugs = {t.lesson_id: lessons[t.lesson_id].slug for t in topics}
+    today = today_local()
+    days = []
+    for d, ids in goal_schedule(goal, topics).items():
+        p = by_day.get(d)
+        if d == today:
+            state = "today"
+        elif d > today:
+            state = "upcoming"
+        else:
+            state = "done" if p and all(i.status == "done" for i in refresh_progress(db, p)) else "missed"
+        days.append({"day": d.isoformat(), "topics": [slugs[i] for i in ids if i in slugs], "state": state})
+    out = {"month": goal.month.isoformat(), "total": len(rows), "done": sum(r["status"] == "done" for r in rows),
+           "topics": rows, "days": days}
     if staff:
-        plans = list(db.scalars(select(DailyPlan).where(DailyPlan.user_id == goal.user_id, DailyPlan.day >= goal.month,
-                                                        DailyPlan.day < _next_month(goal.month))))
         weeks = []
         for w in range(1, rules.WEEKS + 1):
             items = [i for p in plans if week_of(p.day) == w for i in refresh_progress(db, p)]
             weeks.append({"week": w, "topics": [r["lesson"] for r in rows if r["week"] == w], "days": sum(week_of(p.day) == w for p in plans),
                           "rate": round(sum(i.status == "done" for i in items) / len(items), 2) if items else None})
-        out |= {"rules_version": goal.rules_version, "current_week": week_of(today_local()) if goal.month == today_local().replace(day=1) else None,
+        out |= {"rules_version": goal.rules_version, "current_week": week_of(today) if goal.month == today.replace(day=1) else None,
                 "weeks": weeks}
     return out
 
 
-def _next_month(m: date) -> date:
-    return (m.replace(day=28) + timedelta(days=4)).replace(day=1)
-
-
 @router.get("/today")
 def today(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
-    """Ученику: цель месяца, темы для повторения и план на сегодня. Разбивка по неделям сюда не входит."""
+    """Ученику: цель месяца, темы для повторения, темы по дням и план на сегодня. Разбивка по неделям сюда не входит."""
     day = today_local()
     plan = build_plan(db, user, day)
     out = plan_out(db, plan) | {"goal": goal_out(db, build_goal(db, user, day))}

@@ -27,6 +27,7 @@ class MonthlyGoal(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     month: Mapped[date] = mapped_column(Date)  # первое число месяца
+    starts_on: Mapped[date | None] = mapped_column(Date, nullable=True)  # с какого дня расписание (собрана в середине месяца)
     rules_version: Mapped[str] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

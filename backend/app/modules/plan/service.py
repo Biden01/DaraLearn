@@ -1,4 +1,4 @@
-"""План ученика от цели месяца к ПҚС: месяц → 4 недели по непокрытым темам → план на день.
+"""План ученика от цели месяца к ПҚС: месяц → 4 недели по непокрытым темам → темы по дням → план на день.
 
 План на день: занятие с Tutor, закрепление, мини-проверка. Объём фиксирован (rules.py).
 """
@@ -83,6 +83,10 @@ def week_of(day: date) -> int:
     return min(rules.WEEKS, (day.day - 1) // 7 + 1)
 
 
+def next_month(m: date) -> date:
+    return (m.replace(day=28) + timedelta(days=4)).replace(day=1)
+
+
 def _subject_lessons(db: Session, user: User) -> list[Lesson]:
     cls = student_class(db, user.id)
     return lessons_of(db, subject_by_slug(db, cls.subject if cls else "math").id)
@@ -90,7 +94,8 @@ def _subject_lessons(db: Session, user: User) -> list[Lesson]:
 
 def build_goal(db: Session, user: User, day: date) -> MonthlyGoal:
     """Цель месяца: темы с пробелом или ещё не закреплённые (в том числе по ПҚС), в порядке программы —
-    базовые раньше зависимых. Делятся поровну на 4 недели. Нет таких тем — берём неосвоенные уроки темы класса."""
+    базовые раньше зависимых. Делятся поровну на оставшиеся недели месяца (собрана в середине месяца — прошедшие
+    недели пропускаем). Нет таких тем — берём неосвоенные уроки темы класса."""
     month = day.replace(day=1)
     goal = db.scalar(select(MonthlyGoal).where(MonthlyGoal.user_id == user.id, MonthlyGoal.month == month))
     if goal:
@@ -105,11 +110,12 @@ def build_goal(db: Session, user: User, day: date) -> MonthlyGoal:
     if not picked and lessons:
         course_id = _pick_course(db, user, lessons, states, day)
         picked = [l for l in lessons if l.course_id == course_id and st(l).status != "mastered"][:rules.GOAL_TOPICS]
-    goal = MonthlyGoal(user_id=user.id, month=month, rules_version=rules.RULES_VERSION)
+    goal = MonthlyGoal(user_id=user.id, month=month, starts_on=day, rules_version=rules.RULES_VERSION)
     db.add(goal)
     db.flush()
-    n = len(picked)
-    db.add_all([GoalTopic(goal_id=goal.id, lesson_id=l.id, week=i * rules.WEEKS // n + 1 if n >= rules.WEEKS else i + 1,
+    n, first = len(picked), week_of(day)
+    k = rules.WEEKS - first + 1
+    db.add_all([GoalTopic(goal_id=goal.id, lesson_id=l.id, week=first + (i * k // n if n >= k else i),
                           order=i, start_status=st(l).status, start_proof=round(st(l).indep, 2))
                 for i, l in enumerate(picked)])
     db.flush()
@@ -118,6 +124,26 @@ def build_goal(db: Session, user: User, day: date) -> MonthlyGoal:
 
 def goal_topics(db: Session, goal: MonthlyGoal) -> list[GoalTopic]:
     return list(db.scalars(select(GoalTopic).where(GoalTopic.goal_id == goal.id).order_by(GoalTopic.order)))
+
+
+def goal_schedule(goal: MonthlyGoal, topics: list[GoalTopic]) -> dict[date, list[int]]:
+    """Темы по дням: дни недели делятся между её темами подряд (первые темы получают лишний день).
+    Тем в неделе больше, чем дней, — в день по несколько. Неделя без тем — дни повторения (пустой список)."""
+    start, end = goal.starts_on or goal.month, next_month(goal.month)
+    days = [start + timedelta(days=i) for i in range((end - start).days)]
+    out: dict[date, list[int]] = {d: [] for d in days}
+    for w in range(1, rules.WEEKS + 1):
+        dw = [d for d in days if week_of(d) == w]
+        tw = [t.lesson_id for t in topics if t.week == w]
+        if not dw or not tw:
+            continue
+        if len(tw) <= len(dw):
+            for j, d in enumerate(dw):
+                out[d] = [tw[j * len(tw) // len(dw)]]
+        else:
+            for i, lid in enumerate(tw):
+                out[dw[i * len(dw) // len(tw)]].append(lid)
+    return out
 
 
 def rebuild_goal(db: Session, user: User, day: date) -> MonthlyGoal:
@@ -145,18 +171,21 @@ def build_plan(db: Session, user: User, day: date) -> DailyPlan:
     by_id = {l.id: l for l in lessons}
     by_slug = {l.slug: l for l in lessons}
     carried = _carried_lessons(db, user.id, day)
-    topics = [t for t in goal_topics(db, build_goal(db, user, day)) if t.lesson_id in by_id]
+    goal = build_goal(db, user, day)
+    topics = [t for t in goal_topics(db, goal) if t.lesson_id in by_id]
     goal_ids = {t.lesson_id for t in topics}
+    of_day = [i for i in goal_schedule(goal, topics).get(day, []) if i in by_id]
 
     def st(l: Lesson) -> SkillState:
         return states.get(l.id, SkillState())
 
-    # 1. Занятие с Tutor: тема цели на эту неделю; закрыты — оставшиеся с прошлых недель, потом следующие.
-    #    Вся цель освоена — повторяем самую слабую её тему. Если тему блокирует prerequisite — занимаемся им.
+    # 1. Занятие с Tutor: тема этого дня по расписанию; уже освоена — тема недели, потом оставшиеся с прошлых
+    #    недель, потом следующие. Вся цель освоена — повторяем самую слабую её тему.
+    #    Если тему блокирует prerequisite — занимаемся им.
     week = week_of(day)
     open_ = [t for t in topics if st(by_id[t.lesson_id]).status != "mastered"]
-    queue = ([t for t in open_ if t.week == week] + [t for t in open_ if t.week < week]
-             + [t for t in open_ if t.week > week])
+    queue = ([t for t in open_ if t.lesson_id in of_day] + [t for t in open_ if t.week == week]
+             + [t for t in open_ if t.week < week] + [t for t in open_ if t.week > week])
     if queue:
         target = by_id[queue[0].lesson_id]
     elif topics:
@@ -180,7 +209,7 @@ def build_plan(db: Session, user: User, day: date) -> DailyPlan:
     # 2. Закрепление: тема дня + самые слабые навыки, сначала из цели месяца (пропущенное вчера — первым).
     weak = [l for l in lessons if l.id != target.id and l.id != tutor_lesson.id
             and st(l).n_indep + st(l).n_practice > 0 and st(l).status in ("gap", "learning")]
-    weak.sort(key=lambda l: (l.id not in goal_ids, l.id not in carried, st(l).indep - (0.1 if _dropping(st(l)) else 0)))
+    weak.sort(key=lambda l: (l.id not in of_day, l.id not in goal_ids, l.id not in carried, st(l).indep - (0.1 if _dropping(st(l)) else 0)))
     weak = weak[:rules.WEAK_SKILLS]
     taken: set[int] = set()
     quotas = [(target, max(rules.PRACTICE_TASKS - len(weak), 2) if weak else rules.PRACTICE_TASKS, "current")]

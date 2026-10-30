@@ -3,7 +3,8 @@ from datetime import date, datetime, timedelta, timezone
 from app.modules.content.models import Lesson
 from app.modules.plan import rules
 from app.modules.plan.models import DailyPlan, PlanItem
-from app.modules.plan.service import build_plan, needs_curator, week_of
+from app.modules.plan.models import GoalTopic, MonthlyGoal
+from app.modules.plan.service import build_goal, build_plan, goal_schedule, goal_topics, needs_curator, week_of
 from app.modules.school.models import User
 from tests.conftest import diagnostic, register
 
@@ -97,7 +98,8 @@ def test_plan_answer_endpoint(db):
         assert r["correct"] is None and r["explanation"] is None
 
 
-def test_goal_topics_from_gaps_student_sees_no_weeks(school):
+def test_goal_topics_from_gaps_student_sees_no_weeks(school, monkeypatch):
+    monkeypatch.setattr("app.modules.plan.router.today_local", lambda: date(2026, 11, 2))
     t, cls = school["teacher"], school["class"]
     kid = register(code=cls["code"])
     diagnostic(kid, wrong={"vieta", "sqrt", "word-problems", "brackets"})
@@ -107,6 +109,12 @@ def test_goal_topics_from_gaps_student_sees_no_weeks(school):
     assert goal["done"] == 0 and goal["total"] == 4
     assert all(set(x) == {"lesson", "title", "status"} for x in goal["topics"])
     assert "weeks" not in goal and "rules_version" not in goal
+    # темы по дням: со 2-го по 7-е — скобки, неделя 2 — корень, ..., с 22-го до конца месяца — Виет
+    days = {d["day"]: d for d in goal["days"]}
+    assert goal["days"][0]["day"] == "2026-11-02" and len(goal["days"]) == 29
+    assert days["2026-11-02"] == {"day": "2026-11-02", "topics": ["brackets"], "state": "today"}
+    assert days["2026-11-10"]["topics"] == ["sqrt"] and days["2026-11-10"]["state"] == "upcoming"
+    assert days["2026-11-15"]["topics"] == ["word-problems"] and days["2026-11-30"]["topics"] == ["vieta"]
     sid = kid.ok("GET", "/api/auth/me")["id"]
     month = t.ok("GET", f"/api/plan/students/{sid}/month")["goal"]
     assert [w["topics"] for w in month["weeks"]] == [["brackets"], ["sqrt"], ["word-problems"], ["vieta"]]
@@ -139,3 +147,52 @@ def test_teacher_rebuilds_goals_after_pqs(school):
     assert [x["lesson"] for x in kid.ok("GET", "/api/plan/today")["goal"]["topics"]] == ["sqrt"]  # цель месяца не скачет сама
     assert t.ok("POST", f"/api/plan/classes/{cls['id']}/goals/rebuild")["rebuilt"] == 1
     assert [x["lesson"] for x in kid.ok("GET", "/api/plan/today")["goal"]["topics"]] == ["brackets", "sqrt"]
+
+
+def _goal(db, user, day, slugs):
+    """Цель с заданными темами в порядке программы (без диагностики)."""
+    lessons = {l.slug: l for l in db.query(Lesson)}
+    goal = MonthlyGoal(user_id=user.id, month=day.replace(day=1), starts_on=day, rules_version="t")
+    db.add(goal)
+    db.flush()
+    first = week_of(day)
+    k = rules.WEEKS - first + 1
+    n = len(slugs)
+    db.add_all([GoalTopic(goal_id=goal.id, lesson_id=lessons[x].id, week=first + (i * k // n if n >= k else i), order=i,
+                          start_status="gap", start_proof=0) for i, x in enumerate(slugs)])
+    db.flush()
+    by_id = {l.id: l.slug for l in lessons.values()}
+    return {d: [by_id[i] for i in ids] for d, ids in goal_schedule(goal, goal_topics(db, goal)).items()}
+
+
+def test_schedule_splits_week_days_between_topics(db):
+    s = register()
+    user = db.get(User, s.ok("GET", "/api/auth/me")["id"])
+    sched = _goal(db, user, date(2026, 11, 1), ["brackets", "fsu", "sqrt", "linear-eq", "qe-def", "discriminant",
+                                                "roots-formula", "vieta"])
+    db.rollback()
+    # неделя 1 (1–7): 7 дней на 2 темы — 4 дня первой, 3 второй; у каждого дня ровно одна тема
+    assert [sched[date(2026, 11, d)] for d in range(1, 8)] == [["brackets"]] * 4 + [["fsu"]] * 3
+    assert all(len(v) == 1 for v in sched.values()) and len(sched) == 30
+    # неделя 4 (22–30): 9 дней на 2 темы
+    assert [sched[date(2026, 11, d)][0] for d in (22, 26, 27, 30)] == ["roots-formula", "roots-formula", "vieta", "vieta"]
+
+
+def test_goal_built_mid_month_uses_remaining_weeks(db):
+    s = register()
+    diagnostic(s, wrong={"vieta", "sqrt", "word-problems", "brackets"})
+    user = db.get(User, s.ok("GET", "/api/auth/me")["id"])
+    goal = build_goal(db, user, date(2026, 12, 20))  # неделя 3: прошедшие недели пропускаем
+    weeks = [t.week for t in goal_topics(db, goal)]
+    sched = goal_schedule(goal, goal_topics(db, goal))
+    db.rollback()
+    assert weeks == [3, 3, 4, 4] and min(sched) == date(2026, 12, 20) and max(sched) == date(2026, 12, 31)
+    assert all(sched.values())
+
+
+def test_more_topics_than_days_share_a_day(db):
+    s = register()
+    user = db.get(User, s.ok("GET", "/api/auth/me")["id"])
+    sched = _goal(db, user, date(2026, 11, 29), ["brackets", "fsu", "sqrt"])  # осталось 2 дня
+    db.rollback()
+    assert sched == {date(2026, 11, 29): ["brackets", "fsu"], date(2026, 11, 30): ["sqrt"]}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Bar, useApp } from "../ui.jsx";
-import { TOPIC_DOT, monthName } from "../pages/Plan.jsx";
+import { TOPIC_DOT, dayLabel, monthName } from "../pages/Plan.jsx";
 
 // Цель месяца ученика по неделям: какие темы на какой неделе, с чего начинал и где сейчас. Только для учителя и куратора.
 export default function StudentMonth({ studentId }) {
@@ -13,6 +13,13 @@ export default function StudentMonth({ studentId }) {
   if (g === null) return <div className="card" style={{ marginBottom: 20 }}><p className="card-title" style={{ marginBottom: 6 }}>{m.title}</p><p className="muted small" style={{ margin: 0 }}>{m.none}</p></div>;
 
   const byLesson = Object.fromEntries(g.topics.map((x) => [x.lesson, x]));
+  // дни, на которые поставлена тема: «2–5 нояб.»
+  const span = (slug) => {
+    const ds = g.days.filter((d) => d.topics.includes(slug)).map((d) => d.day);
+    if (!ds.length) return "";
+    const last = dayLabel(ds[ds.length - 1], lang, { day: "numeric", month: "short" });
+    return ds.length === 1 ? last : `${dayLabel(ds[0], lang, { day: "numeric" })}–${last}`;
+  };
   return (
     <div className="card" style={{ marginBottom: 20 }}>
       <div className="row between wrap" style={{ gap: 8, marginBottom: 4 }}>
@@ -32,7 +39,8 @@ export default function StudentMonth({ studentId }) {
               const x = byLesson[slug];
               return (
                 <div key={slug} style={{ marginBottom: 10 }}>
-                  <div className="row small" style={{ gap: 8 }}><span className={`dot ${TOPIC_DOT[x.status]}`} /><span style={{ fontWeight: 600 }}>{L(x.title)}</span></div>
+                  <div className="row small" style={{ gap: 8 }}><span className={`dot ${TOPIC_DOT[x.status]}`} /><span style={{ fontWeight: 600 }}>{L(x.title)}</span>
+                    {span(slug) && <span className="muted small" style={{ marginLeft: "auto" }}>{span(slug)}</span>}</div>
                   <div className="muted small" style={{ marginTop: 2 }}>
                     {m.start}: <span className={`st-${x.start_status}`}>{t.status[x.start_status]}</span> · {m.now}: {Math.round(x.proof * 100)}%
                   </div>

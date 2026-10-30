@@ -5,8 +5,12 @@ import { Bar, Box, Icon, Loading, Ring, useApp } from "../ui.jsx";
 const ICON = { tutor: "bot", practice: "target", check: "lock" };
 export const TOPIC_DOT = { done: "mastered", learning: "learning", todo: "gap" };
 
+const locale = (lang) => (lang === "kk" ? "kk-KZ" : "ru-RU");
+export const dayLabel = (iso, lang, opts = { weekday: "short", day: "numeric", month: "short" }) =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString(locale(lang), opts);
+
 export function monthName(iso, lang) {
-  const m = new Date(`${iso}T00:00:00`).toLocaleString(lang === "kk" ? "kk-KZ" : "ru-RU", { month: "long" });
+  const m = new Date(`${iso}T00:00:00`).toLocaleString(locale(lang), { month: "long" });
   return lang === "kk" ? m.charAt(0).toUpperCase() + m.slice(1) : m;
 }
 
@@ -63,6 +67,39 @@ function Goal({ goal, today, L, lang, p }) {
           <div className="grow small" style={{ fontWeight: 600 }}>{L(x.title)}</div>
           {x.lesson === today && x.status !== "done" && <span className="badge orange">{p.today}</span>}
           <span className={`small st-${TOPIC_DOT[x.status]}`}>{p.topic[x.status]}</span>
+        </div>
+      ))}
+      {goal.days?.length > 0 && <Days goal={goal} L={L} lang={lang} p={p} />}
+    </div>
+  );
+}
+
+const DAY_BADGE = { today: "orange", done: "green", missed: "red" };
+
+// Темы по дням: с сегодняшнего дня до конца месяца; прошедшие дни — по кнопке.
+function Days({ goal, L, lang, p }) {
+  const [past, setPast] = useState(false);
+  const title = Object.fromEntries(goal.topics.map((x) => [x.lesson, x.title]));
+  const status = Object.fromEntries(goal.topics.map((x) => [x.lesson, x.status]));
+  const nPast = goal.days.filter((d) => d.state === "done" || d.state === "missed").length;
+  const shown = past ? goal.days : goal.days.slice(nPast);
+  return (
+    <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 14 }}>
+      <div className="row between wrap" style={{ gap: 8, marginBottom: 6 }}>
+        <p className="card-title" style={{ margin: 0 }}>{p.byDay}</p>
+        {nPast > 0 && <button className="link small" style={{ background: "none", border: 0, padding: 0, cursor: "pointer" }} onClick={() => setPast(!past)}>{past ? p.hidePast : p.showPast(nPast)}</button>}
+      </div>
+      {shown.map((d) => (
+        <div className="list-item" key={d.day} style={d.state === "today" ? { background: "var(--amber-soft)", borderRadius: 8 } : undefined}>
+          <span className="small muted" style={{ width: 110, flex: "none" }}>{dayLabel(d.day, lang)}</span>
+          <div className="grow small" style={{ fontWeight: d.state === "today" ? 700 : 500 }}>
+            {d.topics.length ? d.topics.map((s) => (
+              <span key={s} className="row" style={{ gap: 6, display: "inline-flex", marginRight: 12 }}>
+                <span className={`dot ${TOPIC_DOT[status[s]]}`} />{L(title[s])}
+              </span>
+            )) : <span className="muted">{p.review}</span>}
+          </div>
+          {DAY_BADGE[d.state] && <span className={`badge ${DAY_BADGE[d.state]}`}>{p.day[d.state]}</span>}
         </div>
       ))}
     </div>
