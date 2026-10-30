@@ -9,6 +9,7 @@ import Plan from "./pages/Plan.jsx";
 import Subjects from "./pages/Subjects.jsx";
 import Courses from "./pages/Courses.jsx";
 import Lesson from "./pages/Lesson.jsx";
+import Profile from "./pages/Profile.jsx";
 import Diagnostics from "./pages/Diagnostics.jsx";
 import Gaps from "./pages/Gaps.jsx";
 import Tutor from "./pages/Tutor.jsx";
@@ -35,8 +36,8 @@ import ForcePassword from "./pages/ForcePassword.jsx";
 import "@fontsource-variable/onest";
 import "./app.css";
 
-const NAV_BOTTOM = [["settings", "settings", "gear"], ["help", "help", "help"]];
-const COMMON = { settings: Settings, help: Help, lesson: Lesson };
+const NAV_BOTTOM = [["profile", "profile", "user"], ["settings", "settings", "gear"], ["help", "help", "help"]];
+const COMMON = { profile: Profile, settings: Settings, help: Help, lesson: Lesson };
 const STAFF_VIEW = { class: ClassMap, student: StudentCard };
 // меню и страницы по ролям
 const ROLES = {
@@ -304,7 +305,7 @@ function Header({ alerts, onMenu, collapsed }) {
         {user.role === "student" && (
           <Bell alerts={alerts} />
         )}
-        <a href="#/settings" className="user">
+        <a href="#/profile" className="user">
           <div className="avatar">{(user.name || "?")[0].toUpperCase()}</div>
           <div className="user-info"><div className="user-name">{user.name}</div>
             <div className="user-sub">{user.role === "student" ? t.grade(user.grade) : t.roles[user.role]}</div></div>
