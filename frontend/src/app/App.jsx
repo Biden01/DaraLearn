@@ -70,6 +70,10 @@ function parseHash() {
   return { page, param: rest.join("/"), query: new URLSearchParams(query) };
 }
 
+function storedCollapsed() {
+  try { return localStorage.getItem("dl_nav") === "min"; } catch { return false; }
+}
+
 function storedLang() {
   try { const l = localStorage.getItem("dl_lang"); if (l === "kk" || l === "ru") return l; } catch { /* */ }
   return (navigator.language || "").startsWith("ru") ? "ru" : "kk";
@@ -81,6 +85,7 @@ export default function App() {
   const [route, setRoute] = useState(parseHash);
   const [toastMsg, setToastMsg] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(storedCollapsed);
   const [alerts, setAlerts] = useState(0);
   const toastTimer = useRef();
   const t = STRINGS[lang];
@@ -129,6 +134,15 @@ export default function App() {
     },
   }), [t, lang, setLang, user, toast, route]);
 
+  // на телефоне бургер открывает выезжающее меню, на компьютере сворачивает его до иконок
+  const onMenu = () => {
+    if (window.matchMedia("(max-width: 820px)").matches) return setMenuOpen(true);
+    setCollapsed((c) => {
+      try { localStorage.setItem("dl_nav", c ? "full" : "min"); } catch { /* */ }
+      return !c;
+    });
+  };
+
   if (user === undefined) return <div className="loading">…</div>;
 
   let body;
@@ -144,19 +158,20 @@ export default function App() {
     const active = [...role.nav, ...NAV_BOTTOM].some(([k]) => k === mapped) ? mapped : "";
     const NAV = role.nav;
     const link = ([k, label, icon]) => (
-      <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}>
+      <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
+        title={collapsed ? t.nav[label] ?? t.snav[label] : undefined}>
         <Icon n={icon} /><span>{t.nav[label] ?? t.snav[label]}</span>
       </a>
     );
     body = (
-      <div className={menuOpen ? "menu-open" : ""}>
+      <div className={`${menuOpen ? "menu-open" : ""} ${collapsed ? "nav-min" : ""}`}>
         <aside className="sidebar" style={menuOpen ? { transform: "none" } : undefined}>
-          <a href="#/" className="brand"><img src="/logo.png" alt="" /> DaraLearn</a>
+          <a href="#/" className="brand"><img src="/logo.png" alt="" /> <span>DaraLearn</span></a>
           <nav className="nav" aria-label="Main">{NAV.map(link)}</nav>
           <nav className="nav nav-bottom">{NAV_BOTTOM.map(link)}</nav>
         </aside>
         {menuOpen && <div className="overlay" style={{ display: "block", position: "fixed", inset: 0, background: "rgba(17,19,41,.3)", zIndex: 25 }} onClick={() => setMenuOpen(false)} />}
-        <Header alerts={alerts} onMenu={() => setMenuOpen(true)} />
+        <Header alerts={alerts} onMenu={onMenu} collapsed={collapsed} />
         <main className="main" id="app"><Page key={route.page + route.param} /></main>
       </div>
     );
@@ -170,7 +185,7 @@ export default function App() {
   );
 }
 
-function Header({ alerts, onMenu }) {
+function Header({ alerts, onMenu, collapsed }) {
   const { t, lang, setLang, user, L } = useApp();
   const [q, setQ] = useState("");
   const [index, setIndex] = useState([]);
@@ -201,7 +216,7 @@ function Header({ alerts, onMenu }) {
   const goTo = (h) => { window.location.hash = h.href; setQ(""); input.current?.blur(); };
   return (
     <header className="header">
-      <button className="burger" aria-label={t.menu} onClick={onMenu}><Icon n="menu" s={22} /></button>
+      <button className="burger" aria-label={t.menu} aria-expanded={!collapsed} onClick={onMenu}><Icon n="menu" s={22} /></button>
       <label className="search">
         <Icon n="search" s={18} />
         <input ref={input} value={q} placeholder={t.search} aria-label={t.search}

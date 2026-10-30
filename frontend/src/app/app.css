@@ -27,7 +27,7 @@ input, textarea, select { font: inherit; }
   position: fixed; inset: 0 auto 0 0; width: var(--sidebar);
   background: #fff; border-right: 1px solid var(--line);
   display: flex; flex-direction: column; padding: 16px 12px; z-index: 30;
-  transition: transform .2s;
+  transition: transform .2s, width .2s;
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 2px 12px 22px; font-weight: 700; font-size: 20px; }
 .brand img { width: 34px; height: auto; }
@@ -47,7 +47,18 @@ input, textarea, select { font: inherit; }
   background: #fff; border-bottom: 1px solid var(--line);
   display: flex; align-items: center; gap: 16px; padding: 0 20px; z-index: 20;
 }
-.burger { display: none; }
+.burger { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; flex: none; }
+.burger:hover { background: #f4f6fa; }
+.header { transition: left .2s; }
+.main { transition: margin-left .2s; }
+/* свёрнутое меню на компьютере: только иконки */
+@media (min-width: 821px) {
+  .nav-min { --sidebar: 68px; }
+  .nav-min .sidebar { overflow: hidden; }
+  .nav-min .nav a span, .nav-min .brand span { display: none; }
+  .nav-min .nav a { justify-content: center; padding: 11px 0; }
+  .nav-min .brand { justify-content: center; padding: 2px 0 22px; }
+}
 .search {
   flex: 1; max-width: 625px; display: flex; align-items: center; gap: 12px;
   background: #f3f5f8; border-radius: 10px; padding: 9px 14px; color: var(--muted); font-size: 13px;
@@ -222,7 +233,6 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
   body.menu-open .sidebar { transform: none; }
   body.menu-open .overlay { display: block; position: fixed; inset: 0; background: rgba(17, 19, 41, .3); z-index: 25; }
   .header { left: 0; padding: 0 16px; }
-  .burger { display: grid; }
   .main { margin-left: 0; padding: calc(var(--header) + 24px) 16px 32px; }
   .g-main, .g-2, .g-3, .g-4 { grid-template-columns: minmax(0, 1fr); }
   .user-info, .kbd { display: none; }
