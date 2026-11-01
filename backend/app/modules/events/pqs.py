@@ -8,7 +8,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
-TRUE = {"1", "+", "да", "иә", "yes", "true", "верно", "дұрыс", "y"}
+TRUE = {"1", "+", "да", "иә", "ия", "yes", "true", "верно", "дұрыс", "y"}
 FALSE = {"0", "-", "нет", "жоқ", "no", "false", "неверно", "қате", "n"}
 THRESHOLD = 0.6  # доля верных ответов по навыку, с которой навык засчитан
 
