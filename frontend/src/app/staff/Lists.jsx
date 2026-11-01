@@ -23,6 +23,28 @@ export function Leads() {
   );
 }
 
+export function Support() {
+  const { t } = useApp();
+  const [list, setList] = useState(null);
+  useEffect(() => { api("/admin/support").then(setList).catch(() => setList([])); }, []);
+  if (!list) return <Loading />;
+  return (
+    <>
+      <Crumb items={[[t.admin.support]]} />
+      <h1>{t.admin.support}</h1>
+      <div className="card" style={{ overflowX: "auto" }}>
+        {list.length ? (
+          <table className="heat"><tbody>{list.map((m) => (
+            <tr key={m.id}><td className="small">{new Date(m.created_at).toLocaleString()}</td>
+              <td><b>{m.user.name}</b><div className="muted small">{t.roles[m.user.role] || m.user.role}</div><div className="small"><a href={`mailto:${m.user.email}`}>{m.user.email}</a></div></td>
+              <td className="small" style={{ maxWidth: 480, whiteSpace: "pre-wrap" }}>{m.text}</td></tr>
+          ))}</tbody></table>
+        ) : <p className="muted">{t.admin.noSupport}</p>}
+      </div>
+    </>
+  );
+}
+
 export function Audit() {
   const { t } = useApp();
   const [list, setList] = useState(null);

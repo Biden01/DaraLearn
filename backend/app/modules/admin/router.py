@@ -1,4 +1,4 @@
-"""Администратор: метрики пилота, расход AI, заявки, журнал действий."""
+"""Администратор: метрики пилота, расход AI, заявки, обращения в поддержку, журнал действий."""
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
@@ -10,7 +10,7 @@ from app.core.security import require_role
 from app.modules.decisions.models import AuditLog, Recommendation
 from app.modules.events.models import LearningEvent
 from app.modules.leads.models import Lead
-from app.modules.school.models import School, SchoolClass, User
+from app.modules.school.models import School, SchoolClass, SupportMessage, User
 from app.modules.tutor.models import TutorMessage, TutorSession
 from app.modules.verification.models import AdviserCase, Check
 from app.modules.verification.service import outcome_stats
@@ -73,6 +73,15 @@ def leads(user: User = Depends(require_role("admin")), db: Session = Depends(get
     return [{"id": l.id, "name": l.name, "email": l.email, "phone": l.phone, "school": l.school, "role": l.role,
              "message": l.message, "created_at": l.created_at.isoformat()}
             for l in db.scalars(select(Lead).order_by(Lead.id.desc()).limit(300))]
+
+
+@router.get("/support")
+def support(user: User = Depends(require_role("admin")), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.execute(select(SupportMessage, User).join(User, User.id == SupportMessage.user_id)
+                      .order_by(SupportMessage.id.desc()).limit(300))
+    return [{"id": m.id, "text": m.text, "created_at": m.created_at.isoformat(),
+             "user": {"id": u.id, "name": u.name, "email": u.email, "role": u.role}}
+            for m, u in rows]
 
 
 @router.get("/audit")
