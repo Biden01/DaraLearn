@@ -3,7 +3,7 @@ import { upload } from "../api.js";
 import { Crumb, useApp } from "../ui.jsx";
 
 export default function ImportResults() {
-  const { t, toast } = useApp();
+  const { t, toast, lang } = useApp();
   const [res, setRes] = useState(null);
   const [busy, setBusy] = useState(false);
   const p = t.importRes;
@@ -40,10 +40,10 @@ export default function ImportResults() {
         </div>
         <div className="card" style={{ alignSelf: "start" }}>
           <p className="card-title" style={{ marginBottom: 8 }}>{p.example}</p>
-          <pre className="small" style={{ background: "#f6f8fc", padding: 12, borderRadius: 8, overflowX: "auto", margin: 0 }}>{`логин;задание;верно;дата
+          <pre className="small" style={{ background: "#f6f8fc", padding: 12, borderRadius: 8, overflowX: "auto", margin: 0 }}>{`${lang === "kk" ? "логин;тапсырма;нәтиже;күні" : "логин;задание;верно;дата"}
 alikhan.n;sqrt;1;01.10.2026
 mariia.i;linear-eq;0;01.10.2026
-mariia.i;sqrt-2;да;`}</pre>
+mariia.i;sqrt-2;${lang === "kk" ? "иә" : "да"};`}</pre>
         </div>
       </div>
     </>

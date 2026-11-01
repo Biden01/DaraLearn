@@ -24,3 +24,18 @@ export const abl = (n) => {
   const c = /[аәеоөұүыіэяюиуйрлжз]$/.test(w) ? "д" : /[мнң]$/.test(w) ? "н" : "т";
   return `${n}-${c}${back(w) ? "ан" : "ен"}`;
 };
+
+// Даты по-казахски. Браузеры часто не знают названий месяцев для kk-KZ и пишут «M11», поэтому свои таблицы.
+const MONTHS = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
+const WEEKDAYS = ["Жс", "Дс", "Сс", "Ср", "Бс", "Жм", "Сб"]; // getDay(): 0 — жексенбі
+
+export const monthKk = (d) => MONTHS[d.getMonth()];
+
+// opts — как у toLocaleDateString: { weekday: "short", day: "numeric", month: "short" | "long" }
+export function dateKk(d, opts) {
+  const parts = [];
+  if (opts.day) parts.push(d.getDate());
+  if (opts.month) parts.push(opts.month === "long" ? MONTHS[d.getMonth()] : `${MONTHS[d.getMonth()].slice(0, 3)}.`);
+  const s = parts.join(" ");
+  return opts.weekday ? `${WEEKDAYS[d.getDay()]}, ${s}` : s;
+}

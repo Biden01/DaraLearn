@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Bar, Box, Icon, Loading, Ring, useApp } from "../ui.jsx";
+import { dateKk, monthKk } from "../kk.js";
 
 const ICON = { tutor: "bot", practice: "target", check: "lock" };
 export const TOPIC_DOT = { done: "mastered", learning: "learning", todo: "gap" };
 
-const locale = (lang) => (lang === "kk" ? "kk-KZ" : "ru-RU");
-export const dayLabel = (iso, lang, opts = { weekday: "short", day: "numeric", month: "short" }) =>
-  new Date(`${iso}T00:00:00`).toLocaleDateString(locale(lang), opts);
+export const dayLabel = (iso, lang, opts = { weekday: "short", day: "numeric", month: "short" }) => {
+  const d = new Date(`${iso}T00:00:00`);
+  return lang === "kk" ? dateKk(d, opts) : d.toLocaleDateString("ru-RU", opts);
+};
 
 export function monthName(iso, lang) {
-  const m = new Date(`${iso}T00:00:00`).toLocaleString(locale(lang), { month: "long" });
-  return lang === "kk" ? m.charAt(0).toUpperCase() + m.slice(1) : m;
+  const d = new Date(`${iso}T00:00:00`);
+  if (lang !== "kk") return d.toLocaleString("ru-RU", { month: "long" });
+  const m = monthKk(d);
+  return m.charAt(0).toUpperCase() + m.slice(1);
 }
 
 // Перейти к следующему невыполненному шагу плана на сегодня.

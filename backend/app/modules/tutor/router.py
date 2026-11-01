@@ -374,7 +374,7 @@ def hint(session_id: int, user: User = Depends(current_user), db: Session = Depe
                 text, *_ = gateway.complete(_system_prompt(db, user, lesson, 4),
                                             [{"role": "user", "content": f"Задача: {q}\nДай подсказку ступени {level} из 3 "
                                               "(1 — намёк, на что обратить внимание; 2 — какую формулу или идею применить; "
-                                              "3 — первый шаг решения). Не называй ответ."}])
+                                              f"3 — первый шаг решения). Не называй ответ. {RULES[lang]}"}])
                 text = markers.parse(text)[0] or text
             except gateway.TutorUnavailable:
                 pass  # остаётся строка из теории
