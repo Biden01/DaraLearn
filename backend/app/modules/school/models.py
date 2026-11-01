@@ -44,12 +44,16 @@ class CalendarEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+SUPPORT_TOPICS = ("account", "bug", "lessons", "tutor", "idea", "other")
+
+
 class SupportMessage(Base):
     __tablename__ = "support_messages"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     text: Mapped[str] = mapped_column(Text)
+    topic: Mapped[str] = mapped_column(String(20), default="other", server_default="other", index=True)  # см. SUPPORT_TOPICS
     status: Mapped[str] = mapped_column(String(10), default="new", server_default="new", index=True)  # new | done
     resolved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -4,7 +4,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
 from app.core.db import get_db
@@ -12,7 +12,7 @@ from app.core.security import require_role
 from app.modules.decisions.models import AuditLog, Recommendation
 from app.modules.events.models import LearningEvent
 from app.modules.leads.models import Lead
-from app.modules.school.models import School, SchoolClass, SupportMessage, User
+from app.modules.school.models import SUPPORT_TOPICS, School, SchoolClass, SupportMessage, User
 from app.modules.school.router import audit
 from app.modules.tutor.models import TutorMessage, TutorSession
 from app.modules.verification.models import AdviserCase, Check
@@ -78,29 +78,45 @@ def leads(user: User = Depends(require_role("admin")), db: Session = Depends(get
             for l in db.scalars(select(Lead).order_by(Lead.id.desc()).limit(300))]
 
 
+Topic = Literal["account", "bug", "lessons", "tutor", "idea", "other"]
+
+
 class SupportPatch(BaseModel):
-    status: Literal["new", "done"]
+    status: Literal["new", "done"] | None = None
+    topic: Topic | None = None
 
 
 @router.get("/support")
-def support(status: Literal["new", "done", "all"] = "new", order: Literal["new", "old"] = "new", q: str = "",
+def support(status: Literal["new", "done", "all"] = "new", topic: Topic | None = None, role: str = "", q: str = "",
+            sort: Literal["new", "old", "author", "topic"] = "new",
             user: User = Depends(require_role("admin")), db: Session = Depends(get_db)) -> dict:
     resolver = aliased(User)
-    query = (select(SupportMessage, User, resolver.name).join(User, User.id == SupportMessage.user_id)
-             .outerjoin(resolver, resolver.id == SupportMessage.resolved_by))
+    base = select(SupportMessage).join(User, User.id == SupportMessage.user_id)
     if status != "all":
-        query = query.where(SupportMessage.status == status)
+        base = base.where(SupportMessage.status == status)
+    if role:
+        base = base.where(User.role == role)
     if q.strip():
         like = f"%{q.strip()}%"
-        query = query.where(or_(User.name.ilike(like), User.email.ilike(like), SupportMessage.text.ilike(like)))
-    query = query.order_by(SupportMessage.id.desc() if order == "new" else SupportMessage.id.asc()).limit(300)
-    counts = dict(db.execute(select(SupportMessage.status, func.count()).group_by(SupportMessage.status)).all())
+        base = base.where(or_(User.name.ilike(like), User.email.ilike(like), SupportMessage.text.ilike(like)))
+    # счётчики по темам — при текущих фильтрах, но без фильтра по теме, чтобы видеть все темы
+    by_topic = dict(db.execute(base.with_only_columns(SupportMessage.topic, func.count())
+                               .group_by(SupportMessage.topic).order_by(None)).all())
+    if topic:
+        base = base.where(SupportMessage.topic == topic)
+    topic_rank = case({t: i for i, t in enumerate(SUPPORT_TOPICS)}, value=SupportMessage.topic, else_=len(SUPPORT_TOPICS))
+    newest = SupportMessage.id.desc()
+    order = {"new": (newest,), "old": (SupportMessage.id.asc(),), "author": (func.lower(User.name), newest),
+             "topic": (topic_rank, newest)}[sort]
+    query = (base.add_columns(User, resolver.name).outerjoin(resolver, resolver.id == SupportMessage.resolved_by)
+             .order_by(*order).limit(300))
+    by_status = dict(db.execute(select(SupportMessage.status, func.count()).group_by(SupportMessage.status)).all())
     return {
-        "items": [{"id": m.id, "text": m.text, "status": m.status, "created_at": m.created_at.isoformat(),
+        "items": [{"id": m.id, "text": m.text, "topic": m.topic, "status": m.status, "created_at": m.created_at.isoformat(),
                    "resolved_by": rname, "resolved_at": m.resolved_at.isoformat() if m.resolved_at else None,
                    "user": {"id": u.id, "name": u.name, "email": u.email, "role": u.role}}
                   for m, u, rname in db.execute(query)],
-        "counts": {"new": counts.get("new", 0), "done": counts.get("done", 0)},
+        "counts": {"new": by_status.get("new", 0), "done": by_status.get("done", 0), "topics": by_topic},
     }
 
 
@@ -110,11 +126,15 @@ def patch_support(message_id: int, payload: SupportPatch, user: User = Depends(r
     m = db.get(SupportMessage, message_id)
     if not m:
         raise HTTPException(404)
-    m.status = payload.status
-    m.resolved_by, m.resolved_at = (user.id, datetime.now(timezone.utc)) if payload.status == "done" else (None, None)
-    audit(db, user, f"support.{payload.status}", "support_message", m.id)
+    if payload.topic:
+        audit(db, user, "support.topic", "support_message", m.id, old=m.topic, new=payload.topic)
+        m.topic = payload.topic
+    if payload.status:
+        m.status = payload.status
+        m.resolved_by, m.resolved_at = (user.id, datetime.now(timezone.utc)) if payload.status == "done" else (None, None)
+        audit(db, user, f"support.{payload.status}", "support_message", m.id)
     db.commit()
-    return {"id": m.id, "status": m.status}
+    return {"id": m.id, "status": m.status, "topic": m.topic}
 
 
 @router.get("/audit")

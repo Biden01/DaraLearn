@@ -27,6 +27,7 @@ class EventIn(BaseModel):
 
 class SupportIn(BaseModel):
     text: str = Field(min_length=3, max_length=3000)
+    topic: Literal["account", "bug", "lessons", "tutor", "idea", "other"] = "other"
 
 
 def _event_out(e: CalendarEvent) -> dict:
@@ -60,7 +61,7 @@ def delete_event(event_id: int, user: User = Depends(current_user), db: Session 
 @router.post("/support", status_code=status.HTTP_201_CREATED)
 def support(payload: SupportIn, user: User = Depends(current_user),
             db: Session = Depends(get_db)) -> dict:
-    m = SupportMessage(user_id=user.id, text=payload.text.strip())
+    m = SupportMessage(user_id=user.id, text=payload.text.strip(), topic=payload.topic)
     db.add(m)
     db.commit()
     return {"id": m.id}
