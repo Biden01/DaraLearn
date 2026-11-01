@@ -2,7 +2,7 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.security import current_user, hash_password, require_role
 from app.modules.decisions.models import AuditLog
-from app.modules.leads.notify import send_telegram
 from app.modules.school import people_import
 from app.modules.school.access import class_students, get_class, new_code, visible_classes
 from app.modules.school.models import CalendarEvent, ClassMember, Invite, School, SchoolClass, SupportMessage, User
@@ -59,12 +58,11 @@ def delete_event(event_id: int, user: User = Depends(current_user), db: Session 
 
 
 @router.post("/support", status_code=status.HTTP_201_CREATED)
-def support(payload: SupportIn, background: BackgroundTasks, user: User = Depends(current_user),
+def support(payload: SupportIn, user: User = Depends(current_user),
             db: Session = Depends(get_db)) -> dict:
     m = SupportMessage(user_id=user.id, text=payload.text.strip())
     db.add(m)
     db.commit()
-    background.add_task(send_telegram, f"Обращение в поддержку от {user.name} <{user.email}>:\n{m.text}")
     return {"id": m.id}
 
 

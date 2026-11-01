@@ -21,8 +21,7 @@ sudo ./deploy/deploy.sh
 ```
 
 ## Заявки с лендинга
-Заявки сохраняются в таблицу `leads`. Если в `.env` заданы `TELEGRAM_BOT_TOKEN` и `TELEGRAM_CHAT_ID`,
-о каждой заявке приходит сообщение в Telegram. Посмотреть список:
+Заявки сохраняются в таблицу `leads` и видны админу в кабинете («Заявки»). Список через API:
 ```bash
 curl -s https://daralearn.kz/api/leads -H "X-Admin-Token: $ADMIN_TOKEN"
 ```

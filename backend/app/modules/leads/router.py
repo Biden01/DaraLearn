@@ -1,9 +1,10 @@
 """Заявки на пилот с лендинга."""
+import logging
 import time
 from collections import defaultdict, deque
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,9 +12,9 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.db import get_db
 from app.modules.leads.models import Lead
-from app.modules.leads.notify import notify_lead
 
 router = APIRouter(prefix="/leads", tags=["leads"])
+log = logging.getLogger("leads")
 
 RATE_LIMIT = 5          # заявок
 RATE_WINDOW = 600       # секунд
@@ -62,8 +63,7 @@ class LeadOut(BaseModel):
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_lead(payload: LeadIn, request: Request, background: BackgroundTasks,
-                db: Session = Depends(get_db)) -> dict:
+def create_lead(payload: LeadIn, request: Request, db: Session = Depends(get_db)) -> dict:
     if payload.website.strip():
         return {"id": 0}  # бот заполнил скрытое поле: делаем вид, что приняли
     ip = client_ip(request)
@@ -72,7 +72,7 @@ def create_lead(payload: LeadIn, request: Request, background: BackgroundTasks,
     lead = Lead(**data, ip=ip, user_agent=request.headers.get("user-agent", "")[:300])
     db.add(lead)
     db.commit()
-    background.add_task(notify_lead, lead)
+    log.info("lead created: #%s %s", lead.id, lead.email)
     return {"id": lead.id}
 
 

@@ -17,9 +17,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-secret-change-me"
     session_days: int = 30
 
-    # Заявки с лендинга: уведомление в Telegram (если заданы) и токен для просмотра списка.
-    telegram_bot_token: str = ""
-    telegram_chat_id: str = ""
+    # Токен для просмотра заявок с лендинга (GET /api/leads)
     admin_token: str = ""
     # email'ы, которые при регистрации сразу получают роль администратора
     admin_emails: list[str] = []
