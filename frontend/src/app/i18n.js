@@ -1,9 +1,10 @@
 // Строки интерфейса кабинета.
 import { PLAN } from "./i18n_plan.js";
 import { STAFF } from "./i18n_staff.js";
+import { DEV } from "./i18n_dev.js";
 
 const kk = {
-  nav: { home: "Басты бет", subjects: "Менің пәндерім", courses: "Курстар", diagnostics: "Диагностика", gaps: "Олқылықтарым",
+  nav: { dev: "Scrum", home: "Басты бет", subjects: "Менің пәндерім", courses: "Курстар", diagnostics: "Диагностика", gaps: "Олқылықтарым",
     tutor: "AI Tutor", quiz: "Білімді тексеру", progress: "Прогресс", calendar: "Күнтізбе", profile: "Жеке кабинет", settings: "Баптаулар", help: "Көмек" },
   search: "Тақырыптарды, сабақтарды іздеу...", nothing: "Ештеңе табылмады", grade: (g) => `${g} сынып`, menu: "Мәзір",
   notif: { title: "Хабарламалар", empty: "Жаңа хабарлама жоқ", all: "Барлық олқылықтар", from: "Платформадан" },
@@ -122,7 +123,7 @@ const kk = {
 };
 
 const ru = {
-  nav: { home: "Главная", subjects: "Мои предметы", courses: "Курсы", diagnostics: "Диагностика", gaps: "Мои пробелы",
+  nav: { dev: "Scrum", home: "Главная", subjects: "Мои предметы", courses: "Курсы", diagnostics: "Диагностика", gaps: "Мои пробелы",
     tutor: "AI Tutor", quiz: "Проверка знаний", progress: "Прогресс", calendar: "Календарь", profile: "Личный кабинет", settings: "Настройки", help: "Помощь" },
   search: "Поиск по темам и урокам...", nothing: "Ничего не найдено", grade: (g) => `${g} класс`, menu: "Меню",
   notif: { title: "Уведомления", empty: "Новых уведомлений нет", all: "Все пробелы", from: "От платформы" },
@@ -240,4 +241,4 @@ const ru = {
     toSite: "На главный сайт" },
 };
 
-export const STRINGS = { kk: { ...kk, ...STAFF.kk, ...PLAN.kk }, ru: { ...ru, ...STAFF.ru, ...PLAN.ru } };
+export const STRINGS = { kk: { ...kk, ...STAFF.kk, ...PLAN.kk, ...DEV.kk }, ru: { ...ru, ...STAFF.ru, ...PLAN.ru, ...DEV.ru } };

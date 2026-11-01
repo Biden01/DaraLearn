@@ -32,6 +32,7 @@ import Users from "./staff/Users.jsx";
 import Content from "./staff/Content.jsx";
 import LessonEdit from "./staff/LessonEdit.jsx";
 import { Leads, Audit } from "./staff/Lists.jsx";
+import DevBoard from "./staff/DevBoard.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
 import "@fontsource-variable/onest";
 import "./app.css";
@@ -58,9 +59,9 @@ const ROLES = {
   },
   admin: {
     nav: [["", "metrics", "chart"], ["schools", "schools", "home"], ["users", "users", "user"], ["classes", "classes", "case"],
-      ["content", "content", "book"], ["leads", "leads", "doc"], ["audit", "audit", "clip"]],
+      ["content", "content", "book"], ["leads", "leads", "doc"], ["audit", "audit", "clip"], ["dev", "dev", "board"]],
     pages: { "": Metrics, schools: Schools, users: Users, classes: Classes, content: Content, edit: LessonEdit, leads: Leads,
-      audit: Audit, feed: Feed, import: ImportResults, ...STAFF_VIEW },
+      audit: Audit, dev: DevBoard, feed: Feed, import: ImportResults, ...STAFF_VIEW },
   },
 };
 const ACTIVE = { lesson: "courses", result: "quiz", class: "classes", student: "classes", edit: "content" };

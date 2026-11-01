@@ -384,3 +384,37 @@ h2 { letter-spacing: -.3px; }
 .d-mastered { background: var(--green); } .d-likely { background: #8fb3fb; } .d-learning { background: var(--amber); }
 .d-gap { background: var(--red); } .d-unknown { background: #d6dae2; color: #555 !important; }
 .dot.unknown { background: #d6dae2; }
+
+/* Scrum-доска команды (#/dev) */
+.dev-board { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+.dev-col { flex: 0 0 272px; background: #f1f3f7; border-radius: 12px; padding: 10px; display: flex; flex-direction: column;
+  gap: 8px; max-height: calc(100vh - 230px); border: 2px solid transparent; transition: border-color .15s var(--ease); }
+.dev-col.backlog { background: #eceef3; }
+.dev-col.over { border-color: var(--accent); }
+.dev-col-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; font-size: 14px; }
+.dev-cards { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 8px; }
+.dev-card { background: #fff; border-radius: 9px; padding: 10px 11px; box-shadow: 0 1px 0 rgba(17,19,41,.12); cursor: grab;
+  border: 1px solid transparent; font-size: 14px; }
+.dev-card:hover, .dev-card:focus-visible { border-color: var(--accent); outline: none; }
+.dev-card.dragging { opacity: .4; }
+.dev-card.drop-before { box-shadow: 0 -3px 0 var(--accent); }
+.dev-card-title { line-height: 1.35; word-break: break-word; }
+.dev-drop { height: 4px; border-radius: 2px; background: var(--accent); }
+.dev-label { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px; margin-bottom: 6px; color: #fff; }
+.l-feature { background: var(--accent); } .l-bug { background: var(--red); } .l-design { background: var(--purple); }
+.l-content { background: var(--green); } .l-infra { background: var(--orange); }
+.dev-ava { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; }
+.m-era { background: #0058f4; } .m-daul { background: #22a06b; } .m-ali { background: #e5484d; } .m-gala { background: #7c5cff; }
+.dev-add { display: flex; align-items: center; gap: 6px; padding: 8px; border-radius: 8px; background: none; border: 0;
+  color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+.dev-add:hover { background: #e3e6ec; color: #111329; }
+.dev-new { display: flex; flex-direction: column; gap: 6px; }
+.dev-new textarea { border: 1px solid var(--accent); border-radius: 9px; padding: 9px 10px; font: inherit; font-size: 14px; resize: none; outline: none; }
+.dev-modal { position: fixed; inset: 0; background: rgba(17,19,41,.4); z-index: 50; display: grid; place-items: start center;
+  padding: 8vh 16px 16px; overflow-y: auto; }
+.dev-dialog { width: min(560px, 100%); gap: 14px; }
+.dev-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 820px) {
+  .dev-col { flex-basis: 82vw; max-height: none; }
+  .dev-grid { grid-template-columns: 1fr; }
+}
