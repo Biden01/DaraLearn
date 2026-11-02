@@ -1,5 +1,6 @@
 """Админка материалов: редактирование уроков и заданий, импорт/экспорт банка заданий в Excel."""
 import io
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.security import require_role
 from app.modules.content.models import Course, Lesson, Task
+from app.modules.content.service import set_theory
 from app.modules.events.models import LearningEvent
 from app.modules.school.models import User
 from app.modules.school.router import audit
@@ -90,7 +92,8 @@ def lesson(slug: str, user: User = Depends(require_role("admin")), db: Session =
 def update_lesson(slug: str, payload: LessonIn, user: User = Depends(require_role("admin")), db: Session = Depends(get_db)) -> dict:
     l = _lesson_or_404(db, slug)
     _check_prereqs(db, slug, payload.prereqs)
-    l.title, l.minutes, l.theory, l.examples = payload.title.model_dump(), payload.minutes, payload.theory, payload.examples
+    l.title, l.minutes, l.examples = payload.title.model_dump(), payload.minutes, payload.examples
+    set_theory(l, payload.theory)
     l.prereqs, l.source = payload.prereqs, "admin"
     audit(db, user, "lesson.update", "lesson", l.id, slug=slug)
     db.commit()
@@ -234,6 +237,8 @@ async def import_tasks(file: UploadFile = File(...), user: User = Depends(requir
 
 SKILL_COLUMNS = ["course", "slug", "title_kk", "title_ru", "minutes", "prereqs (через запятую)", "theory_kk", "theory_ru",
                  "teacher_ok (да/нет)", "teacher_comment"]
+TEACHER_OK = {"да", "иә", "yes", "+", "1", "ok"}
+TEACHER_NO = {"нет", "жоқ", "no", "-", "0"}
 # минимум заданий на навык: хватает на диагностику, закрепление (4) и проверку (3 без повторов)
 MIN_TASKS = {"diagnostic": 1, "practice": 4, "verification": 3}
 
@@ -268,7 +273,8 @@ def export_skills(user: User = Depends(require_role("admin")), db: Session = Dep
     ws.append(SKILL_COLUMNS)
     for l, c in db.execute(select(Lesson, Course).join(Course, Course.id == Lesson.course_id).order_by(Course.order, Lesson.order)).all():
         ws.append([c.slug, l.slug, l.title.get("kk", ""), l.title.get("ru", ""), l.minutes, ", ".join(l.prereqs),
-                   "\n".join(l.theory.get("kk", [])), "\n".join(l.theory.get("ru", [])), "", ""])
+                   "\n".join(l.theory.get("kk", [])), "\n".join(l.theory.get("ru", [])),
+                   "да" if l.theory_ok else "", l.theory_comment])
     buf = io.BytesIO()
     wb.save(buf)
     return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -291,20 +297,22 @@ async def import_skills(file: UploadFile = File(...), user: User = Depends(requi
     parsed, errors = [], []
     import re
     for i, r in enumerate(rows, start=2):
-        r = [("" if v is None else str(v)).strip() for v in (list(r) + [None] * 8)[:8]]
+        r = [("" if v is None else str(v)).strip() for v in (list(r) + [None] * 10)[:10]]
         if not any(r):
             continue
-        course, slug, tkk, tru, mins, prereqs, thkk, thru = r
+        course, slug, tkk, tru, mins, prereqs, thkk, thru, ok, comment = r
         prereq_list = [p.strip() for p in prereqs.split(",") if p.strip()]
         problem = (None if course in courses else "course") or (None if re.fullmatch(r"[a-z0-9-]{3,80}", slug) else "slug") \
             or (None if tkk and tru else "title") or (None if mins.replace(".0", "").isdigit() and 1 <= int(float(mins)) <= 180 else "minutes") \
-            or (None if thkk and thru else "theory")
+            or (None if thkk and thru else "theory") \
+            or (None if ok.lower() in TEACHER_OK | TEACHER_NO | {""} else "teacher_ok")
         if problem:
             errors.append({"row": i, "field": problem})
             continue
         parsed.append(dict(row=i, course=course, slug=slug, title={"kk": tkk, "ru": tru}, minutes=int(float(mins)),
                            prereqs=prereq_list, theory={"kk": [x for x in thkk.splitlines() if x.strip()],
-                                                        "ru": [x for x in thru.splitlines() if x.strip()]}))
+                                                        "ru": [x for x in thru.splitlines() if x.strip()]},
+                           ok=ok.lower(), comment=comment))
     known = set(existing) | {p["slug"] for p in parsed}
     for p in parsed:
         bad = [x for x in p["prereqs"] if x not in known or x == p["slug"]]
@@ -315,20 +323,30 @@ async def import_skills(file: UploadFile = File(...), user: User = Depends(requi
     graph = {s: list(l.prereqs) for s, l in existing.items()} | {p["slug"]: p["prereqs"] for p in parsed}
     if cycle := _has_cycle(graph):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"prereq_cycle:{'>'.join(cycle)}")
-    created = updated = 0
+    created = updated = checked = 0
     for p in parsed:
         l = existing.get(p["slug"])
         if l:
-            l.title, l.minutes, l.prereqs, l.theory, l.source = p["title"], p["minutes"], p["prereqs"], p["theory"], "admin"
+            l.title, l.minutes, l.prereqs, l.source = p["title"], p["minutes"], p["prereqs"], "admin"
+            set_theory(l, p["theory"])
             updated += 1
         else:
             order = (db.scalar(select(func.max(Lesson.order)).where(Lesson.course_id == courses[p["course"]].id)) or 0) + 1
-            db.add(Lesson(slug=p["slug"], course_id=courses[p["course"]].id, title=p["title"], minutes=p["minutes"],
-                          theory=p["theory"], examples=[], prereqs=p["prereqs"], order=order, source="admin"))
+            l = Lesson(slug=p["slug"], course_id=courses[p["course"]].id, title=p["title"], minutes=p["minutes"],
+                       theory=p["theory"], examples=[], prereqs=p["prereqs"], order=order, source="admin")
+            db.add(l)
             created += 1
-    audit(db, user, "skills.import", "lesson", None, created=created, updated=updated)
+        # Пустая колонка teacher_ok отметку не меняет (если теория не правилась); «да» — ставит, «нет» — снимает.
+        if p["ok"] in TEACHER_OK:
+            l.theory_ok, l.theory_ok_at, l.theory_ok_by = True, datetime.now(timezone.utc), user.id
+            checked += 1
+        elif p["ok"] in TEACHER_NO:
+            l.theory_ok, l.theory_ok_at, l.theory_ok_by = False, None, None
+        if p["comment"] or p["ok"]:
+            l.theory_comment = p["comment"]
+    audit(db, user, "skills.import", "lesson", None, created=created, updated=updated, theory_ok=checked)
     db.commit()
-    return {"created": created, "updated": updated, "errors": []}
+    return {"created": created, "updated": updated, "theory_ok": checked, "errors": []}
 
 
 @router.get("/coverage")
@@ -343,8 +361,11 @@ def coverage(user: User = Depends(require_role("admin")), db: Session = Depends(
         have = counts.get(l.id, {})
         missing = {p: need - have.get(p, 0) for p, need in MIN_TASKS.items() if have.get(p, 0) < need}
         theory = all(bool(l.theory.get(lang)) for lang in ("kk", "ru"))
+        theory_ok = theory and l.theory_ok
         skills.append({"slug": l.slug, "course": c.slug, "have": {p: have.get(p, 0) for p in MIN_TASKS}, "missing": missing,
-                       "theory": theory, "ready": not missing and theory})
+                       "theory": theory, "theory_ok": theory_ok, "theory_comment": l.theory_comment,
+                       "ready": not missing and theory_ok})
     return {"skills": skills, "total": len(skills), "ready": sum(s["ready"] for s in skills),
+            "theory": sum(s["theory"] for s in skills), "theory_ok": sum(s["theory_ok"] for s in skills),
             "tasks_total": sum(sum(s["have"].values()) for s in skills), "tasks_needed": len(skills) * sum(MIN_TASKS.values()),
             "min_per_skill": MIN_TASKS}

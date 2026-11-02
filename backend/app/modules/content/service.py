@@ -23,3 +23,11 @@ def lessons_of(db: Session, subject_id: int) -> list[Lesson]:
 def task_public(t: Task) -> dict:
     """Задание без правильного ответа."""
     return {"id": t.id, "question": t.question, "options": t.options, "lesson_id": t.lesson_id}
+
+
+def set_theory(lesson: Lesson, theory: dict) -> None:
+    """Меняет теорию навыка; если текст изменился, отметка учителя снимается — проверять заново."""
+    if lesson.theory == theory:
+        return
+    lesson.theory = theory
+    lesson.theory_ok, lesson.theory_ok_at, lesson.theory_ok_by = False, None, None

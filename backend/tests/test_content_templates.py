@@ -83,3 +83,30 @@ def test_generated_templates_are_importable(admin):
     out = admin.ok("POST", "/api/content/admin/tasks/import",
                    files={"file": ("t.xlsx", buf.getvalue(), "application/octet-stream")})
     assert out == {"created": 0, "updated": 0, "errors": []}
+
+
+HEAD10 = HEAD + ["teacher_ok", "teacher_comment"]
+
+
+def test_teacher_review_of_theory(admin):
+    slug = f"skill-{uid()}"
+    row = ["quadratic-equations", slug, "Атауы", "Название", 15, "", "Ереже\n$ x²", "Правило\n$ x²"]
+    out = _upload(admin, [HEAD10, row + ["да", "Тексерілді"]])
+    assert out["created"] == 1 and out["theory_ok"] == 1
+    sk = lambda: next(s for s in admin.ok("GET", "/api/content/admin/coverage")["skills"] if s["slug"] == slug)
+    assert sk()["theory_ok"] and sk()["theory_comment"] == "Тексерілді"
+    # пустая колонка и та же теория — отметка остаётся
+    _upload(admin, [HEAD10, row + ["", ""]])
+    assert sk()["theory_ok"]
+    # теорию поправили — проверять заново
+    _upload(admin, [HEAD10, row[:6] + ["Ереже\n$ x³", "Правило\n$ x³", "", ""]])
+    assert not sk()["theory_ok"]
+    # учитель ответил «нет» с комментарием
+    _upload(admin, [HEAD10, row[:6] + ["Ереже\n$ x³", "Правило\n$ x³", "да", ""]])
+    _upload(admin, [HEAD10, row[:6] + ["Ереже\n$ x³", "Правило\n$ x³", "нет", "Қате формула"]])
+    assert not sk()["theory_ok"] and sk()["theory_comment"] == "Қате формула"
+    bad = _upload(admin, [HEAD10, row + ["может быть", ""]])
+    assert bad["errors"] == [{"row": 2, "field": "teacher_ok"}]
+    exported = load_workbook(io.BytesIO(admin.ok("GET", "/api/content/admin/skills.xlsx").content)).active
+    r = next(x for x in exported.iter_rows(min_row=2, values_only=True) if x[1] == slug)
+    assert r[8] in ("", None) and r[9] == "Қате формула"

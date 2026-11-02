@@ -23,7 +23,7 @@ from app.modules.tutor.models import TutorMessage, TutorSession
 router = APIRouter(prefix="/tutor", tags=["tutor"])
 
 HISTORY = 20
-PROMPT_VERSION = "tutor-v2"
+PROMPT_VERSION = "tutor-v3"  # v3: объяснения строго по теории навыка, в свободной теме — по базе теории предмета
 HINT_LEVELS = 4   # намёк → направление → шаг решения → полный разбор
 LOCAL_TZ = timezone(timedelta(hours=5))
 
@@ -39,7 +39,8 @@ SYSTEM = """Ты — Dara, AI-тьютор платформы DaraLearn для �
 - Один шаг за сообщение. Коротко: обычно 2–6 предложений.
 - Формулы пиши обычным текстом с символами: x², √, ±, ·, ≠, ⇒. Без LaTeX и без markdown-таблиц. Можно **жирный** для ключевого слова.
 - Если ученик ошибся, скажи, где именно, и спроси, как исправить.
-- Объясняй только на основе теории урока ниже. Если в ней нет нужного, ничего не выдумывай: скажи, что не уверен, и начни ответ с метки [[LOW_CONFIDENCE]].
+- Объясняй только на основе теории урока ниже: правила, формулы, определения и способы решения бери только из неё. Ничего не добавляй от себя, даже если знаешь. Применять эти правила к задаче ученика и считать можно.
+- Если в теории нет нужного правила или вопрос выходит за её пределы, не выдумывай: скажи, что не уверен, и начни ответ с метки [[LOW_CONFIDENCE]] — вопрос уйдёт учителю.
 - Правильность ответа ученика определяет система по ключу задания, а не ты: не утверждай «верно/неверно» сам, пока не знаешь ключ.
 - Если видишь типичную ошибку ученика, в конце ответа добавь метку [[MISCONCEPTION: коротко, в чём ошибка]]. Метки ученик не видит.
 - Если вопрос не по учёбе, мягко верни разговор к теме.
@@ -62,6 +63,10 @@ STUB = {
 CALLED = {
     "kk": "Бұған толық сенімді емеспін, сондықтан сұрақты мұғалімге жібердім.",
     "ru": "Я не уверен в этом, поэтому передал вопрос учителю.",
+}
+NO_THEORY = {
+    "kk": "Бұл тақырып бойынша тексерілген теория әлі жоқ, сондықтан сұрақты мұғалімге жібердім.",
+    "ru": "По этой теме пока нет проверенной теории, поэтому я передал вопрос учителю.",
 }
 REFUSAL = {
     "kk": "Бұл сұраққа жауап бере алмаймын. Сабақ тақырыбы бойынша бірдеңе сұрап көр.",
@@ -142,12 +147,19 @@ def new_session(payload: SessionIn, user: User = Depends(current_user), db: Sess
     return _session_out(db, s)
 
 
+def _subject_theory(db: Session, lang: str) -> str:
+    subj = subject_by_slug(db, "math")
+    parts = [f"«{l.title.get(lang, '')}»:\n" + "\n".join(l.theory[lang])
+             for l in (lessons_of(db, subj.id) if subj else []) if l.theory.get(lang)]
+    return "\n\n".join(parts)
+
+
 def _system_prompt(db: Session, user: User, lesson: Lesson | None, stage: int = 1) -> str:
     lang = user.lang if user.lang in RULES else "kk"
     stage_text = STAGES.get(stage, STAGES[6])
-    if not lesson:
+    if not lesson:  # свободная тема: опора — теория всех навыков предмета, а не знания модели
         return SYSTEM.format(grade=user.grade, lang_rule=RULES[lang], lesson="свободная тема (математика)",
-                             theory="—", state="нет данных", mistakes="—", stage=stage_text)
+                             theory=_subject_theory(db, lang) or "—", state="нет данных", mistakes="—", stage=stage_text)
     s = compute_states(db, user.id).get(lesson.id, SkillState())
     state = (f"самостоятельно верно {round(s.indep * 100)}% (ответов: {s.n_indep}), "
              f"в практике {round(s.practice * 100)}% (ответов: {s.n_practice})") if s.n_indep or s.n_practice else "нет данных"
@@ -181,7 +193,10 @@ def send(session_id: int, payload: MessageIn, user: User = Depends(current_user)
     db.add(user_msg)
     db.flush()
 
-    if not gateway.enabled():
+    if lesson and not lesson.theory.get(lang):  # без теории Tutor не объясняет «из головы» — сразу к учителю
+        reply, tin, tout, model = NO_THEORY[lang], 0, 0, "no_theory"
+        _escalate(db, s, user, "tutor_low_confidence", payload.text)
+    elif not gateway.enabled():
         hint = "\n".join(l.removeprefix("$ ").removeprefix("! ") for l in (lesson.theory.get(lang, [])[:3] if lesson else []))
         reply, tin, tout, model = STUB[lang].format(hint=hint or "—").strip(), 0, 0, "stub"
     else:
@@ -368,7 +383,7 @@ def hint(session_id: int, user: User = Depends(current_user), db: Session = Depe
     else:
         theory = [l.removeprefix("$ ").removeprefix("! ") for l in lesson.theory.get(lang, [])]
         text = theory[min(level - 1, len(theory) - 1)] if theory else ""
-        if gateway.enabled():
+        if gateway.enabled() and theory:
             try:
                 q = t.question.get(lang, "") if isinstance(t.question, dict) else t.question
                 text, *_ = gateway.complete(_system_prompt(db, user, lesson, 4),

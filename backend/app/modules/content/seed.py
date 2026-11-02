@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.content.data import COURSES, SUBJECTS
 from app.modules.content.models import Course, Lesson, Subject, Task
+from app.modules.content.service import set_theory
 
 PURPOSE = {"d": "diagnostic", "p": "practice", "v": "verification"}
 
@@ -30,6 +31,9 @@ def seed_content(db: Session) -> None:
         course = _upsert(db, Course, c["slug"], subject_id=subjects[c["subject"]].id, title=c["title"],
                          description=c["description"], sym=c["sym"], level=c["level"], grade=c["grade"], order=ci)
         for li, l in enumerate(c["lessons"]):
+            old = db.scalar(select(Lesson).where(Lesson.slug == l["slug"]))
+            if old is not None and old.source != "admin":
+                set_theory(old, l["theory"])  # теория в data.py поменялась — отметка учителя снимается
             lesson = _upsert(db, Lesson, l["slug"], course_id=course.id, title=l["title"], minutes=l["minutes"],
                              theory=l["theory"], examples=l["examples"], prereqs=l["prereqs"], order=li)
             for ti, (p, q, opts, r, ex) in enumerate(l["tasks"]):

@@ -1,4 +1,6 @@
-from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String
+from datetime import datetime
+
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -47,6 +49,11 @@ class Lesson(Base):
     prereqs: Mapped[list] = mapped_column(JSON, default=list)  # slug'и базовых уроков
     order: Mapped[int] = mapped_column(Integer, default=0)
     source: Mapped[str] = mapped_column(String(10), default="seed", server_default="seed")  # seed | admin
+    # Проверка теории учителем (лист skills, колонки teacher_ok / teacher_comment). Любая правка теории сбрасывает отметку.
+    theory_ok: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    theory_ok_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    theory_ok_by: Mapped[int | None] = mapped_column(Integer, nullable=True)  # кто загрузил отметку (users.id)
+    theory_comment: Mapped[str] = mapped_column(Text, default="", server_default="")
 
 
 class Task(Base):
