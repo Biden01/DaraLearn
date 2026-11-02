@@ -21,3 +21,8 @@ CARRY_DAYS = 3      # невыполненное за последние дни 
 ADHERENCE_DAYS = 7
 ADHERENCE_LIMIT = 0.3
 ADHERENCE_MISSES = 3
+
+# Посещаемость: день засчитан, если выполнен хотя бы один шаг плана. Выходные (сб, вс) без занятий — не пропуск.
+ATTENDANCE_DAYS_OFF = (5, 6)
+ATTENDANCE_STUDENT_DAYS = 35   # календарь ученика и карточка у учителя: 5 недель
+ATTENDANCE_CLASS_DAYS = 14     # таблица класса: 2 недели

@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { api, saveBlob, upload } from "../api.js";
-import { Box, Crumb, Icon, Loading, useApp } from "../ui.jsx";
+import { Bar, Box, Crumb, Icon, Loading, useApp } from "../ui.jsx";
 
 export default function Classes() {
   const { t, user, toast } = useApp();
   const [list, setList] = useState(null);
   const [form, setForm] = useState(false);
+  const [att, setAtt] = useState({});
   const fileFor = useRef(null);
   const file = useRef();
   const c = t.classes;
   const load = () => api("/school/classes").then(setList).catch(() => setList([]));
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api("/plan/attendance/overview").then((r) => setAtt(Object.fromEntries(r.map((x) => [x.class_id, x])))).catch(() => {});
+  }, []);
   const canEdit = user.role === "teacher" || user.role === "admin";
 
   async function create(e) {
@@ -58,6 +62,7 @@ export default function Classes() {
                 <div className="row"><Box sym={x.name} /><div><div className="card-title">{x.name}</div><div className="muted small">{c.students(x.students)}{x.teacher ? ` · ${x.teacher}` : ""}</div></div></div>
                 <a className="btn sm" href={`#/class/${x.id}`}>{c.open}</a>
               </div>
+              {att[x.id]?.total > 0 && <ClassToday a={att[x.id]} />}
               {x.code && (
                 <div style={{ marginTop: 18 }}>
                   <div className="muted small">{c.code}</div>
@@ -77,5 +82,30 @@ export default function Classes() {
         </div>
       ) : <div className="card empty muted">{c.noClasses}</div>}
     </>
+  );
+}
+
+// Кто сегодня уже выполнил шаг плана, а кто нет — сразу на главной учителя.
+function ClassToday({ a }) {
+  const { t } = useApp();
+  const at = t.att;
+  const pct = Math.round((100 * a.present) / a.total);
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="row between small" style={{ marginBottom: 6 }}>
+        <b>{at.classToday(a.present, a.total)}</b>
+        <span className="muted">{at.rate}: {a.rate == null ? "—" : `${Math.round(a.rate * 100)}%`}</span>
+      </div>
+      <Bar p={pct} />
+      {a.missing.length ? (
+        <div className="small" style={{ marginTop: 8 }}>
+          <span className="muted">{at.missing} </span>
+          {a.missing.slice(0, 6).map((m, i) => (
+            <span key={m.id}>{i > 0 && ", "}<a href={`#/student/${m.id}`} title={at.last(m.last_present)}>{m.name}</a></span>
+          ))}
+          {a.missing.length > 6 && <span className="muted"> +{a.missing.length - 6}</span>}
+        </div>
+      ) : <p className="small" style={{ margin: "8px 0 0", color: "var(--green)" }}>{at.allIn}</p>}
+    </div>
   );
 }

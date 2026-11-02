@@ -12,12 +12,13 @@ from app.modules.content.models import Course, Lesson, Task
 from app.modules.content.service import subject_by_slug, task_public
 from app.modules.decisions.models import AuditLog
 from app.modules.plan import rules
+from app.modules.plan.attendance import attendance_for
 from app.modules.decisions.service import sync_student
 from app.modules.events.models import LearningEvent
 from app.modules.plan.models import DailyPlan, MonthlyGoal, PlanItem
 from app.modules.plan.service import (build_goal, build_plan, current_topic, goal_schedule, goal_topics, next_month,
                                       rebuild_goal, refresh_progress, set_topic, week_of)
-from app.modules.school.access import class_students, get_class, get_student
+from app.modules.school.access import class_students, get_class, get_student, visible_classes
 from app.modules.school.models import User
 from app.modules.state.engine import SkillState, compute_states
 from app.modules.verification.service import schedule_check
@@ -103,6 +104,46 @@ def today(user: User = Depends(current_user), db: Session = Depends(get_db)) -> 
     plan = build_plan(db, user, day)
     out = plan_out(db, plan) | {"goal": goal_out(db, build_goal(db, user, day))}
     db.commit()
+    return out
+
+
+@router.get("/attendance")
+def my_attendance(user: User = Depends(require_role("student")), db: Session = Depends(get_db)) -> dict:
+    """Посещаемость ученика за 5 недель: день засчитан, если выполнен хотя бы один шаг плана."""
+    return attendance_for(db, [user], today_local(), rules.ATTENDANCE_STUDENT_DAYS)[user.id]
+
+
+@router.get("/students/{student_id}/attendance")
+def student_attendance(student_id: int, user: User = Depends(require_role("teacher", "curator")),
+                       db: Session = Depends(get_db)) -> dict:
+    s = get_student(db, user, student_id)
+    return attendance_for(db, [s], today_local(), rules.ATTENDANCE_STUDENT_DAYS)[s.id]
+
+
+@router.get("/classes/{class_id}/attendance")
+def class_attendance(class_id: int, user: User = Depends(require_role("teacher", "curator")),
+                     db: Session = Depends(get_db)) -> dict:
+    """Таблица класса за 2 недели: ученики × дни."""
+    c = get_class(db, user, class_id)
+    students = class_students(db, c.id)
+    att = attendance_for(db, students, today_local(), rules.ATTENDANCE_CLASS_DAYS)
+    return {"students": [{"id": s.id, "name": s.name} | att[s.id] for s in students]}
+
+
+@router.get("/attendance/overview")
+def attendance_overview(user: User = Depends(require_role("teacher", "curator")), db: Session = Depends(get_db)) -> list[dict]:
+    """Для главной учителя: по каждому классу — кто сегодня уже занимался, а кто нет."""
+    out = []
+    today = today_local()
+    for c in visible_classes(db, user):
+        students = class_students(db, c.id)
+        att = attendance_for(db, students, today, rules.ATTENDANCE_CLASS_DAYS)
+        rates = [a["rate"] for a in att.values() if a["rate"] is not None]
+        out.append({"class_id": c.id, "name": c.name, "total": len(students),
+                    "present": sum(a["today"] for a in att.values()),
+                    "rate": round(sum(rates) / len(rates), 2) if rates else None,
+                    "missing": [{"id": s.id, "name": s.name, "last_present": att[s.id]["last_present"]}
+                                for s in students if not att[s.id]["today"]]})
     return out
 
 

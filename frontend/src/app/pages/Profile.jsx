@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Bar, Box, Icon, Ring, useApp } from "../ui.jsx";
 import { monthName } from "./Plan.jsx";
+import AttendanceCard from "../Attendance.jsx";
 
 const ACH_ICONS = { first_step: "star", diagnostic: "doc", perfect_test: "target", streak5: "fire", five_mastered: "book", all_mastered: "check" };
 
@@ -12,8 +13,10 @@ export default function Profile() {
   const [d, setD] = useState(null);
   const [goal, setGoal] = useState(null);
   const [classes, setClasses] = useState([]);
+  const [att, setAtt] = useState(null);
   useEffect(() => {
     if (!student) return;
+    api("/plan/attendance").then(setAtt).catch(() => {});
     api("/state/me").then(setD).catch(() => {});
     api("/plan/today").then((p) => setGoal(p.goal || null)).catch(() => {});
     api("/auth/me/classes").then(setClasses).catch(() => {});
@@ -37,12 +40,12 @@ export default function Profile() {
         </div>
       </div>
       {!student && <p className="muted">{pr.staffSub}</p>}
-      {student && d && <StudentPart d={d} goal={goal} classes={classes} />}
+      {student && d && <StudentPart d={d} goal={goal} classes={classes} att={att} />}
     </>
   );
 }
 
-function StudentPart({ d, goal, classes }) {
+function StudentPart({ d, goal, classes, att }) {
   const { t, L, lang } = useApp();
   const pr = t.profile;
   const pp = t.progress;
@@ -74,6 +77,7 @@ function StudentPart({ d, goal, classes }) {
               </>
             ) : <p className="muted small" style={{ margin: 0 }}>{pr.goalNone}</p>}
           </div>
+          <AttendanceCard a={att} self />
           <div className="card">
             <p className="card-title" style={{ marginBottom: 8 }}>{t.me.classes}</p>
             {classes.length ? classes.map((c) => (

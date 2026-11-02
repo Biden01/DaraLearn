@@ -3,13 +3,16 @@ import { api } from "../api.js";
 import { Bar, Crumb, Loading, Ring, useApp } from "../ui.jsx";
 import RecItem from "./RecItem.jsx";
 import StudentMonth from "./StudentMonth.jsx";
+import AttendanceCard from "../Attendance.jsx";
 
 export default function StudentCard() {
   const { t, L, route } = useApp();
   const [d, setD] = useState(null);
   const [feed, setFeed] = useState([]);
+  const [att, setAtt] = useState(null);
   const load = () => {
     api(`/state/students/${route.param}`).then(setD).catch(() => setD(false));
+    api(`/plan/students/${route.param}/attendance`).then(setAtt).catch(() => {});
     api("/decisions/feed?include_closed=true").then((f) => setFeed(f.items.filter((x) => String(x.user_id) === route.param))).catch(() => {});
   };
   useEffect(load, [route.param]);
@@ -33,7 +36,9 @@ export default function StudentCard() {
           <p className="card-title" style={{ marginBottom: 6 }}>{s.recs}</p>
           {feed.length ? feed.map((r) => <RecItem key={r.id} r={r} onChange={load} showStudent={false} />) : <p className="muted small">{t.rec.empty}</p>}
         </div>
-        <div className="card" style={{ alignSelf: "start" }}>
+        <div className="stack" style={{ alignSelf: "start" }}>
+        <AttendanceCard a={att} />
+        <div className="card">
           <p className="card-title" style={{ marginBottom: 6 }}>{s.skills}</p>
           {d.lessons.map((l) => (
             <div className="list-item" key={l.slug}>
@@ -42,6 +47,7 @@ export default function StudentCard() {
                 <div style={{ marginTop: 5 }}><Bar p={l.proof * 100} /></div></div>
             </div>
           ))}
+        </div>
         </div>
       </div>
     </>
