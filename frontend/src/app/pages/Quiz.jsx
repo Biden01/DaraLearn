@@ -6,11 +6,25 @@ import { RecentAttempts } from "./Diagnostics.jsx";
 export default function Quiz() {
   const { t, L, route, startTest } = useApp();
   const [courses, setCourses] = useState([]);
-  const [lesson, setLesson] = useState(route.query.get("lesson") || "");
+  const fromLink = route.query.get("lesson");
+  const [lesson, setLesson] = useState(fromLink || "");
+  const [byPlan, setByPlan] = useState(false); // урок подставлен из плана дня
   const [checks, setChecks] = useState([]);
   useEffect(() => {
-    api("/content/courses?subject=math").then(setCourses).catch(() => {});
     api("/verification/checks").then(setChecks).catch(() => {});
+    Promise.all([
+      api("/content/courses?subject=math").then((cs) => { setCourses(cs); return cs; }).catch(() => []),
+      fromLink ? null : api("/plan/today").catch(() => null),
+    ]).then(([cs, plan]) => {
+      // тест по уроку — по теме сегодняшнего плана: урок занятия с AI Tutor, иначе первый невыполненный шаг
+      const items = plan?.items || [];
+      const pick = items.find((i) => i.block === "tutor") || items.find((i) => i.status !== "done") || items[0];
+      const known = new Set(cs.flatMap((c) => c.lessons.map((l) => l.slug)));
+      if (pick && known.has(pick.lesson)) {
+        setLesson((cur) => cur || pick.lesson);
+        setByPlan(true);
+      }
+    });
   }, []);
   const q = t.quiz;
   return (
@@ -46,7 +60,7 @@ export default function Quiz() {
             ))}
             <div style={{ borderTop: "1px solid var(--line)", paddingTop: 16, marginTop: 4 }} className="row wrap">
               <label className="field grow" style={{ minWidth: 220 }}>{q.lessonTest}
-                <select value={lesson} onChange={(e) => setLesson(e.target.value)}>
+                <select value={lesson} onChange={(e) => { setLesson(e.target.value); setByPlan(false); }}>
                   <option value="" disabled>—</option>
                   {courses.map((c) => (
                     <optgroup key={c.slug} label={L(c.title)}>
@@ -58,6 +72,11 @@ export default function Quiz() {
               <button className="btn" style={{ alignSelf: "flex-end" }} disabled={!lesson}
                 onClick={() => startTest({ kind: "verification", lesson })}>{t.start} <Icon n="arrow" s={16} /></button>
             </div>
+            {byPlan && lesson && (
+              <p className="muted small row" style={{ gap: 6, margin: "8px 0 0" }}>
+                <Icon n="cal" s={14} /> {q.byPlan} <a href="#/plan" className="link small">{q.toPlan}</a>
+              </p>
+            )}
           </div>
           <div className="card soft">
             <div className="row"><Box icon="lock" size={36} /><p className="card-title" style={{ margin: 0 }}>AI Tutor</p></div>
