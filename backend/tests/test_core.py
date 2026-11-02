@@ -196,3 +196,11 @@ def test_admin_metrics(admin):
     assert "independent_progress" in m and "accepted_share" in m["recommendations"]
     assert admin.ok("GET", "/api/admin/ai")["models"] is not None
     assert isinstance(admin.ok("GET", "/api/admin/audit"), list)
+
+
+def test_student_sees_only_subjects_with_lessons():
+    s = register()
+    subj = s.ok("GET", "/api/content/subjects")
+    assert [x["slug"] for x in subj] == ["math"]  # пилот: пустые предметы скрыты
+    assert all(x["active"] and x["progress"]["total"] > 0 for x in subj)
+    assert s.get("/api/content/courses", params={"subject": "phys"}).status_code == 404

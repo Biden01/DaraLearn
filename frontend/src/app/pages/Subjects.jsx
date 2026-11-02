@@ -6,23 +6,18 @@ export default function Subjects() {
   const { t, L, user } = useApp();
   const [list, setList] = useState(null);
   const [sel, setSel] = useState("math");
-  const [filter, setFilter] = useState("all");
   useEffect(() => { api("/content/subjects").then(setList).catch(() => setList([])); }, []);
   if (!list) return <Loading />;
 
-  const shown = list.filter((s) => filter === "all" || (filter === "active" ? s.active : !s.active));
-  const s = list.find((x) => x.slug === sel) || list[0];
   const sp = t.subjects;
+  const shown = list.filter((x) => x.active);
+  const s = shown.find((x) => x.slug === sel) || shown[0];
+  if (!s) return <><Crumb items={[[t.nav.subjects]]} /><h1>{t.nav.subjects}</h1><p className="subtitle">{sp.soonText}</p></>;
   return (
     <>
       <Crumb items={[[t.nav.subjects]]} />
       <h1>{t.nav.subjects}</h1>
       <p className="subtitle">{sp.sub}</p>
-      <div className="chips">
-        {[["all", t.all], ["active", sp.inprog], ["soon", t.soon]].map(([k, l]) => (
-          <button key={k} className={`chip ${filter === k ? "on" : ""}`} onClick={() => setFilter(k)}>{l}</button>
-        ))}
-      </div>
       <div className="grid g-main">
         <div className="grid g-3" style={{ alignContent: "start" }}>
           {shown.map((x) => (
