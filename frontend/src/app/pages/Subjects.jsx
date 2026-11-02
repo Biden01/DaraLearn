@@ -10,7 +10,7 @@ export default function Subjects() {
   if (!list) return <Loading />;
 
   const sp = t.subjects;
-  const shown = list.filter((x) => x.active);
+  const shown = list.filter((x) => x.active && x.progress?.total > 0);
   const s = shown.find((x) => x.slug === sel) || shown[0];
   if (!s) return <><Crumb items={[[t.nav.subjects]]} /><h1>{t.nav.subjects}</h1><p className="subtitle">{sp.soonText}</p></>;
   return (

@@ -22,7 +22,7 @@ export default function Diagnostics() {
   const { t, L, startTest } = useApp();
   const [subjects, setSubjects] = useState([]);
   const [sel, setSel] = useState("math");
-  useEffect(() => { api("/content/subjects").then((l) => setSubjects(l.filter((x) => x.active))).catch(() => {}); }, []);
+  useEffect(() => { api("/content/subjects").then((l) => setSubjects(l.filter((x) => x.active && x.progress?.total > 0))).catch(() => {}); }, []);
   const s = subjects.find((x) => x.slug === sel);
   const dp = t.diag;
   return (
