@@ -20,7 +20,13 @@ export default function Tutor() {
   const wanted = route.query.get("lesson");
   const wantedRec = route.query.get("rec");
   const [check, setCheck] = useState(null); // этапы 7–9: {tasks, answers, result}
-  const [fold, setFold] = useState(0); // сигнал свернуть задачу, когда ученик пишет в чат
+  const [task, setTask] = useState(null);          // задача первой попытки (карточка в ленте)
+  const [taskSeen, setTaskSeen] = useState(true);  // карточка задачи сейчас в кадре
+  const taskRef = useRef();
+  const msgCount = useRef(0);
+  msgCount.current = session?.messages?.length || 0;
+  // пока ученик не писал — показываем начало ленты (задачу), потом — последние сообщения
+  const toEnd = (el) => { el.scrollTop = msgCount.current ? el.scrollHeight : 0; };
 
   useEffect(() => {
     api("/tutor/status").then(setStatus).catch(() => {});
@@ -33,16 +39,24 @@ export default function Tutor() {
     }).catch(() => newSession(wanted));
   }, []);
 
-  useEffect(() => { if (body.current && !check) body.current.scrollTop = body.current.scrollHeight; }, [session?.messages, busy, check]);
+  useEffect(() => { if (body.current && !check) toEnd(body.current); }, [session?.messages, busy, check]);
   useEffect(() => { if (body.current && check) body.current.scrollTop = 0; }, [!!check]);
   // лента меняет высоту (задача свернулась/догрузилась, клавиатура на телефоне) — держим низ переписки в кадре
   useEffect(() => {
     const el = body.current;
     if (!el || check || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => { if (!el.querySelector(".chat-empty")) el.scrollTop = el.scrollHeight; });
+    const ro = new ResizeObserver(() => toEnd(el));
     ro.observe(el);
     return () => ro.disconnect();
   }, [check, !!session]);
+  // карточка задачи ушла вверх — показываем закреплённую строку «К задаче»
+  useEffect(() => {
+    const el = taskRef.current;
+    if (!el || !body.current || typeof IntersectionObserver === "undefined") { setTaskSeen(true); return; }
+    const io = new IntersectionObserver(([e]) => setTaskSeen(e.isIntersecting), { root: body.current, threshold: 0.15 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [task, check]);
   // поле ввода растёт вместе с текстом (до 5 строк)
   useEffect(() => {
     const el = input.current;
@@ -83,7 +97,6 @@ export default function Tutor() {
     if (!m || busy || !session) return;
     setText("");
     setBusy(true);
-    setFold((n) => n + 1);
     const tmp = { id: `tmp${Date.now()}`, role: "user", content: m, at: new Date().toISOString() };
     setSession((s) => ({ ...s, messages: [...s.messages, tmp] }));
     try {
@@ -110,6 +123,7 @@ export default function Tutor() {
   // при верной первой попытке кнопка проверки есть в самой задаче, здесь — только после ошибки
   const canCheck = hasLesson && !locked && !check && answered && !session.first_attempt_correct;
   const stageNo = session ? (session.finished ? 9 : session.stage) : 1;
+  const showTask = hasLesson && !locked && !check;
 
   return (
     <div className="tutor-page">
@@ -161,7 +175,11 @@ export default function Tutor() {
 
           {status && !status.enabled && <div className="chat-banner">{tp.off}</div>}
 
-          {hasLesson && !locked && !check && <TutorTask session={session} setSession={setSession} onCheck={startCheck} fold={fold} />}
+          {showTask && task && !taskSeen && session.first_attempt_correct !== true && (
+            <button className="task-pin" onClick={() => taskRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+              <Icon n="target" s={15} /><span className="task-pin-q">{L(task.question)}</span><span className="link small">{tp.toTask} ↑</span>
+            </button>
+          )}
 
           <div className="chat-body" ref={body} aria-live="polite">
             {check ? (
@@ -195,11 +213,11 @@ export default function Tutor() {
                   </div>
                 )}
               </div>
-            ) : msgs.length === 0 && !busy ? (
+            ) : msgs.length === 0 && !busy && !hasLesson ? (
               <div className="chat-empty">
-                {!hasLesson && <div className="bot-ava big" style={{ marginBottom: 14 }}><Icon n="bot" s={30} /></div>}
+                <div className="bot-ava big" style={{ marginBottom: 14 }}><Icon n="bot" s={30} /></div>
                 <p className="t-strong" style={{ margin: "0 0 6px", fontSize: 16 }}>{tp.hello}</p>
-                <p className="muted" style={{ margin: "0 0 18px", lineHeight: 1.5 }}>{hasLesson ? tp.sub : tp.freeTip}</p>
+                <p className="muted" style={{ margin: "0 0 18px", lineHeight: 1.5 }}>{tp.freeTip}</p>
                 {!locked && !noLeft && (
                   <div className="starters">
                     {tp.quick.map((q) => <button key={q} disabled={busy} onClick={() => send(q)}>{q}<Icon n="arrow" s={16} /></button>)}
@@ -209,6 +227,7 @@ export default function Tutor() {
             ) : (
               <>
                 <div className="msg bot"><BotAva /><div><div className="bubble">{tp.hello}</div></div></div>
+                {showTask && <TutorTask ref={taskRef} session={session} setSession={setSession} onCheck={startCheck} onTask={setTask} />}
                 {msgs.map((m) => (
                   <div key={m.id} className={`msg ${m.role === "user" ? "me" : "bot"}`}>
                     {m.role !== "user" && <BotAva />}
@@ -238,7 +257,7 @@ export default function Tutor() {
               </div>
             ) : (
               <div className="chat-foot">
-                {msgs.length > 0 && !noLeft && (
+                {(msgs.length > 0 || hasLesson) && !noLeft && (
                   <div className="chips chat-quick">
                     {tp.quick.map((q) => <button key={q} className="chip" disabled={busy} onClick={() => send(q)}>{q}</button>)}
                   </div>

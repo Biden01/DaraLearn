@@ -198,14 +198,28 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
 .stepper-label { font-size: 13px; color: var(--muted); }
 .stepper-label b { color: #111329; }
 
-/* задача первой попытки */
-.tutor-task { padding: 10px 18px 14px; border-bottom: 1px solid var(--line); max-height: 38%; overflow-y: auto; flex-shrink: 0; background: #fbfcfe; }
-.tutor-task.closed { padding-bottom: 10px; }
-.tutor-task-head { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 4px 0; margin-bottom: 6px; font-size: 14px; }
-.tutor-task.closed .tutor-task-head { margin-bottom: 0; }
-.tutor-task-head svg { color: var(--accent); flex: none; }
-.tutor-task-peek { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 13px; }
-.tutor-task .task { background: #fff; }
+/* задача первой попытки — карточка от Dara в ленте */
+.task-msg { max-width: min(640px, 100%); width: 100%; scroll-margin-top: 12px; }
+.task-msg .bot-ava { align-self: flex-start; margin-bottom: 0; }
+.task-card { flex: 1; min-width: 0; background: #fff; border: 1.5px solid #d9e6fd; border-radius: 16px; border-top-left-radius: 4px; padding: 14px 16px; box-shadow: 0 2px 10px rgba(0, 88, 244, .06); }
+.task-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+.task-card-head svg { color: var(--accent); flex: none; }
+.task-card .q { font-weight: 600; font-size: 16px; line-height: 1.5; margin-bottom: 12px; }
+.task-card-note { margin: 12px 0 10px; font-size: 14px; color: var(--red); font-weight: 600; }
+.task-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.task-card-foot .btn { gap: 6px; }
+.hint { background: var(--amber-soft); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 14px; line-height: 1.5; }
+.hint > b { display: flex; align-items: center; gap: 6px; color: #8a5a00; margin-bottom: 4px; font-size: 13px; }
+.opt-letter { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: #f1f3f6; color: var(--muted); font-size: 12px; font-weight: 700; margin-right: 10px; flex: none; }
+.opts button { display: flex; align-items: center; }
+.opts button.picked .opt-letter { background: var(--accent); color: #fff; }
+.opts button.right .opt-letter { background: var(--green); color: #fff; }
+.opts button.wrong .opt-letter { background: var(--red); color: #fff; }
+/* закреплённая строка, когда задача ушла из вида */
+.task-pin { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 18px; background: var(--accent-soft); border-bottom: 1px solid #d9e6fd; text-align: left; font-size: 13px; flex-shrink: 0; }
+.task-pin svg { color: var(--accent); flex: none; }
+.task-pin-q { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.task-pin .link { white-space: nowrap; }
 
 /* лента сообщений */
 .chat-body { flex: 1; min-height: 180px; overflow-y: auto; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; overscroll-behavior: contain; }
@@ -214,6 +228,7 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
 .msg.me .time { text-align: right; }
 .bot-ava { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; margin-bottom: 18px; }
 .bot-ava.big { width: 60px; height: 60px; margin: 0 auto; }
+.bubble, .task-card, .tutor-check .task { font-family: "Onest Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Segoe UI Symbol", "Cambria Math", "STIX Two Math", "Noto Sans Math", sans-serif; }
 .bubble { padding: 11px 15px; border-radius: 16px; background: #f3f5f8; font-size: 15px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .msg.me .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
 .msg.bot .bubble { border-bottom-left-radius: 4px; }
@@ -244,6 +259,7 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
 .chat-input textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .chat-input textarea:disabled { background: #f6f7fa; }
 .chat-input .send { width: 46px; height: 46px; padding: 0; border-radius: 12px; flex: none; }
+.chat-input .send:disabled { opacity: 1; background: #e9ecf2; color: #8b90a3; }
 .chat-hint { font-size: 11px; color: var(--muted); padding: 0 18px 10px; }
 .chat-locked { border-top: 1px solid var(--line); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
 
@@ -310,17 +326,18 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
   .tutor-top { margin-bottom: 10px; }
   .tutor-top h1 { font-size: 22px; }
   .chat { height: calc(100dvh - var(--header) - 84px); min-height: 420px; margin: 0 -8px; }
-  .chat-head, .chat-input, .tutor-task, .stepper, .chat-banner, .chat-locked, .chat-quick { padding-left: 12px; padding-right: 12px; }
+  .chat-head, .chat-input, .stepper, .chat-banner, .chat-locked, .chat-quick { padding-left: 12px; padding-right: 12px; }
   .chat-input { padding-bottom: 12px; }
   .chat-body { padding: 16px 12px; }
   .tutor-stages { display: none; }
   .starters { grid-template-columns: 1fr; }
   .chat-body { min-height: 120px; }
-  .tutor-task { max-height: 34%; padding-top: 6px; padding-bottom: 10px; }
-  .tutor-task .task { padding: 12px; margin-bottom: 10px; }
-  .tutor-task .task .q { margin-bottom: 10px; }
-  .tutor-task .opts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .tutor-task .opts button { padding: 9px 10px; }
+  .task-msg .bot-ava { display: none; }
+  .msg.task-msg { max-width: 100%; }
+  .task-card { padding: 12px; }
+  .task-card .opts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .task-card .opts button { padding: 9px 10px; }
+  .task-pin { padding-left: 12px; padding-right: 12px; }
   .stepper { padding-top: 8px; padding-bottom: 8px; }
   .stepper-row .btn.sm { padding: 6px 10px; font-size: 12px; }
   .user { padding-left: 12px; }
