@@ -3,19 +3,21 @@ import { api } from "../api.js";
 import { Icon, Rich, useApp } from "../ui.jsx";
 
 // Шаг 3 занятия: задача без подсказок. Помощь открывается после ошибки: лестница из 4 подсказок и кнопка «позвать учителя».
-export default function TutorTask({ session, setSession, onCheck }) {
+export default function TutorTask({ session, setSession, onCheck, fold }) {
   const { t, L, toast } = useApp();
   const h = t.hybrid;
   const [task, setTask] = useState(null);
   const [picked, setPicked] = useState(null);
   const [hints, setHints] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(true);
   const answered = session.first_attempt_correct !== null && session.first_attempt_correct !== undefined;
 
   useEffect(() => {
-    setTask(null); setPicked(null); setHints([]);
+    setTask(null); setPicked(null); setHints([]); setOpen(true);
     api(`/tutor/sessions/${session.id}/task`).then((r) => setTask(r.task)).catch(() => {});
   }, [session.id]);
+  useEffect(() => { if (fold) setOpen(false); }, [fold]);
 
   async function choose(j) {
     if (answered || busy) return;
@@ -45,14 +47,21 @@ export default function TutorTask({ session, setSession, onCheck }) {
   if (!task) return null;
   const wrong = answered && !session.first_attempt_correct;
   return (
-    <div className="tutor-check" style={{ borderBottom: "1px solid var(--line)" }}>
-      <p className="card-title" style={{ marginBottom: 6 }}><Icon n="target" s={16} /> 3. {h.first}</p>
+    <div className={`tutor-task ${open ? "" : "closed"}`}>
+      <button className="tutor-task-head" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <Icon n="target" s={16} />
+        <b>{h.first}</b>
+        {answered && <span className={`badge ${session.first_attempt_correct ? "green" : "red"}`}>{session.first_attempt_correct ? "✓" : "✗"}</span>}
+        {!open && <span className="tutor-task-peek">{L(task.question)}</span>}
+        <span className="link small" style={{ marginLeft: "auto" }}>{open ? h.collapse : h.expand}</span>
+      </button>
+      {open && <>
       {!answered && <p className="muted small" style={{ margin: "0 0 10px" }}>{h.firstHint}</p>}
       <div className="task">
         <div className="q">{L(task.question)}</div>
         <div className="opts">
           {task.options.map((o, j) => (
-            <button key={j} disabled={answered || busy} className={picked === j ? (answered ? (session.first_attempt_correct ? "right" : "wrong") : "right") : ""}
+            <button key={j} disabled={answered || busy} className={picked === j ? (answered ? (session.first_attempt_correct ? "right" : "wrong") : "picked") : ""}
               onClick={() => choose(j)}>{L(o)}</button>
           ))}
         </div>
@@ -73,6 +82,7 @@ export default function TutorTask({ session, setSession, onCheck }) {
           </div>
         </>
       )}
+      </>}
     </div>
   );
 }
