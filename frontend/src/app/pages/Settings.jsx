@@ -25,8 +25,14 @@ export default function Settings() {
   async function join(e) {
     e.preventDefault();
     const code = new FormData(e.target).get("code");
-    try { setUser(await api("/auth/join", { method: "POST", body: { code } })); e.target.reset(); toast(t.me.joined); }
-    catch (ex) { toast(ex.code === "invalid_code" ? t.me.badCode : t.error); }
+    try {
+      const u = await api("/auth/join", { method: "POST", body: { code } });
+      setUser(u); e.target.reset(); toast(u.role === "teacher" ? t.me.joinedTeacher : t.me.joined);
+    }
+    catch (ex) {
+      const msg = { invalid_code: t.me.badCode, class_has_teacher: t.me.classHasTeacher, teacher_other_school: t.me.otherSchool }[ex.code];
+      toast(msg || t.error);
+    }
   }
   async function changePwd(e) {
     e.preventDefault();
@@ -79,8 +85,8 @@ export default function Settings() {
           </Section>
         )}
 
-        {student && (
-          <Section title={t.me.join} help={s.joinHelp}>
+        {(student || user.role === "teacher") && (
+          <Section title={student ? t.me.join : t.me.joinTeacher} help={student ? s.joinHelp : t.me.joinTeacherHelp}>
             <form className="row" onSubmit={join}>
               <input name="code" required minLength={4} maxLength={12} placeholder={t.me.joinCode} aria-label={t.me.joinCode}
                 style={{ flex: 1, border: "1px solid var(--line)", borderRadius: 9, padding: 11, textTransform: "uppercase", letterSpacing: 2 }} />

@@ -7,6 +7,9 @@ export default function Classes() {
   const [list, setList] = useState(null);
   const [form, setForm] = useState(false);
   const [att, setAtt] = useState({});
+  const [teachers, setTeachers] = useState([]);
+  const [schools, setSchools] = useState([]);
+  const [schoolId, setSchoolId] = useState("");
   const fileFor = useRef(null);
   const file = useRef();
   const c = t.classes;
@@ -16,15 +19,39 @@ export default function Classes() {
     api("/plan/attendance/overview").then((r) => setAtt(Object.fromEntries(r.map((x) => [x.class_id, x])))).catch(() => {});
   }, []);
   const canEdit = user.role === "teacher" || user.role === "admin";
+  const isAdmin = user.role === "admin";
+  useEffect(() => {
+    if (!isAdmin || !form) return;
+    api("/school/users?role=teacher").then(setTeachers).catch(() => setTeachers([]));
+    api("/school/schools").then(setSchools).catch(() => setSchools([]));
+  }, [isAdmin, form]);
 
   async function create(e) {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
-    try { await api("/school/classes", { method: "POST", body: { name: f.name, grade: Number(f.grade) } }); setForm(false); load(); }
-    catch (ex) { toast(ex.code === "no_school" ? c.noSchool : t.error); }
+    const body = { name: f.name, grade: Number(f.grade) };
+    if (isAdmin) {
+      body.school_id = Number(f.school);
+      if (f.teacher) body.teacher_id = Number(f.teacher);
+    }
+    let created;
+    try { created = await api("/school/classes", { method: "POST", body }); }
+    catch (ex) {
+      const msg = { no_school: c.noSchool, no_teacher: c.noTeacher, teacher_other_school: c.teacherOtherSchool }[ex.code];
+      return toast(msg || t.error);
+    }
+    setForm(false);
+    // Админ может сразу приложить список учеников — заводим их в новый класс.
+    if (f.students instanceof File && f.students.size) {
+      try {
+        saveBlob(await upload(`/school/classes/${created.id}/import`, f.students, { blob: true }), `logins-${created.id}.xlsx`);
+        toast(c.importDone("✓"));
+      } catch { toast(t.error); }
+    }
+    load();
   }
-  async function newCode(id) {
-    try { await api(`/school/classes/${id}/code`, { method: "POST" }); load(); } catch { toast(t.error); }
+  async function newCode(id, teacher = false) {
+    try { await api(`/school/classes/${id}/${teacher ? "teacher-code" : "code"}`, { method: "POST" }); load(); } catch { toast(t.error); }
   }
   async function onFile(e) {
     const f = e.target.files[0];
@@ -50,6 +77,24 @@ export default function Classes() {
         <form className="card row wrap" style={{ marginBottom: 20, alignItems: "flex-end" }} onSubmit={create}>
           <label className="field grow">{c.name}<input name="name" required maxLength={50} autoFocus /></label>
           <label className="field" style={{ width: 120 }}>{c.grade}<select name="grade" defaultValue="8">{[5, 6, 7, 8, 9, 10, 11].map((g) => <option key={g}>{g}</option>)}</select></label>
+          {isAdmin && (
+            <label className="field grow">{c.school}
+              <select name="school" required value={schoolId} onChange={(e) => setSchoolId(e.target.value)}>
+                <option value="" disabled>{c.pickSchool}</option>
+                {schools.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </select>
+            </label>
+          )}
+          {isAdmin && (
+            <label className="field grow">{c.teacher}
+              <select name="teacher" defaultValue="" key={schoolId}>
+                <option value="">{c.teacherByCode}</option>
+                {teachers.filter((u) => !u.school_id || String(u.school_id) === schoolId)
+                  .map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </label>
+          )}
+          {isAdmin && <label className="field grow">{c.studentsFile}<input type="file" name="students" accept=".xlsx,.csv" /></label>}
           <button className="btn">{t.save}</button>
         </form>
       )}
@@ -69,6 +114,14 @@ export default function Classes() {
                   <div className="row between"><b style={{ fontSize: 26, letterSpacing: 3 }}>{x.code}</b>
                     {canEdit && <button className="link" onClick={() => newCode(x.id)}>{c.newCode}</button>}</div>
                   <p className="muted small" style={{ margin: "4px 0 0" }}>{c.codeHelp}</p>
+                </div>
+              )}
+              {isAdmin && x.teacher_code && (
+                <div style={{ marginTop: 18 }}>
+                  <div className="muted small">{c.teacherCode}</div>
+                  <div className="row between"><b style={{ fontSize: 26, letterSpacing: 3 }}>{x.teacher_code}</b>
+                    <button className="link" onClick={() => newCode(x.id, true)}>{c.newCode}</button></div>
+                  <p className="muted small" style={{ margin: "4px 0 0" }}>{c.teacherCodeHelp}</p>
                 </div>
               )}
               {canEdit && (
