@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { Crumb, Icon, Loading, useApp } from "../ui.jsx";
 
 const LABELS = ["", "feature", "bug", "design", "content", "infra"];
 const POINTS = [0, 1, 2, 3, 5, 8, 13];
 const byPos = (a, b) => a.position - b.position || a.id - b.id;
+const DRAG_THRESHOLD = 6; // px до начала переноса — отличает перенос от тапа/клика
 
 // Scrum-доска команды как в Trello: колонки, перетаскивание карточек, исполнители, story points.
 export default function DevBoard() {
@@ -17,6 +18,9 @@ export default function DevBoard() {
   const [edit, setEdit] = useState(null);
   const [adding, setAdding] = useState(null);
   const [sprints, setSprints] = useState([]);
+  // перенос через Pointer Events — одна логика для мыши, тача и пера
+  const pointerRef = useRef(null); // {id, column, pointerId, startX, startY, dragging}
+  const justDraggedRef = useRef(false); // гасит click сразу после переноса
 
   const load = () => {
     api("/dev/board").then(setBoard).catch(() => toast(t.error));
@@ -44,6 +48,56 @@ export default function DevBoard() {
     const prev = col[i - 1]?.position, next = col[i]?.position;
     const position = prev == null && next == null ? 1 : prev == null ? next - 1 : next == null ? prev + 1 : (prev + next) / 2;
     save(task.id, { column, position });
+  };
+
+  // Pointer Events вместо HTML5 drag-and-drop: на тач-экранах draggable/dragstart не работают,
+  // а pointerdown/move/up одинаково приходят от мыши, тача и пера.
+  const onCardPointerDown = (e, task, column) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    justDraggedRef.current = false; // новый жест — старый флаг подавления клика больше не действует
+    pointerRef.current = { id: task.id, column, pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, dragging: false };
+  };
+
+  const onCardPointerMove = (e) => {
+    const p = pointerRef.current;
+    if (!p || p.pointerId !== e.pointerId) return;
+    if (!p.dragging) {
+      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) < DRAG_THRESHOLD) return;
+      p.dragging = true;
+      setDrag(p.id);
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* перенос продолжится и без захвата */ }
+    }
+    e.preventDefault();
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cardEl = el?.closest("[data-task-id]");
+    const colEl = el?.closest("[data-column]");
+    if (cardEl && Number(cardEl.dataset.taskId) !== p.id) {
+      setOver({ column: cardEl.dataset.column, before: Number(cardEl.dataset.taskId) });
+    } else if (colEl) {
+      setOver({ column: colEl.dataset.column, before: null });
+    }
+  };
+
+  const onCardPointerUp = (e) => {
+    const p = pointerRef.current;
+    if (!p || p.pointerId !== e.pointerId) return;
+    pointerRef.current = null;
+    if (p.dragging) {
+      justDraggedRef.current = true;
+      drop(over?.column ?? p.column, over?.column ? over.before : null);
+    }
+  };
+
+  const onCardPointerCancel = (e) => {
+    const p = pointerRef.current;
+    if (!p || p.pointerId !== e.pointerId) return;
+    pointerRef.current = null;
+    if (p.dragging) { justDraggedRef.current = true; setDrag(null); setOver(null); }
+  };
+
+  const onCardClick = (task) => {
+    if (justDraggedRef.current) { justDraggedRef.current = false; return; }
+    setEdit(task);
   };
 
   const create = async (column, title) => {
@@ -100,21 +154,18 @@ export default function DevBoard() {
           const list = inCol(c);
           const shown = list.filter((x) => !who || x.assignee === who);
           return (
-            <section key={c} className={`dev-col ${c === "backlog" ? "backlog" : ""} ${over?.column === c ? "over" : ""}`}
-              onDragOver={(e) => { e.preventDefault(); if (over?.column !== c || over.before != null) setOver({ column: c, before: null }); }}
-              onDrop={(e) => { e.preventDefault(); drop(c, over?.column === c ? over.before : null); }}>
+            <section key={c} data-column={c} className={`dev-col ${c === "backlog" ? "backlog" : ""} ${over?.column === c ? "over" : ""}`}>
               <header className="dev-col-head">
                 <b>{d.cols[c]}</b>
                 <span className="muted small">{list.length} · {pts(list)} {d.pt}</span>
               </header>
               <div className="dev-cards">
                 {shown.map((x) => (
-                  <article key={x.id} draggable className={`dev-card ${drag === x.id ? "dragging" : ""} ${over?.before === x.id ? "drop-before" : ""}`}
-                    onDragStart={(e) => { setDrag(x.id); e.dataTransfer.effectAllowed = "move"; }}
-                    onDragEnd={() => { setDrag(null); setOver(null); }}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); if (over?.before !== x.id) setOver({ column: c, before: x.id }); }}
-                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); drop(c, x.id); }}
-                    onClick={() => setEdit(x)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setEdit(x)}>
+                  <article key={x.id} data-task-id={x.id} data-column={c}
+                    className={`dev-card ${drag === x.id ? "dragging" : ""} ${over?.before === x.id ? "drop-before" : ""}`}
+                    onPointerDown={(e) => onCardPointerDown(e, x, c)} onPointerMove={onCardPointerMove}
+                    onPointerUp={onCardPointerUp} onPointerCancel={onCardPointerCancel}
+                    onClick={() => onCardClick(x)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setEdit(x)}>
                     {x.label && <span className={`dev-label l-${x.label}`}>{d.labels[x.label]}</span>}
                     <div className="dev-card-title">{x.title}</div>
                     <div className="row between" style={{ marginTop: 8 }}>
