@@ -38,7 +38,12 @@ def read_rows(filename: str, data: bytes, keep_header: bool = False) -> list[lis
         rows = [[("" if v is None else str(v)).strip() for v in r] for r in ws.iter_rows(values_only=True)]
     else:
         text = data.decode("utf-8-sig", errors="replace")
-        dialect = csv.Sniffer().sniff(text[:2000], delimiters=";,\t") if text.strip() else csv.excel
+        try:
+            # Sniffer кидает csv.Error, если ни одного разделителя в тексте нет
+            # (напр. одна колонка ФИО без ; и ,) — тогда делим по запятой как обычно.
+            dialect = csv.Sniffer().sniff(text[:2000], delimiters=";,\t") if text.strip() else csv.excel
+        except csv.Error:
+            dialect = csv.excel
         rows = [[c.strip() for c in r] for r in csv.reader(io.StringIO(text), dialect)]
     rows = [r for r in rows if any(r)]
     if not keep_header and rows and not any(ch.isdigit() for ch in "".join(rows[0])) and len(rows) > 1:
