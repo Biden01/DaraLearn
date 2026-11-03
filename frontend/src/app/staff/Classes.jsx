@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, saveBlob, upload } from "../api.js";
 import { Bar, Box, Crumb, Icon, Loading, useApp } from "../ui.jsx";
+import SurveyCard from "../Survey.jsx";
 
 export default function Classes() {
   const { t, user, toast } = useApp();
@@ -73,6 +74,7 @@ export default function Classes() {
         {canEdit && <button className="btn" onClick={() => setForm(!form)}><Icon n="plus" s={18} /> {c.create}</button>}
       </div>
       {user.role === "teacher" && !user.school_id && <p className="note" style={{ marginBottom: 20 }}>{c.noSchool}</p>}
+      {user.role === "teacher" && <SurveyCard />}
       {form && (
         <form className="card row wrap" style={{ marginBottom: 20, alignItems: "flex-end" }} onSubmit={create}>
           <label className="field grow">{c.name}<input name="name" required maxLength={50} autoFocus /></label>

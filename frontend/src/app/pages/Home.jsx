@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { Bar, Box, Icon, Loading, Ring, useApp } from "../ui.jsx";
 import { actionHref } from "./actions.js";
 import { AttStrip, AttToday } from "../Attendance.jsx";
+import SurveyCard from "../Survey.jsx";
 
 export default function Home() {
   const { t, L, user, startTest } = useApp();
@@ -37,6 +38,7 @@ export default function Home() {
           <button className="btn" onClick={() => startTest({ kind: "verification", check_id: checks[0].id })}>{t.me.checkBtn}</button>
         </div>
       )}
+      <SurveyCard />
       {plan && plan.items.length > 0 && (
         <div className="card row wrap" style={{ marginBottom: 20, gap: 16 }}>
           <Box icon="clip" c="orange" />

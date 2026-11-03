@@ -33,6 +33,7 @@ import Content from "./staff/Content.jsx";
 import LessonEdit from "./staff/LessonEdit.jsx";
 import { Leads, Support, Audit } from "./staff/Lists.jsx";
 import DevBoard from "./staff/DevBoard.jsx";
+import TeacherTime from "./staff/TeacherTime.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
 import "@fontsource-variable/onest";
 import "./app.css";
@@ -50,8 +51,8 @@ const ROLES = {
       quiz: Quiz, result: Result, progress: Progress, calendar: Calendar },
   },
   teacher: {
-    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"]],
-    pages: { "": Classes, feed: Feed, import: ImportResults, courses: Courses, calendar: Calendar, ...STAFF_VIEW },
+    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"]],
+    pages: { "": Classes, feed: Feed, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar, ...STAFF_VIEW },
   },
   curator: {
     nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"]],

@@ -46,7 +46,7 @@ def metrics(user: User = Depends(require_role("admin")), db: Session = Depends(g
         "users": roles, "schools": db.scalar(select(func.count()).select_from(School)) or 0,
         "classes": db.scalar(select(func.count()).select_from(SchoolClass)) or 0,
         "active_students_7d": active7, "events": sources, "activity": days,
-        # метрики пилота (docs/PLAN.md, раздел 8)
+        # метрики пилота (docs/PLAN.md, раздел 7)
         "independent_progress": outcome_stats(db),
         "recommendations": {"by_status": recs, "accepted_share": round(accepted / decided, 2) if decided else None,
                             "done_share": round(recs.get("done", 0) / total_actionable, 2) if total_actionable else None},

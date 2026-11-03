@@ -4,7 +4,7 @@ import { poss } from "./kk.js";
 export const STAFF = {
   kk: {
     roles: { student: "Оқушы", teacher: "Мұғалім", curator: "Куратор", admin: "Әкімші" },
-    snav: { plan: "Бүгінгі жоспар", classes: "Сыныптарым", feed: "Әрекеттер таспасы", import: "Бағалауларды жүктеу", cases: "Кейстер",
+    snav: { plan: "Бүгінгі жоспар", classes: "Сыныптарым", feed: "Әрекеттер таспасы", import: "Бағалауларды жүктеу", time: "Уақытты өлшеу", cases: "Кейстер",
       metrics: "Метрикалар", schools: "Мектептер", users: "Пайдаланушылар", content: "Материалдар", leads: "Өтінімдер", support: "Қолдау", audit: "Журнал" },
     rec: { new: "Жаңа", accepted: "Қабылданды", changed: "Өзгертілді", rejected: "Қабылданбады", done: "Орындалды", obsolete: "Өзекті емес",
       accept: "Қабылдау", change: "Өзгерту", reject: "Қабылдамау", markDone: "Орындалды", comment: "Пікір (міндетті емес)",
@@ -65,7 +65,7 @@ export const STAFF = {
   },
   ru: {
     roles: { student: "Ученик", teacher: "Учитель", curator: "Куратор", admin: "Администратор" },
-    snav: { plan: "План на сегодня", classes: "Мои классы", feed: "Лента действий", import: "Загрузка оценок", cases: "Случаи",
+    snav: { plan: "План на сегодня", classes: "Мои классы", feed: "Лента действий", import: "Загрузка оценок", time: "Замер времени", cases: "Случаи",
       metrics: "Метрики", schools: "Школы", users: "Пользователи", content: "Материалы", leads: "Заявки", support: "Поддержка", audit: "Журнал" },
     rec: { new: "Новая", accepted: "Принята", changed: "Изменена", rejected: "Отклонена", done: "Выполнена", obsolete: "Неактуальна",
       accept: "Принять", change: "Изменить", reject: "Отклонить", markDone: "Выполнено", comment: "Комментарий (необязательно)",

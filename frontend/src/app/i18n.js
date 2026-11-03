@@ -2,6 +2,7 @@
 import { PLAN } from "./i18n_plan.js";
 import { STAFF } from "./i18n_staff.js";
 import { DEV } from "./i18n_dev.js";
+import { PILOT } from "./i18n_pilot.js";
 import { abl, poss } from "./kk.js";
 
 const kk = {
@@ -256,4 +257,4 @@ const ru = {
     toSite: "На главный сайт" },
 };
 
-export const STRINGS = { kk: { ...kk, ...STAFF.kk, ...PLAN.kk, ...DEV.kk }, ru: { ...ru, ...STAFF.ru, ...PLAN.ru, ...DEV.ru } };
+export const STRINGS = { kk: { ...kk, ...STAFF.kk, ...PLAN.kk, ...DEV.kk, ...PILOT.kk }, ru: { ...ru, ...STAFF.ru, ...PLAN.ru, ...DEV.ru, ...PILOT.ru } };
