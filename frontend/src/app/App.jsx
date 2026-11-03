@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { STRINGS } from "./i18n.js";
 import { Ctx, Icon, pick, useApp } from "./ui.jsx";
+import { actionHref } from "./pages/actions.js";
 import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
 import Plan from "./pages/Plan.jsx";
 import Subjects from "./pages/Subjects.jsx";
 import Courses from "./pages/Courses.jsx";
 import Lesson from "./pages/Lesson.jsx";
+import Profile from "./pages/Profile.jsx";
 import Diagnostics from "./pages/Diagnostics.jsx";
 import Gaps from "./pages/Gaps.jsx";
 import Tutor from "./pages/Tutor.jsx";
@@ -30,13 +32,15 @@ import Schools from "./staff/Schools.jsx";
 import Users from "./staff/Users.jsx";
 import Content from "./staff/Content.jsx";
 import LessonEdit from "./staff/LessonEdit.jsx";
-import { Leads, Audit } from "./staff/Lists.jsx";
+import { Leads, Support, Audit } from "./staff/Lists.jsx";
+import DevBoard from "./staff/DevBoard.jsx";
+import TeacherTime from "./staff/TeacherTime.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
 import "@fontsource-variable/onest";
 import "./app.css";
 
-const NAV_BOTTOM = [["settings", "settings", "gear"], ["help", "help", "help"]];
-const COMMON = { settings: Settings, help: Help, lesson: Lesson };
+const NAV_BOTTOM = [["profile", "profile", "user"], ["settings", "settings", "gear"], ["help", "help", "help"]];
+const COMMON = { profile: Profile, settings: Settings, help: Help, lesson: Lesson };
 const STAFF_VIEW = { class: ClassMap, student: StudentCard };
 // меню и страницы по ролям
 const ROLES = {
@@ -48,8 +52,8 @@ const ROLES = {
       quiz: Quiz, result: Result, progress: Progress, calendar: Calendar },
   },
   teacher: {
-    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["pilot", "pilot", "chart"]],
-    pages: { "": Classes, feed: Feed, import: ImportResults, courses: Courses, calendar: Calendar, pilot: Pilot, ...STAFF_VIEW },
+    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["pilot", "pilot", "chart"]],
+    pages: { "": Classes, feed: Feed, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar, pilot: Pilot, ...STAFF_VIEW },
   },
   curator: {
     nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"], ["pilot", "pilot", "chart"]],
@@ -57,9 +61,10 @@ const ROLES = {
   },
   admin: {
     nav: [["", "metrics", "chart"], ["schools", "schools", "home"], ["users", "users", "user"], ["classes", "classes", "case"],
-      ["content", "content", "book"], ["leads", "leads", "doc"], ["audit", "audit", "clip"]],
+      ["content", "content", "book"], ["leads", "leads", "doc"], ["support", "support", "help"],
+      ["audit", "audit", "clip"], ["dev", "dev", "board"]],
     pages: { "": Metrics, schools: Schools, users: Users, classes: Classes, content: Content, edit: LessonEdit, leads: Leads,
-      audit: Audit, feed: Feed, import: ImportResults, ...STAFF_VIEW },
+      support: Support, audit: Audit, dev: DevBoard, feed: Feed, import: ImportResults, ...STAFF_VIEW },
   },
 };
 const ACTIVE = { lesson: "courses", result: "quiz", class: "classes", student: "classes", edit: "content" };
@@ -69,6 +74,10 @@ function parseHash() {
   const [path, query = ""] = h.split("?");
   const [page = "", ...rest] = path.split("/");
   return { page, param: rest.join("/"), query: new URLSearchParams(query) };
+}
+
+function storedCollapsed() {
+  try { return localStorage.getItem("dl_nav") === "min"; } catch { return false; }
 }
 
 function storedLang() {
@@ -82,7 +91,8 @@ export default function App() {
   const [route, setRoute] = useState(parseHash);
   const [toastMsg, setToastMsg] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [alerts, setAlerts] = useState(0);
+  const [collapsed, setCollapsed] = useState(storedCollapsed);
+  const [alerts, setAlerts] = useState([]);
   const toastTimer = useRef();
   const t = STRINGS[lang];
 
@@ -112,10 +122,10 @@ export default function App() {
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
-  // число важных рекомендаций для колокольчика
+  // важные рекомендации — уведомления колокольчика
   useEffect(() => {
     if (user?.role !== "student") return;
-    api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2).length)).catch(() => {});
+    api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2))).catch(() => {});
   }, [user, route.page]);
 
   const ctx = useMemo(() => ({
@@ -129,6 +139,15 @@ export default function App() {
       } catch { toast(t.error); }
     },
   }), [t, lang, setLang, user, toast, route]);
+
+  // на телефоне бургер открывает выезжающее меню, на компьютере сворачивает его до иконок
+  const onMenu = () => {
+    if (window.matchMedia("(max-width: 820px)").matches) return setMenuOpen(true);
+    setCollapsed((c) => {
+      try { localStorage.setItem("dl_nav", c ? "full" : "min"); } catch { /* */ }
+      return !c;
+    });
+  };
 
   if (user === undefined) return <div className="loading">…</div>;
 
@@ -145,19 +164,20 @@ export default function App() {
     const active = [...role.nav, ...NAV_BOTTOM].some(([k]) => k === mapped) ? mapped : "";
     const NAV = role.nav;
     const link = ([k, label, icon]) => (
-      <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}>
+      <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
+        title={collapsed ? t.nav[label] ?? t.snav[label] : undefined}>
         <Icon n={icon} /><span>{t.nav[label] ?? t.snav[label]}</span>
       </a>
     );
     body = (
-      <div className={menuOpen ? "menu-open" : ""}>
+      <div className={`${menuOpen ? "menu-open" : ""} ${collapsed ? "nav-min" : ""}`}>
         <aside className="sidebar" style={menuOpen ? { transform: "none" } : undefined}>
-          <a href="#/" className="brand"><img src="/logo.png" alt="" /> DaraLearn</a>
+          <a href="#/" className="brand"><img src="/logo.png" alt="" /> <span>DaraLearn</span></a>
           <nav className="nav" aria-label="Main">{NAV.map(link)}</nav>
           <nav className="nav nav-bottom">{NAV_BOTTOM.map(link)}</nav>
         </aside>
         {menuOpen && <div className="overlay" style={{ display: "block", position: "fixed", inset: 0, background: "rgba(17,19,41,.3)", zIndex: 25 }} onClick={() => setMenuOpen(false)} />}
-        <Header alerts={alerts} onMenu={() => setMenuOpen(true)} />
+        <Header alerts={alerts} onMenu={onMenu} collapsed={collapsed} />
         <main className="main" id="app"><Page key={route.page + route.param} /></main>
       </div>
     );
@@ -171,7 +191,63 @@ export default function App() {
   );
 }
 
-function Header({ alerts, onMenu }) {
+// Колокольчик: по нажатию — панель с полным текстом уведомлений платформы.
+function Bell({ alerts }) {
+  const { t, L } = useApp();
+  const [open, setOpen] = useState(false);
+  const box = useRef();
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    const onHash = () => setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("hashchange", onHash);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("hashchange", onHash);
+    };
+  }, [open]);
+  const n = alerts.length;
+  const badge = { 3: "red", 2: "orange", 1: "gray" };
+  return (
+    <div className="bell-wrap" ref={box}>
+      <button className="bell" aria-label={t.notif.title} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <Icon n="bell" s={22} />{n > 0 && <span className="bell-count">{n > 9 ? "9+" : n}</span>}
+      </button>
+      {open && (
+        <div className="bell-pop" role="dialog" aria-label={t.notif.title}>
+          <div className="bell-head"><b>{t.notif.title}</b><span className="muted small">{t.notif.from}</span></div>
+          <div className="bell-list">
+            {n ? alerts.map((r) => (
+              <div className="bell-item" key={r.id ?? r.lesson + r.action}>
+                <div className="row between" style={{ gap: 8, alignItems: "flex-start" }}>
+                  <div className="t-strong">{L(r.title)}</div>
+                  <span className={`badge ${badge[r.priority]}`}>{t.gaps.priority[r.priority]}</span>
+                </div>
+                <div className="muted small" style={{ marginTop: 4 }}>{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
+                  {r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}</div>
+                {t.causeHelp[r.cause] && <p className="small" style={{ margin: "8px 0 0", lineHeight: 1.45 }}>{t.causeHelp[r.cause]}</p>}
+                {["accepted", "changed"].includes(r.status) && (
+                  <div className="small st-mastered" style={{ marginTop: 6 }}>{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>
+                )}
+                <div className="row between" style={{ marginTop: 10, gap: 8 }}>
+                  <span className="muted small">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}</span>
+                  <a href={actionHref(r)} className="btn sm">{t.actions[r.action]?.[0] || t.open}</a>
+                </div>
+              </div>
+            )) : <p className="muted small" style={{ padding: 14, margin: 0 }}>{t.notif.empty}</p>}
+          </div>
+          <a href="#/gaps" className="bell-foot link">{t.notif.all}</a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Header({ alerts, onMenu, collapsed }) {
   const { t, lang, setLang, user, L } = useApp();
   const [q, setQ] = useState("");
   const [index, setIndex] = useState([]);
@@ -202,7 +278,7 @@ function Header({ alerts, onMenu }) {
   const goTo = (h) => { window.location.hash = h.href; setQ(""); input.current?.blur(); };
   return (
     <header className="header">
-      <button className="burger" aria-label={t.menu} onClick={onMenu}><Icon n="menu" s={22} /></button>
+      <button className="burger" aria-label={t.menu} aria-expanded={!collapsed} onClick={onMenu}><Icon n="menu" s={22} /></button>
       <label className="search">
         <Icon n="search" s={18} />
         <input ref={input} value={q} placeholder={t.search} aria-label={t.search}
@@ -231,11 +307,9 @@ function Header({ alerts, onMenu }) {
           ))}
         </div>
         {user.role === "student" && (
-          <a href="#/gaps" className="bell" aria-label={t.nav.gaps}>
-            <Icon n="bell" s={22} />{alerts > 0 && <span className="bell-count">{alerts > 9 ? "9+" : alerts}</span>}
-          </a>
+          <Bell alerts={alerts} />
         )}
-        <a href="#/settings" className="user">
+        <a href="#/profile" className="user">
           <div className="avatar">{(user.name || "?")[0].toUpperCase()}</div>
           <div className="user-info"><div className="user-name">{user.name}</div>
             <div className="user-sub">{user.role === "student" ? t.grade(user.grade) : t.roles[user.role]}</div></div>

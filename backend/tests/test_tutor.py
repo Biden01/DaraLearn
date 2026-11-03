@@ -65,4 +65,39 @@ def test_low_confidence_marker_escalates_and_is_hidden(monkeypatch):
     assert "[[" not in reply and "Не уверен" in reply
     rec = s.ok("GET", f"/api/tutor/sessions/{sid}/record")
     assert rec["tutor_confidence"] == "low" and rec["escalated"] and rec["misconception"] == "путает корень и квадрат"
-    assert rec["prompt_version"] == "tutor-v2"
+    assert rec["prompt_version"] == "tutor-v3"
+
+
+def test_free_topic_is_grounded_in_subject_theory(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(gateway, "enabled", lambda: True)
+
+    def complete(system, msgs):
+        seen["system"] = system
+        return "Ок", 1, 1
+
+    monkeypatch.setattr(gateway, "complete", complete)
+    s = register()
+    sid = s.ok("POST", "/api/tutor/sessions", 201, json={})["id"]
+    s.ok("POST", f"/api/tutor/sessions/{sid}/messages", json={"text": "Как раскрыть скобки?"})
+    assert "a(b + c) = ab + ac" in seen["system"] and "D = b² − 4ac" in seen["system"]
+
+
+def test_lesson_without_theory_goes_to_teacher_without_llm(db, monkeypatch):
+    from app.modules.content.models import Lesson
+
+    monkeypatch.setattr(gateway, "enabled", lambda: True)
+    monkeypatch.setattr(gateway, "complete", lambda *a: (_ for _ in ()).throw(AssertionError("LLM не должен вызываться")))
+    l = db.query(Lesson).filter_by(slug="sqrt").one()
+    saved = dict(l.theory)
+    try:
+        l.theory = {"kk": [], "ru": []}
+        db.commit()
+        s = register()
+        sid = _session(s)
+        reply = s.ok("POST", f"/api/tutor/sessions/{sid}/messages", json={"text": "Что такое корень?"})["reply"]["content"]
+        assert "мұғалім" in reply or "учител" in reply
+        assert s.ok("GET", f"/api/tutor/sessions/{sid}/record")["escalated"]
+    finally:
+        l.theory = saved
+        db.commit()

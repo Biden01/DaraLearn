@@ -12,6 +12,8 @@ from app.modules.decisions.engine import next_step
 from app.modules.decisions.models import Recommendation
 from app.modules.decisions.service import rec_out, sync_student
 from app.modules.events.models import LearningEvent
+from app.modules.plan import rules as plan_rules
+from app.modules.plan.attendance import attendance_for
 from app.modules.school.access import class_students, get_class, get_student
 from app.modules.school.models import User
 from app.modules.state.engine import SkillState, compute_states
@@ -98,9 +100,8 @@ def build_dashboard(db: Session, user: User, subject: str = "math") -> dict:
             y, mo = y - 1, mo + 12
         year.append({"m": mo, "v": sum(v for d, v in per_day.items() if d.year == y and d.month == mo)})
 
-    streak, d = 0, today
-    while per_day.get(d):
-        streak, d = streak + 1, d - timedelta(days=1)
+    # серия — та же, что в посещаемости: учебные дни подряд с выполненным шагом плана, выходные не рвут
+    streak = attendance_for(db, [user], today, plan_rules.ATTENDANCE_STUDENT_DAYS)[user.id]["streak"]
 
     def accuracy(start: date, end: date) -> float | None:
         xs = [c for at, c, src in events if src != "practice" and start <= _local_day(at) < end]

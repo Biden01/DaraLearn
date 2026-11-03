@@ -2,7 +2,7 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.security import current_user, hash_password, require_role
 from app.modules.decisions.models import AuditLog
-from app.modules.leads.notify import send_telegram
 from app.modules.school import people_import
 from app.modules.school.access import class_students, get_class, new_code, visible_classes
 from app.modules.school.models import CalendarEvent, ClassMember, Invite, School, SchoolClass, SupportMessage, User
@@ -28,6 +27,7 @@ class EventIn(BaseModel):
 
 class SupportIn(BaseModel):
     text: str = Field(min_length=3, max_length=3000)
+    topic: Literal["account", "bug", "lessons", "tutor", "idea", "other"] = "other"
 
 
 def _event_out(e: CalendarEvent) -> dict:
@@ -59,12 +59,11 @@ def delete_event(event_id: int, user: User = Depends(current_user), db: Session 
 
 
 @router.post("/support", status_code=status.HTTP_201_CREATED)
-def support(payload: SupportIn, background: BackgroundTasks, user: User = Depends(current_user),
+def support(payload: SupportIn, user: User = Depends(current_user),
             db: Session = Depends(get_db)) -> dict:
-    m = SupportMessage(user_id=user.id, text=payload.text.strip())
+    m = SupportMessage(user_id=user.id, text=payload.text.strip(), topic=payload.topic)
     db.add(m)
     db.commit()
-    background.add_task(send_telegram, f"Обращение в поддержку от {user.name} <{user.email}>:\n{m.text}")
     return {"id": m.id}
 
 
@@ -89,6 +88,7 @@ class ClassIn(BaseModel):
     grade: int = Field(ge=5, le=11)
     subject: str = Field(default="math", max_length=50)
     school_id: int | None = None  # для админа
+    teacher_id: int | None = None  # для админа: класс сразу закрепляется за учителем
 
 
 class UserPatch(BaseModel):
@@ -106,12 +106,27 @@ def _invite_out(i: Invite) -> dict:
             "expires_at": i.expires_at.isoformat() if i.expires_at else None}
 
 
-def _class_out(db: Session, c: SchoolClass) -> dict:
+def _class_invite(db: Session, c: SchoolClass, role: str) -> Invite | None:
+    inv = db.scalar(select(Invite).where(Invite.class_id == c.id, Invite.role == role).order_by(Invite.id.desc()))
+    return inv if inv and inv.uses < inv.max_uses else None
+
+
+def _new_teacher_code(db: Session, c: SchoolClass, actor: User) -> None:
+    for old in db.scalars(select(Invite).where(Invite.class_id == c.id, Invite.role == "teacher")):
+        old.max_uses = old.uses  # старый код учителя больше не работает
+    db.add(Invite(code=new_code(), role="teacher", school_id=c.school_id, class_id=c.id, max_uses=1, created_by=actor.id))
+
+
+def _class_out(db: Session, c: SchoolClass, viewer: User | None = None) -> dict:
     teacher = db.get(User, c.teacher_id) if c.teacher_id else None
-    inv = db.scalar(select(Invite).where(Invite.class_id == c.id).order_by(Invite.id.desc()))
+    inv = _class_invite(db, c, "student")
     n = db.scalar(select(func.count()).select_from(ClassMember).where(ClassMember.class_id == c.id)) or 0
-    return {"id": c.id, "name": c.name, "grade": c.grade, "subject": c.subject, "school_id": c.school_id,
-            "teacher": teacher.name if teacher else None, "students": n, "code": inv.code if inv else None}
+    out = {"id": c.id, "name": c.name, "grade": c.grade, "subject": c.subject, "school_id": c.school_id,
+           "teacher": teacher.name if teacher else None, "students": n, "code": inv.code if inv else None}
+    if viewer and viewer.role == "admin" and not teacher:
+        t_inv = _class_invite(db, c, "teacher")
+        out["teacher_code"] = t_inv.code if t_inv else None
+    return out
 
 
 @router.get("/schools")
@@ -150,32 +165,57 @@ def create_school_invite(school_id: int, payload: InviteIn, user: User = Depends
 
 @router.get("/classes")
 def classes(user: User = Depends(require_role("teacher", "curator")), db: Session = Depends(get_db)) -> list[dict]:
-    return [_class_out(db, c) for c in visible_classes(db, user)]
+    return [_class_out(db, c, user) for c in visible_classes(db, user)]
 
 
 @router.post("/classes", status_code=status.HTTP_201_CREATED)
 def create_class(payload: ClassIn, user: User = Depends(require_role("teacher")), db: Session = Depends(get_db)) -> dict:
-    school_id = payload.school_id if user.role == "admin" else user.school_id
+    teacher: User | None = user if user.role == "teacher" else None
+    school_id = user.school_id
+    if user.role == "admin":
+        teacher = db.get(User, payload.teacher_id) if payload.teacher_id else None
+        if payload.teacher_id and (not teacher or teacher.role != "teacher"):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "no_teacher")
+        school_id = payload.school_id or (teacher.school_id if teacher else None)
+        if teacher and teacher.school_id and teacher.school_id != school_id:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "teacher_other_school")
     if not school_id or not db.get(School, school_id):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "no_school")
-    c = SchoolClass(school_id=school_id, teacher_id=user.id if user.role == "teacher" else None,
+    if teacher and not teacher.school_id:
+        teacher.school_id = school_id  # учитель без школы — привязываем к школе класса
+    c = SchoolClass(school_id=school_id, teacher_id=teacher.id if teacher else None,
                     name=payload.name.strip(), grade=payload.grade, subject=payload.subject)
     db.add(c)
     db.flush()
     db.add(Invite(code=new_code(), role="student", school_id=school_id, class_id=c.id, max_uses=100, created_by=user.id))
+    if not teacher:
+        _new_teacher_code(db, c, user)  # учитель сам войдёт в класс по коду
     audit(db, user, "class.create", "class", c.id, name=c.name)
     db.commit()
-    return _class_out(db, c)
+    return _class_out(db, c, user)
 
 
 @router.post("/classes/{class_id}/code")
 def regenerate_code(class_id: int, user: User = Depends(require_role("teacher")), db: Session = Depends(get_db)) -> dict:
     c = get_class(db, user, class_id)
-    for old in db.scalars(select(Invite).where(Invite.class_id == c.id)):
+    for old in db.scalars(select(Invite).where(Invite.class_id == c.id, Invite.role == "student")):
         old.max_uses = old.uses  # старый код больше не работает
     db.add(Invite(code=new_code(), role="student", school_id=c.school_id, class_id=c.id, max_uses=100, created_by=user.id))
     db.commit()
-    return _class_out(db, c)
+    return _class_out(db, c, user)
+
+
+@router.post("/classes/{class_id}/teacher-code")
+def regenerate_teacher_code(class_id: int, user: User = Depends(require_role("admin")),
+                            db: Session = Depends(get_db)) -> dict:
+    c = db.get(SchoolClass, class_id)
+    if not c:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    if c.teacher_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "class_has_teacher")
+    _new_teacher_code(db, c, user)
+    db.commit()
+    return _class_out(db, c, user)
 
 
 @router.get("/classes/{class_id}/students")

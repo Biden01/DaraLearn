@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Bar, Box, Icon, Loading, Ring, useApp } from "../ui.jsx";
 import { actionHref } from "./actions.js";
+import { AttStrip, AttToday } from "../Attendance.jsx";
+import SurveyCard from "../Survey.jsx";
 
 export default function Home() {
   const { t, L, user, startTest } = useApp();
@@ -9,7 +11,9 @@ export default function Home() {
   const [checks, setChecks] = useState([]);
   const [classes, setClasses] = useState([]);
   const [plan, setPlan] = useState(null);
+  const [att, setAtt] = useState(null);
   useEffect(() => {
+    api("/plan/attendance").then(setAtt).catch(() => {});
     api("/plan/today").then(setPlan).catch(() => {});
     api("/state/me").then(setD).catch(() => setD(false));
     api("/verification/checks").then((c) => setChecks(c.filter((x) => x.due))).catch(() => {});
@@ -34,11 +38,13 @@ export default function Home() {
           <button className="btn" onClick={() => startTest({ kind: "verification", check_id: checks[0].id })}>{t.me.checkBtn}</button>
         </div>
       )}
+      <SurveyCard />
       {plan && plan.items.length > 0 && (
         <div className="card row wrap" style={{ marginBottom: 20, gap: 16 }}>
           <Box icon="clip" c="orange" />
           <div className="grow"><div className="card-title">{t.plan.title}</div>
-            <div className="muted small">{t.plan.done(plan.done_minutes, plan.total_minutes)}</div></div>
+            <div className="muted small">{t.plan.done(plan.done_minutes, plan.total_minutes)}
+              {plan.goal?.total > 0 && ` · ${t.plan.goalDone(plan.goal.done, plan.goal.total)}`}</div></div>
           <a className="btn" href="#/plan">{t.open}</a>
         </div>
       )}
@@ -70,6 +76,15 @@ export default function Home() {
           </div>
         </div>
         <div className="stack">
+          {att && (
+            <div className="card">
+              <div className="card-head"><p className="card-title">{t.att.title}</p><a href="#/profile" className="link small">{t.att.more}</a></div>
+              <AttToday a={att} self />
+              <AttStrip days={att.days} />
+              <p className="muted small" style={{ margin: "10px 0 0" }}>
+                {att.rate == null ? "—" : `${Math.round(att.rate * 100)}%`} · {t.att.days(att.present, att.school_days)}</p>
+            </div>
+          )}
           <div className="card">
             <div className="card-head"><p className="card-title">{t.home.progress}</p><a href="#/progress" className="link"><Icon n="arrow" s={16} /></a></div>
             <div className="row" style={{ gap: 22 }}>

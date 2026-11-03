@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Деплой на прод: собирает фронтенд, выкладывает его в /var/www/daralearn.kz
-# и пересобирает/перезапускает бэкенд. Запуск: sudo ./deploy/deploy.sh
+# и пересобирает/перезапускает бэкенд. Запуск от era (без sudo): ./deploy/deploy.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -10,7 +10,10 @@ cd "$ROOT"
 [ -f .env ] || { echo "Нет файла .env (см. .env.example)"; exit 1; }
 
 echo "==> Сборка фронтенда"
-docker run --rm -v "$ROOT/frontend:/app" -w /app node:20-alpine \
+# Сборка от владельца каталога (а не root внутри контейнера), иначе в dist/ и
+# node_modules/ появляются root-файлы и rsync/npm от era потом падают.
+OWNER="$(stat -c %u:%g "$ROOT/frontend")"
+docker run --rm --user "$OWNER" -e HOME=/tmp -v "$ROOT/frontend:/app" -w /app node:20-alpine \
   sh -c "npm ci --no-audit --no-fund || npm install --no-audit --no-fund; npm run build"
 
 echo "==> Бэкенд"

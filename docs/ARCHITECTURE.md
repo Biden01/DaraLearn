@@ -40,7 +40,6 @@ React + Vite, без UI-библиотек. Сейчас — лендинг: `sr
 | `POSTGRES_PASSWORD`, `DATABASE_URL` | база |
 | `CORS_ORIGINS` | JSON-список разрешённых origin |
 | `LLM_API_KEY` | ключ для AI Gateway (пока не используется) |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | уведомление о новой заявке |
 | `ADMIN_TOKEN` | доступ к `GET /api/leads` через заголовок `X-Admin-Token` |
 
 ## Что дальше

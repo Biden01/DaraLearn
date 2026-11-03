@@ -29,8 +29,10 @@ def _progress(lessons: list[Lesson], states: dict[int, SkillState]) -> dict:
 def subjects(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     states = compute_states(db, user.id)
     out = []
-    for s in db.scalars(select(Subject).order_by(Subject.order)):
+    for s in db.scalars(select(Subject).where(Subject.active).order_by(Subject.order)):
         lessons = lessons_of(db, s.id)
+        if not lessons:
+            continue  # пилот: ученик не видит предметы без уроков
         nxt = next((l for l in lessons if states.get(l.id, SkillState()).status != "mastered"), None)
         out.append({"slug": s.slug, "title": s.title, "sym": s.sym, "color": s.color, "active": s.active,
                     "courses": len(courses_of(db, s.id)), "progress": _progress(lessons, states),
@@ -41,7 +43,7 @@ def subjects(user: User = Depends(current_user), db: Session = Depends(get_db)) 
 @router.get("/courses")
 def courses(subject: str = "math", user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
     subj = db.scalar(select(Subject).where(Subject.slug == subject))
-    if not subj:
+    if not subj or not subj.active:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     states = compute_states(db, user.id)
     out = []

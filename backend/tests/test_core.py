@@ -62,6 +62,54 @@ def test_school_codes_import_and_access(school):
     assert school["curator"].ok("GET", f"/api/state/classes/{cls['id']}")["class"]["name"] == "8А"
 
 
+def test_admin_creates_class_for_teacher(school):
+    admin, t = school["admin"], school["teacher"]
+    tid = t.ok("GET", "/api/auth/me")["id"]
+    # без учителя и школы — некуда класть класс
+    r = admin.post("/api/school/classes", json={"name": "8Б", "grade": 8})
+    assert r.status_code == 400 and r.json()["detail"] == "no_school"
+    # чужая школа учителя — отказ
+    other = admin.ok("POST", "/api/school/schools", 201, json={"name": f"Школа {uid()}"})
+    r = admin.post("/api/school/classes", json={"name": "8Б", "grade": 8, "teacher_id": tid, "school_id": other["id"]})
+    assert r.status_code == 400 and r.json()["detail"] == "teacher_other_school"
+    cls = admin.ok("POST", "/api/school/classes", 201, json={"name": "8Б", "grade": 8, "teacher_id": tid})
+    assert cls["teacher"] == "Учитель" and cls["school_id"] == school["school"]["id"] and "teacher_code" not in cls
+    # админ загружает учеников, учитель видит класс со списком
+    r = admin.ok("POST", f"/api/school/classes/{cls['id']}/import",
+                 files={"file": ("list.csv", "ФИО\nАхметов Ерлан\nСерикова Айгерим\n".encode(), "text/csv")})
+    assert len(list(load_workbook(io.BytesIO(r.content)).active.iter_rows(min_row=2))) == 2
+    assert cls["id"] in [c["id"] for c in t.ok("GET", "/api/school/classes")]
+    assert len(t.ok("GET", f"/api/school/classes/{cls['id']}/students")) == 2
+
+
+def test_admin_class_codes_for_teacher_and_students(school):
+    admin, sid = school["admin"], school["school"]["id"]
+    cls = admin.ok("POST", "/api/school/classes", 201, json={"name": "8В", "grade": 8, "school_id": sid})
+    assert cls["teacher"] is None and cls["teacher_code"] and cls["code"]
+    # ученик входит по коду учеников
+    kid = register(code=cls["code"])
+    assert kid.ok("GET", "/api/auth/me/classes")[0]["id"] == cls["id"]
+    # учитель из другой школы код не применит
+    other = admin.ok("POST", "/api/school/schools", 201, json={"name": f"Школа {uid()}"})
+    stranger = register(code=admin.ok("POST", f"/api/school/schools/{other['id']}/invites", 201,
+                                      json={"role": "teacher"})["code"])
+    r = stranger.post("/api/auth/join", json={"code": cls["teacher_code"]})
+    assert r.status_code == 400 and r.json()["detail"] == "teacher_other_school"
+    # новый пользователь вводит код учителя в кабинете → становится учителем этого класса
+    t = register(name="Новый учитель")
+    me = t.ok("POST", "/api/auth/join", json={"code": cls["teacher_code"]})
+    assert me["role"] == "teacher" and me["school_id"] == sid
+    mine = t.ok("GET", "/api/school/classes")
+    assert [c["id"] for c in mine] == [cls["id"]] and len(t.ok("GET", f"/api/school/classes/{cls['id']}/students")) == 1
+    # код одноразовый, у админа он пропадает
+    assert register().post("/api/auth/join", json={"code": cls["teacher_code"]}).status_code == 400
+    row = next(c for c in admin.ok("GET", "/api/school/classes") if c["id"] == cls["id"])
+    assert row["teacher"] == "Новый учитель" and "teacher_code" not in row
+    assert admin.post(f"/api/school/classes/{cls['id']}/teacher-code").status_code == 400  # учитель уже есть
+    # код учителя виден только админу
+    assert "teacher_code" not in school["curator"].ok("GET", "/api/school/classes")[0]
+
+
 def test_teacher_feed_decisions_and_group(school):
     t, cls = school["teacher"], school["class"]
     kids = [register(code=cls["code"]) for _ in range(3)]
@@ -196,3 +244,11 @@ def test_admin_metrics(admin):
     assert "independent_progress" in m and "accepted_share" in m["recommendations"]
     assert admin.ok("GET", "/api/admin/ai")["models"] is not None
     assert isinstance(admin.ok("GET", "/api/admin/audit"), list)
+
+
+def test_student_sees_only_subjects_with_lessons():
+    s = register()
+    subj = s.ok("GET", "/api/content/subjects")
+    assert [x["slug"] for x in subj] == ["math"]  # пилот: пустые предметы скрыты
+    assert all(x["active"] and x["progress"]["total"] > 0 for x in subj)
+    assert s.get("/api/content/courses", params={"subject": "phys"}).status_code == 404
