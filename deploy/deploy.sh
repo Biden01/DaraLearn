@@ -25,5 +25,8 @@ done
 curl -fs http://127.0.0.1:8000/api/health >/dev/null || { echo "Бэкенд не отвечает, фронтенд не обновлён"; exit 1; }
 
 echo "==> Выкладка фронтенда"
-rsync -a --delete "$ROOT/frontend/dist/" "$WEB_ROOT/"
+# --omit-dir-times: era не всегда владелец каталогов в $WEB_ROOT (напр. создан
+# ранее от root), а utime() на чужой каталог не даёт даже при праве записи —
+# rsync иначе падает на "failed to set times", и из-за set -e весь деплой срывается.
+rsync -a --omit-dir-times --delete "$ROOT/frontend/dist/" "$WEB_ROOT/"
 echo "Готово: https://daralearn.kz"
