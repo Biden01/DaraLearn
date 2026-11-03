@@ -25,6 +25,7 @@ import Feed from "./staff/Feed.jsx";
 import ImportResults from "./staff/ImportResults.jsx";
 import Cases from "./staff/Cases.jsx";
 import Metrics from "./staff/Metrics.jsx";
+import Pilot from "./staff/Pilot.jsx";
 import Schools from "./staff/Schools.jsx";
 import Users from "./staff/Users.jsx";
 import Content from "./staff/Content.jsx";
@@ -47,12 +48,12 @@ const ROLES = {
       quiz: Quiz, result: Result, progress: Progress, calendar: Calendar },
   },
   teacher: {
-    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"]],
-    pages: { "": Classes, feed: Feed, import: ImportResults, courses: Courses, calendar: Calendar, ...STAFF_VIEW },
+    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["pilot", "pilot", "chart"]],
+    pages: { "": Classes, feed: Feed, import: ImportResults, courses: Courses, calendar: Calendar, pilot: Pilot, ...STAFF_VIEW },
   },
   curator: {
-    nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"]],
-    pages: { "": Cases, classes: Classes, feed: Feed, ...STAFF_VIEW },
+    nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"], ["pilot", "pilot", "chart"]],
+    pages: { "": Cases, classes: Classes, feed: Feed, pilot: Pilot, ...STAFF_VIEW },
   },
   admin: {
     nav: [["", "metrics", "chart"], ["schools", "schools", "home"], ["users", "users", "user"], ["classes", "classes", "case"],
