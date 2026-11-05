@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +14,7 @@ class Settings(BaseSettings):
     llm_model: str = "claude-opus-5-5"
     tutor_daily_limit: int = 60       # сообщений AI Tutor на ученика в сутки
     check_delay_hours: int = 48       # через сколько после помощи — отложенная проверка
+    pilot_start: date = date(2026, 11, 7)  # граница «до/после» для замера нагрузки учителя
 
     # Подпись сессионных JWT (обязательно задать в .env на проде)
     jwt_secret: str = "dev-secret-change-me"

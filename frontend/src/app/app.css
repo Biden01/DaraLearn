@@ -297,7 +297,7 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
 .toggle.on { background: var(--accent); }
 .toggle.on::after { left: 21px; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
-.field input, .field select { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; color: #111329; outline: none; background: #fff; }
+.field input, .field select, .field textarea { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; color: #111329; outline: none; background: #fff; }
 .faq details { border-top: 1px solid var(--line); padding: 14px 0; }
 .faq details:first-child { border-top: 0; }
 .faq summary { cursor: pointer; font-weight: 600; font-size: 14px; }

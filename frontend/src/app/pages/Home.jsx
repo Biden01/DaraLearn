@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { Bar, Box, Icon, Loading, Ring, useApp } from "../ui.jsx";
 import { actionHref } from "./actions.js";
 import { AttStrip, AttToday } from "../Attendance.jsx";
+import { Survey } from "../Pilot.jsx";
 
 export default function Home() {
   const { t, L, user, startTest } = useApp();
@@ -98,6 +99,7 @@ export default function Home() {
               </div>
             </div>
           </div>
+          <Survey />
           {classes.length > 0 && (
             <div className="card">
               <p className="card-title" style={{ marginBottom: 8 }}>{t.me.classes}</p>

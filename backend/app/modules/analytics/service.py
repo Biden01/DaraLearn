@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.modules.analytics.models import SurveyResponse, TeacherTimeLog
 from app.modules.decisions.models import Recommendation
 from app.modules.events.models import LearningEvent
 from app.modules.plan.models import DailyPlan, PlanItem
@@ -70,3 +71,38 @@ def group_metrics(db: Session, user_ids: list[int], today: date) -> dict:
         "verified_gain": _mean(gains),
         "students_with_gain": len(gains),
     }
+
+
+# --- Нагрузка учителя и опрос удобства (docs/PLAN.md, раздел 7) ---
+
+def workload_stats(db: Session, pilot_start: date, teacher_ids: list[int] | None = None) -> dict:
+    """Среднее время учителя в день до старта пилота и после; change — относительное изменение суммы минут."""
+    q = select(TeacherTimeLog)
+    if teacher_ids is not None:
+        q = q.where(TeacherTimeLog.teacher_id.in_(teacher_ids or [-1]))
+    phases: dict[str, list] = {"before": [], "after": []}
+    for r in db.scalars(q):
+        phases["before" if r.day < pilot_start else "after"].append(r)
+
+    def agg(rows: list) -> dict:
+        return {"days": len(rows), "teachers": len({r.teacher_id for r in rows}),
+                "checking": _mean([r.checking_min for r in rows]), "errors": _mean([r.errors_min for r in rows]),
+                "total": _mean([r.checking_min + r.errors_min for r in rows])}
+
+    out = {k: agg(v) for k, v in phases.items()}
+    b, a = out["before"]["total"], out["after"]["total"]
+    out["change"] = round((a - b) / b, 3) if a is not None and b else None
+    out["pilot_start"] = pilot_start.isoformat()
+    return out
+
+
+def survey_stats(db: Session) -> dict:
+    """Средние оценки опроса (1–5) по ролям и последние комментарии."""
+    rows = list(db.scalars(select(SurveyResponse).order_by(SurveyResponse.id.desc())))
+    by_role = {}
+    for role in ("student", "teacher"):
+        rs = [r for r in rows if r.role == role]
+        by_role[role] = {"n": len(rs), "users": len({r.user_id for r in rs}),
+                         **{k: _mean([getattr(r, k) for r in rs]) for k in ("ease", "useful", "recommend")}}
+    comments = [{"role": r.role, "week": r.week.isoformat(), "text": r.comment} for r in rows if r.comment.strip()][:10]
+    return {**by_role, "comments": comments}

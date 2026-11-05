@@ -16,6 +16,10 @@ export default function Metrics() {
   const ip = m.independent_progress;
   const pct = (x) => (x == null ? "—" : `${Math.round(x * 100)}%`);
   const max = Math.max(...m.activity.map((d) => d.events), 1);
+  const p = t.pilot;
+  const w = m.teacher_workload;
+  const sv = m.survey;
+  const score = (x) => (x == null ? "—" : x.toFixed(1));
   const cards = [
     ["target", "green", ip.total ? `${ip.helped}/${ip.total}` : "—", a.progress, ip.total ? a.progressText(ip.helped, ip.total) : ""],
     ["check", "", pct(m.recommendations.accepted_share), a.accepted, ""],
@@ -26,7 +30,7 @@ export default function Metrics() {
     <>
       <Crumb items={[[a.metricsTitle]]} />
       <h1>{a.metricsTitle}</h1>
-      <p className="subtitle">docs/PLAN.md · 8</p>
+      <p className="subtitle">docs/PLAN.md · 7</p>
       <div className="grid g-4" style={{ marginBottom: 20 }}>
         {cards.map(([icon, c, v, l, sub]) => (
           <div className="card row" key={l}><Box icon={icon} c={c} /><div><div style={{ fontSize: 22, fontWeight: 700 }}>{v}</div><div className="muted small">{l}</div>{sub && <div className="muted small">{sub}</div>}</div></div>
@@ -52,6 +56,44 @@ export default function Metrics() {
               {ai.models.map((x) => <div className="muted small" key={x.model}>{x.model}: {x.replies} {a.replies}, {x.input_tokens + x.output_tokens} {a.tokens}</div>)}
             </>) : "—"}
           </div>
+        </div>
+      </div>
+      <div className="grid g-2" style={{ marginBottom: 20 }}>
+        <div className="card">
+          <p className="card-title">{p.mWork}</p>
+          <p className="muted small" style={{ margin: "2px 0 12px" }}>{p.mWorkSub}</p>
+          {w.before.days + w.after.days === 0 ? <span className="muted">{p.none}</span> : (
+            <div className="grid g-3" style={{ gap: 12 }}>
+              {[[p.before, w.before], [p.after, w.after]].map(([l, x]) => (
+                <div key={l}><div className="muted small">{l}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700 }}>{x.total == null ? "—" : Math.round(x.total)}</div>
+                  <div className="muted small">{x.checking == null ? "" : `${Math.round(x.checking)} + ${Math.round(x.errors)} · `}{p.mTeachers(x.teachers)}, {p.days(x.days)}</div></div>
+              ))}
+              <div><div className="muted small">{p.change}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: w.change < 0 ? "var(--green)" : undefined }}>
+                  {w.change == null ? "—" : `${w.change > 0 ? "+" : ""}${Math.round(w.change * 100)}%`}</div></div>
+            </div>
+          )}
+        </div>
+        <div className="card">
+          <p className="card-title">{p.mSurvey}</p>
+          <p className="muted small" style={{ margin: "2px 0 12px" }}>{p.mSurveySub}</p>
+          {sv.student.n + sv.teacher.n === 0 ? <span className="muted">{p.none}</span> : (<>
+            <div className="row between small muted" style={{ padding: "2px 0" }}><span /><span className="row" style={{ gap: 0 }}>
+              {[p.mEase, p.mUseful, p.mRec].map((l) => <span key={l} style={{ width: 72, textAlign: "right" }}>{l}</span>)}</span></div>
+            {["student", "teacher"].map((r) => (
+              <div className="row between small" key={r} style={{ padding: "4px 0" }}>
+                <span>{t.roles[r]} <span className="muted">· {p.mAnswers(sv[r].n)}</span></span>
+                <span className="row" style={{ gap: 0 }}>{["ease", "useful", "recommend"].map((k) => <b key={k} style={{ width: 72, textAlign: "right" }}>{score(sv[r][k])}</b>)}</span>
+              </div>
+            ))}
+            {sv.comments.length > 0 && (
+              <div style={{ borderTop: "1px solid var(--line)", marginTop: 10, paddingTop: 8 }}>
+                <div className="muted small" style={{ marginBottom: 4 }}>{p.mComments}</div>
+                {sv.comments.slice(0, 5).map((c, i) => <div className="small" key={i} style={{ padding: "3px 0" }}><span className="muted">{t.roles[c.role]}:</span> {c.text}</div>)}
+              </div>
+            )}
+          </>)}
         </div>
       </div>
       <div className="grid g-3">

@@ -7,8 +7,10 @@ from pydantic import BaseModel
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session, aliased
 
+from app.core.config import settings
 from app.core.db import get_db
 from app.core.security import require_role
+from app.modules.analytics.service import survey_stats, workload_stats
 from app.modules.decisions.models import AuditLog, Recommendation
 from app.modules.events.models import LearningEvent
 from app.modules.leads.models import Lead
@@ -46,12 +48,14 @@ def metrics(user: User = Depends(require_role("admin")), db: Session = Depends(g
         "users": roles, "schools": db.scalar(select(func.count()).select_from(School)) or 0,
         "classes": db.scalar(select(func.count()).select_from(SchoolClass)) or 0,
         "active_students_7d": active7, "events": sources, "activity": days,
-        # метрики пилота (docs/PLAN.md, раздел 8)
+        # метрики пилота (docs/PLAN.md, раздел 7)
         "independent_progress": outcome_stats(db),
         "recommendations": {"by_status": recs, "accepted_share": round(accepted / decided, 2) if decided else None,
                             "done_share": round(recs.get("done", 0) / total_actionable, 2) if total_actionable else None},
         "checks": checks,
         "adviser_open": db.scalar(select(func.count()).select_from(AdviserCase).where(AdviserCase.status != "closed")) or 0,
+        "teacher_workload": workload_stats(db, settings.pilot_start),
+        "survey": survey_stats(db),
     }
 
 
