@@ -102,7 +102,7 @@ export default function Classes() {
       )}
       <input type="file" ref={file} hidden accept=".xlsx,.csv" onChange={onFile} />
       {list.length ? (
-        <div className="grid g-2">
+        <div className={list.length > 1 ? "grid g-2" : undefined}>
           {list.map((x) => (
             <div className="card" key={x.id}>
               <div className="row between">

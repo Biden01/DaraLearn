@@ -607,7 +607,7 @@ h2 { letter-spacing: -.3px; }
   border-radius: 999px; padding: 2px 8px; flex: none; }
 .nav a.active .nav-badge { background: #fff; color: var(--accent); }
 .stu .nav-bottom { padding-top: 12px; margin-top: auto; border-top: 1px solid var(--line); }
-.stu .nav-min .nav-group-title { visibility: hidden; }
+.nav-min .nav-group-title { visibility: hidden; }
 .stu .nav-min .nav-badge { display: none; }
 
 /* шапка: на фоне страницы, поиск с ⌘K, язык сегментом, колокольчик с точкой */

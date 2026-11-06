@@ -60,16 +60,20 @@ const ROLES = {
   },
   teacher: {
     nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["pilot", "pilot", "chart"]],
+    groups: [[null, ["", "feed"]], ["learn", ["courses", "calendar"]], ["data", ["import", "time"]], ["analyze", ["pilot"]]],
     pages: { "": Classes, feed: Feed, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar, pilot: Pilot, ...STAFF_VIEW },
   },
   curator: {
     nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"], ["pilot", "pilot", "chart"]],
+    groups: [[null, ["", "classes"]], ["monitor", ["feed", "pilot"]]],
     pages: { "": Cases, classes: Classes, feed: Feed, pilot: Pilot, ...STAFF_VIEW },
   },
   admin: {
     nav: [["", "metrics", "chart"], ["schools", "schools", "home"], ["users", "users", "user"], ["classes", "classes", "case"],
       ["content", "content", "book"], ["leads", "leads", "doc"], ["support", "support", "help"],
       ["audit", "audit", "clip"], ["dev", "dev", "board"], ["docs", "docs", "bulb"]],
+    groups: [[null, [""]], ["manage", ["schools", "users", "classes"]], ["learn", ["content"]], ["contact", ["leads", "support"]],
+      ["system", ["audit", "dev", "docs"]]],
     pages: { "": Metrics, schools: Schools, users: Users, classes: Classes, content: Content, edit: LessonEdit, leads: Leads,
       support: Support, audit: Audit, dev: DevBoard, docs: Docs, feed: Feed, import: ImportResults, ...STAFF_VIEW },
   },
@@ -222,7 +226,7 @@ export default function App() {
         {badges[k] && <em className="nav-badge">{badges[k]}</em>}
       </a>
     );
-    // меню ученика — группами; у остальных ролей — списком, как раньше
+    // меню группами (у всех ролей); роль без groups — списком
     const navMain = role.groups
       ? role.groups.map(([g, keys]) => (
         <div className="nav-group" key={g || "top"} role="group" aria-label={g ? t.navGroups[g] : undefined}>
