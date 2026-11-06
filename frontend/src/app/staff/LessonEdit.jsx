@@ -13,13 +13,16 @@ function TaskForm({ task, draft, lesson, onSaved, onDiscard }) {
   const [f, setF] = useState(() => ({
     purpose: src?.purpose || "practice", qkk: src?.question.kk || "", qru: src?.question.ru || "",
     options: (src?.options || ["", "", "", ""]).map(optText).join("\n"), answer: (src?.answer ?? 0) + 1,
-    ekk: src?.explanation.kk || "", eru: src?.explanation.ru || "",
+    ekk: src?.explanation.kk || "", eru: src?.explanation.ru || "", errors: src?.option_errors || [],
   }));
+  const optCount = lines(f.options).length;
+  const setErr = (i) => (e) => { const errors = [...f.errors]; errors[i] = e.target.value; setF({ ...f, errors }); };
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   async function save(e) {
     e.preventDefault();
     const body = { lesson, purpose: f.purpose, question: { kk: f.qkk, ru: f.qru }, options: lines(f.options).map(optParse),
-      answer: Number(f.answer) - 1, explanation: { kk: f.ekk, ru: f.eru || f.ekk }, ...(draft ? { ai: true } : {}) };
+      answer: Number(f.answer) - 1, explanation: { kk: f.ekk, ru: f.eru || f.ekk }, ...(draft ? { ai: true } : {}),
+      option_errors: Array.from({ length: optCount }, (_, i) => (i === Number(f.answer) - 1 ? "" : f.errors[i] || "")) };
     try {
       await api(task ? `/content/admin/tasks/${task.id}` : "/content/admin/tasks", { method: task ? "PUT" : "POST", body });
       toast(t.saved); onSaved();
@@ -41,6 +44,18 @@ function TaskForm({ task, draft, lesson, onSaved, onDiscard }) {
         <label className="field">{a.qRu}<textarea rows={2} value={f.qru} onChange={set("qru")} required /></label>
       </div>
       <label className="field">{a.options}<textarea rows={4} value={f.options} onChange={set("options")} required /></label>
+      {optCount > 0 && (
+        <div className="row wrap" style={{ gap: 8 }} title={t.errHelp}>
+          {Array.from({ length: optCount }, (_, i) => (
+            <label key={i} className="field" style={{ width: 120 }}>{i + 1}
+              {i === Number(f.answer) - 1
+                ? <input value="✓" disabled />
+                : <select value={f.errors[i] || ""} onChange={setErr(i)}>
+                    {Object.entries(t.errKinds).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}
+            </label>
+          ))}
+        </div>
+      )}
       <div className="grid g-2" style={{ gap: 10 }}>
         <label className="field">{a.exKk}<textarea rows={2} value={f.ekk} onChange={set("ekk")} /></label>
         <label className="field">{a.exRu}<textarea rows={2} value={f.eru} onChange={set("eru")} /></label>

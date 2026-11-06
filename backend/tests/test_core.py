@@ -302,3 +302,25 @@ def test_health_checks_db(monkeypatch):
     monkeypatch.setattr(main, "engine", Down())
     r = c.get("/api/health")
     assert r.status_code == 503 and r.json()["db"] == "down"
+
+
+def test_misconceptions_reach_teacher_feed(admin, school, db):
+    """Неверный вариант с типом ошибки → в ленте учителя у рекомендации видно, какие ошибки делал ученик."""
+    from app.modules.content.models import Lesson, Task
+    teacher, code = school["teacher"], school["class"]["code"]
+    s = register(code=code)
+    lid = db.query(Lesson).filter(Lesson.slug == "sqrt").one().id
+    t = db.query(Task).filter(Task.lesson_id == lid, Task.purpose == "practice").order_by(Task.id).first()
+    wrong = next(i for i in range(len(t.options)) if i != t.answer)
+    old = t.option_errors
+    t.option_errors = ["condition" if i == wrong else "" for i in range(len(t.options))]
+    db.commit()
+    try:
+        diagnostic(s, wrong={"sqrt"})
+        s.ok("POST", "/api/events/practice", json={"task_id": t.id, "choice": wrong})
+        me = s.ok("GET", "/api/auth/me")["id"]
+        items = [x for x in teacher.ok("GET", "/api/decisions/feed")["items"] if x.get("student", {}).get("id") == me]
+        assert any(x["lesson"] == "sqrt" and x["errors"].get("condition", 0) >= 1 for x in items)
+    finally:
+        t.option_errors = old
+        db.commit()

@@ -7,6 +7,10 @@ from app.core.db import Base
 
 # Тексты хранятся парами {"kk": ..., "ru": ...}.
 
+# Типы ошибок за неверными вариантами ответа (заблуждения): база (пререквизит), условие задачи,
+# стратегия решения, вычисления. Это доказательства для учителя; правила decision-v1 их не используют.
+ERROR_KINDS = ("base", "condition", "strategy", "calc")
+
 
 class Subject(Base):
     __tablename__ = "subjects"
@@ -66,5 +70,7 @@ class Task(Base):
     question: Mapped[dict] = mapped_column(JSON)
     options: Mapped[list] = mapped_column(JSON)       # строка или {kk, ru}
     answer: Mapped[int] = mapped_column(Integer)
+    # тип ошибки за каждым вариантом: "" у верного и неразмеченного; см. ERROR_KINDS
+    option_errors: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     explanation: Mapped[dict] = mapped_column(JSON)
     source: Mapped[str] = mapped_column(String(10), default="seed", server_default="seed")  # seed | admin

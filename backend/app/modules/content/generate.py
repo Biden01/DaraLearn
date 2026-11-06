@@ -4,6 +4,8 @@ import logging
 import random
 import re
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, ValidationError
 
 from app.modules.content.models import Lesson, Task
@@ -27,12 +29,15 @@ SYSTEM = """Ты методист школьной математики в Ка�
 - Варианты, состоящие только из чисел и формул, давай строкой (одинаковой для обоих языков),
   иначе — объектом {"kk": ..., "ru": ...}.
 - answer — индекс верного варианта (0–3).
+- errors — тип ошибки за каждым вариантом, в том же порядке: "" у верного; у неверных одно из
+  "base" (не владеет базовой темой-пререквизитом), "condition" (неверно понял условие),
+  "strategy" (выбрал неверный способ решения), "calc" (ошибка в вычислениях или знаке).
 - explanation — короткий разбор решения по шагам на обоих языках; для неверных вариантов можно назвать ошибку.
 - Не повторяй существующие задания навыка. Перепроверь вычисления: верный ответ обязан быть верным.
 
 Ответь только JSON без пояснений и без ```:
 {"tasks": [{"question": {"kk": "...", "ru": "..."}, "options": ["...", {"kk": "...", "ru": "..."}, "...", "..."],
-"answer": 0, "explanation": {"kk": "...", "ru": "..."}}]}"""
+"answer": 0, "errors": ["", "calc", "condition", "base"], "explanation": {"kk": "...", "ru": "..."}}]}"""
 
 
 class _Text2(BaseModel):
@@ -44,6 +49,7 @@ class _Draft(BaseModel):
     question: _Text2
     options: list[str | _Text2] = Field(min_length=4, max_length=4)
     answer: int = Field(ge=0, le=3)
+    errors: list[Literal["", "base", "condition", "strategy", "calc"]] = []
     explanation: _Text2
 
 
@@ -77,10 +83,13 @@ def _parse(text: str) -> list[dict]:
 def _shuffle(d: _Draft) -> dict:
     """Модели любят ставить верный ответ первым — перемешиваем варианты, сохраняя верный."""
     opts = [o.model_dump() if isinstance(o, _Text2) else o for o in d.options]
+    # разметка ошибок: неполная или с ошибкой у верного варианта — отбрасываем разметку, задание оставляем
+    errs = list(d.errors) if len(d.errors) == len(opts) and not d.errors[d.answer] else [""] * len(opts)
     order = list(range(len(opts)))
     random.shuffle(order)
     return {"question": d.question.model_dump(), "options": [opts[i] for i in order],
-            "answer": order.index(d.answer), "explanation": d.explanation.model_dump()}
+            "answer": order.index(d.answer), "option_errors": [errs[i] for i in order],
+            "explanation": d.explanation.model_dump()}
 
 
 def generate(lesson: Lesson, existing: list[Task], purpose: str, count: int) -> tuple[list[dict], int, int]:

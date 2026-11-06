@@ -53,6 +53,7 @@ class TaskIn(BaseModel):
     options: list[str | Text2] = Field(min_length=2, max_length=6)
     answer: int = Field(ge=0, le=5)
     explanation: Text2
+    option_errors: list[Literal["", "base", "condition", "strategy", "calc"]] = Field(default=[], max_length=6)
     ai: bool = False  # принят ИИ-черновик — source="ai", чтобы такие задания было видно отдельно
 
 
@@ -63,7 +64,16 @@ class GenerateIn(BaseModel):
 
 def _task_out(t: Task, lesson_slug: str) -> dict:
     return {"id": t.id, "slug": t.slug, "lesson": lesson_slug, "purpose": t.purpose, "question": t.question,
-            "options": t.options, "answer": t.answer, "explanation": t.explanation, "source": t.source}
+            "options": t.options, "answer": t.answer, "option_errors": t.option_errors or [], "explanation": t.explanation,
+            "source": t.source}
+
+
+def _errors(payload: "TaskIn") -> list[str]:
+    """Типы ошибок по вариантам: длина как у вариантов, у верного — пусто."""
+    errs = (list(payload.option_errors) + [""] * len(payload.options))[:len(payload.options)]
+    if errs[payload.answer]:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "error_on_answer")
+    return errs if any(errs) else []
 
 
 def _lesson_or_404(db: Session, slug: str) -> Lesson:
@@ -138,7 +148,7 @@ def create_task(payload: TaskIn, user: User = Depends(require_role("admin")), db
     n = db.scalar(select(func.count()).select_from(Task).where(Task.lesson_id == l.id)) or 0
     t = Task(slug=f"{l.slug}-a{n + 1}-{user.id}", lesson_id=l.id, purpose=payload.purpose, question=payload.question.model_dump(),
              options=[_opt(o) for o in payload.options], answer=payload.answer, explanation=payload.explanation.model_dump(),
-             source="ai" if payload.ai else "admin")
+             option_errors=_errors(payload), source="ai" if payload.ai else "admin")
     db.add(t)
     db.flush()
     audit(db, user, "task.create", "task", t.id)
@@ -175,6 +185,7 @@ def update_task(task_id: int, payload: TaskIn, user: User = Depends(require_role
     l = _lesson_or_404(db, payload.lesson)
     t.lesson_id, t.purpose, t.question = l.id, payload.purpose, payload.question.model_dump()
     t.options, t.answer, t.explanation, t.source = [_opt(o) for o in payload.options], payload.answer, payload.explanation.model_dump(), "admin"
+    t.option_errors = _errors(payload)
     audit(db, user, "task.update", "task", t.id)
     db.commit()
     return _task_out(t, l.slug)
