@@ -803,3 +803,8 @@ h2 { letter-spacing: -.3px; }
 
 /* ИИ-черновик задания в редакторе урока — отличается от сохранённых */
 .task.task-draft { border: 1px dashed var(--orange); background: #fffaf0; }
+
+/* Живой экран урока */
+.live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: live-pulse 1.6s infinite; }
+@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(34,160,107,.5); } 70% { box-shadow: 0 0 0 7px rgba(34,160,107,0); } 100% { box-shadow: 0 0 0 0 rgba(34,160,107,0); } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }

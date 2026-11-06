@@ -46,6 +46,15 @@ def student_dashboard(student_id: int, user: User = Depends(require_role("teache
     return out
 
 
+@router.get("/classes/{class_id}/live")
+def class_live_view(class_id: int, user: User = Depends(require_role("teacher", "curator")),
+                    db: Session = Depends(get_db)) -> dict:
+    """Живой экран урока: статус каждого ученика сейчас (позвал / застрял / работает / отошёл / не заходил)."""
+    from app.modules.state.live import class_live
+    c = get_class(db, user, class_id)
+    return class_live(db, c, class_students(db, c.id))
+
+
 @router.get("/classes/{class_id}")
 def class_map(class_id: int, user: User = Depends(require_role("teacher", "curator")), db: Session = Depends(get_db)) -> dict:
     """Тепловая карта «ученики × навыки» и сводка по классу."""

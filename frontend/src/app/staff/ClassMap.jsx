@@ -38,7 +38,10 @@ export default function ClassMap() {
   return (
     <>
       <Crumb items={[[t.classes.title, "#/" + (user.role === "teacher" ? "" : "classes")], [d.class.name]]} />
-      <h1>{d.class.name}</h1>
+      <div className="row between wrap" style={{ gap: 10 }}>
+        <h1 style={{ margin: 0 }}>{d.class.name}</h1>
+        <a className="btn sm" href={`#/live/${id}`}><span className="live-dot" /> {t.live.open}</a>
+      </div>
       <p className="subtitle">{t.classes.students(d.students.length)} · Математика · {t.grade(d.class.grade)}</p>
       <ClassPlan classId={id} />
       <ClassAttendance classId={id} />
