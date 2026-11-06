@@ -70,6 +70,31 @@ const ROLES = {
 };
 const ACTIVE = { lesson: "courses", result: "quiz", class: "classes", student: "classes", edit: "content" };
 
+// «Установить приложение» (PWA): видна, только когда браузер разрешил установку (Chrome/Edge/Android).
+function InstallLink({ collapsed, label }) {
+  const [ready, setReady] = useState(() => !!window.__dlInstall);
+  useEffect(() => {
+    const on = () => setReady(!!window.__dlInstall);
+    window.addEventListener("dl:installable", on);
+    return () => window.removeEventListener("dl:installable", on);
+  }, []);
+  if (!ready) return null;
+  const install = async (e) => {
+    e.preventDefault();
+    const p = window.__dlInstall;
+    if (!p) return;
+    p.prompt();
+    try { await p.userChoice; } catch { /* */ }
+    window.__dlInstall = null; // событие одноразовое
+    setReady(false);
+  };
+  return (
+    <a href="#" onClick={install} title={collapsed ? label : undefined}>
+      <Icon n="download" /><span>{label}</span>
+    </a>
+  );
+}
+
 function parseHash() {
   const h = window.location.hash.replace(/^#\/?/, "");
   const [path, query = ""] = h.split("?");
@@ -175,7 +200,10 @@ export default function App() {
         <aside className="sidebar" style={menuOpen ? { transform: "none" } : undefined}>
           <a href="#/" className="brand"><img src="/logo.png" alt="" /> <span>DaraLearn</span></a>
           <nav className="nav" aria-label="Main">{NAV.map(link)}</nav>
-          <nav className="nav nav-bottom">{NAV_BOTTOM.map(link)}</nav>
+          <nav className="nav nav-bottom">
+            {NAV_BOTTOM.map(link)}
+            <InstallLink collapsed={collapsed} label={t.install} />
+          </nav>
         </aside>
         {menuOpen && <div className="overlay" style={{ display: "block", position: "fixed", inset: 0, background: "rgba(17,19,41,.3)", zIndex: 25 }} onClick={() => setMenuOpen(false)} />}
         <Header alerts={alerts} onMenu={onMenu} collapsed={collapsed} />

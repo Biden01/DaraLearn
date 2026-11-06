@@ -35,6 +35,7 @@ const P = {
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
   board: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M15 3v18M3 9h6M15 14h6" /></>,
   trash: <path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3" />,
+  download: <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />,
 };
 
 export function Icon({ n, s = 20 }) {
