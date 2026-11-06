@@ -43,8 +43,10 @@ const P = {
   checkc: <><circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" /></>,
 };
 
-// Dara — персонаж AI Tutor: крутой снежный барс в синей тюбетейке с жёлтым орнаментом.
+// Dara — персонаж AI Tutor: крутой рыжий лисёнок в синей тюбетейке с жёлтым орнаментом.
 // Объёмный стиль (градиенты + блики); id градиентов уникальны на каждый экземпляр.
+const EYE_L = "M13.4 27.8Q17.3 26.4 21.2 27.8Q20.8 31.8 17.3 31.8Q13.8 31.8 13.4 27.8Z";
+const EYE_R = "M26.8 27.8Q30.7 26.4 34.6 27.8Q34.2 31.8 30.7 31.8Q27.2 31.8 26.8 27.8Z";
 export function Dara({ s = 24, title }) {
   const u = useId().replace(/:/g, "");
   const id = (k) => `${k}${u}`, url = (k) => `url(#${k}${u})`;
@@ -52,11 +54,11 @@ export function Dara({ s = 24, title }) {
     <svg width={s} height={s} viewBox="0 0 48 48" role={title ? "img" : undefined} aria-label={title}
       aria-hidden={title ? undefined : "true"} className="dara">
       <defs>
-        <radialGradient id={id("fur")} cx="40%" cy="38%" r="70%">
-          <stop offset="0" stopColor="#FFFFFF" /><stop offset=".6" stopColor="#E9EEF5" /><stop offset="1" stopColor="#B9C4D3" />
+        <radialGradient id={id("fur")} cx="40%" cy="40%" r="70%">
+          <stop offset="0" stopColor="#FFB561" /><stop offset=".55" stopColor="#F97316" /><stop offset="1" stopColor="#C2410C" />
         </radialGradient>
-        <radialGradient id={id("muz")} cx="45%" cy="35%" r="70%">
-          <stop offset="0" stopColor="#FFFFFF" /><stop offset="1" stopColor="#DDE4EE" />
+        <radialGradient id={id("muz")} cx="50%" cy="30%" r="75%">
+          <stop offset="0" stopColor="#FFFFFF" /><stop offset="1" stopColor="#FBE3CF" />
         </radialGradient>
         <linearGradient id={id("hat")} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#3B82FF" /><stop offset="1" stopColor="#0047C7" />
@@ -64,55 +66,45 @@ export function Dara({ s = 24, title }) {
         <radialGradient id={id("iris")} cx="40%" cy="35%" r="65%">
           <stop offset="0" stopColor="#9FE7FF" /><stop offset="1" stopColor="#0058F4" />
         </radialGradient>
-        <clipPath id={id("el")}><path d="M13.6 28.4Q17.5 27 21.4 28.4Q21 32.4 17.5 32.4Q14 32.4 13.6 28.4Z" /></clipPath>
-        <clipPath id={id("er")}><path d="M26.6 28.4Q30.5 27 34.4 28.4Q34 32.4 30.5 32.4Q27 32.4 26.6 28.4Z" /></clipPath>
+        <clipPath id={id("el")}><path d={EYE_L} /></clipPath>
+        <clipPath id={id("er")}><path d={EYE_R} /></clipPath>
       </defs>
-      {/* уши */}
-      <circle cx="11" cy="19" r="5.4" fill={url("fur")} stroke="#9AA6B8" strokeWidth=".8" />
-      <circle cx="37" cy="19" r="5.4" fill={url("fur")} stroke="#9AA6B8" strokeWidth=".8" />
-      <circle cx="11.3" cy="19.6" r="2.7" fill="#8A97AA" />
-      <circle cx="36.7" cy="19.6" r="2.7" fill="#8A97AA" />
-      {/* голова */}
-      <path d="M24 44.5C13.8 44.5 6.5 38 6.5 29.8 6.5 21.2 14.2 15.5 24 15.5s17.5 5.7 17.5 14.3c0 8.2-7.3 14.7-17.5 14.7Z" fill={url("fur")} stroke="#9AA6B8" strokeWidth=".8" />
-      {/* пятна-розетки */}
-      <g fill="none" stroke="#5B6678" strokeWidth="1.3" strokeLinecap="round" opacity=".75">
-        <path d="M20.5 21.6a1.8 1.8 0 0 1 3 0M25.6 22.8a1.6 1.6 0 0 1 2.7.4" />
-        <path d="M9.4 29.6a2 2 0 0 1 1.6-2.4M38.8 30.4a2 2 0 0 0-1.4-2.6M10.6 34.6a1.6 1.6 0 0 1 .4-2" />
-      </g>
-      <g fill="#5B6678" opacity=".7">
-        <circle cx="24" cy="18.6" r=".9" /><circle cx="17.4" cy="23.4" r=".8" /><circle cx="31" cy="23.6" r=".8" />
-        <circle cx="37.6" cy="34.6" r=".8" />
-      </g>
-      {/* объёмный блик на голове */}
-      <ellipse cx="15.5" cy="24" rx="5" ry="2.6" fill="#fff" opacity=".7" transform="rotate(-25 15.5 24)" />
+      {/* голова с острыми ушами */}
+      <path d="M24 44C13.4 44 5.5 36.6 5.5 26.4V6.5l11.2 7.6c2.3-1 4.7-1.4 7.3-1.4s5 .4 7.3 1.4l11.2-7.6v19.9C42.5 36.6 34.6 44 24 44Z"
+        fill={url("fur")} stroke="#9A3412" strokeWidth=".8" strokeLinejoin="round" />
+      {/* внутренняя часть ушей и тёмные кончики */}
+      <path d="M8.6 11.8l6.4 4.3-5.6 4.8zM39.4 11.8l-6.4 4.3 5.6 4.8z" fill="#7C2D12" />
+      <path d="M5.5 6.5l4.4 3v-.1L5.5 13zM42.5 6.5l-4.4 3L42.5 13z" fill="#431407" />
+      {/* светлые щёки-пушок */}
+      <path d="M24 44c-7.4 0-13.4-4.6-15.4-11.2 5-1.8 10.6 0 15.4 4.2 4.8-4.2 10.4-6 15.4-4.2C37.4 39.4 31.4 44 24 44Z" fill={url("muz")} />
+      {/* объёмный блик */}
+      <ellipse cx="14.5" cy="21.5" rx="4.6" ry="2.2" fill="#fff" opacity=".4" transform="rotate(-30 14.5 21.5)" />
       {/* глаза: уверенный прищур */}
-      {[["el", 17.5], ["er", 30.5]].map(([k, x]) => (
+      {[["el", 17.3, EYE_L], ["er", 30.7, EYE_R]].map(([k, x, d]) => (
         <g key={k}>
-          <path d={k === "el" ? "M13.6 28.4Q17.5 27 21.4 28.4Q21 32.4 17.5 32.4Q14 32.4 13.6 28.4Z" : "M26.6 28.4Q30.5 27 34.4 28.4Q34 32.4 30.5 32.4Q27 32.4 26.6 28.4Z"} fill="#fff" />
+          <path d={d} fill="#fff" />
           <g clipPath={url(k)}>
-            <circle cx={x + .6} cy="30.2" r="2.6" fill={url("iris")} />
-            <circle cx={x + .6} cy="30.2" r="1.1" fill="#0B1530" />
-            <circle cx={x - .2} cy="29.2" r=".7" fill="#fff" />
+            <circle cx={x + .6} cy="29.6" r="2.6" fill={url("iris")} />
+            <circle cx={x + .6} cy="29.6" r="1.1" fill="#0B1530" />
+            <circle cx={x - .2} cy="28.6" r=".7" fill="#fff" />
           </g>
-          <path d={`M${x - 4.2} 28.4Q${x} 26.8 ${x + 4.2} 28.4`} fill="none" stroke="#1E2433" strokeWidth="1.6" strokeLinecap="round" />
+          <path d={`M${x - 4.2} 27.8Q${x} 26.2 ${x + 4.2} 27.8`} fill="none" stroke="#1E1B2E" strokeWidth="1.6" strokeLinecap="round" />
         </g>
       ))}
       {/* брови: одна приподнята */}
-      <path d="M14.2 25.4q3-1.2 6 -.2M27.6 24.4q3.2-2 6.4-.6" fill="none" stroke="#5B6678" strokeWidth="1.4" strokeLinecap="round" />
-      {/* мордочка */}
-      <ellipse cx="21.2" cy="36.4" rx="4" ry="3.1" fill={url("muz")} />
-      <ellipse cx="26.8" cy="36.4" rx="4" ry="3.1" fill={url("muz")} />
-      <path d="M21.6 33.2h4.8c.6 0 .9.7.5 1.1l-2.2 2.1a1 1 0 0 1-1.4 0l-2.2-2.1c-.4-.4-.1-1.1.5-1.1Z" fill="#E48A9C" />
-      <ellipse cx="23.4" cy="33.8" rx="1" ry=".45" fill="#fff" opacity=".7" />
+      <path d="M14 24.8q3-1.2 6-.2M27.8 23.8q3.2-2 6.4-.6" fill="none" stroke="#7C2D12" strokeWidth="1.4" strokeLinecap="round" />
+      {/* нос с бликом */}
+      <ellipse cx="24" cy="34.4" rx="2.7" ry="2" fill="#1E1B2E" />
+      <ellipse cx="23.2" cy="33.8" rx=".9" ry=".45" fill="#fff" opacity=".7" />
       {/* ухмылка */}
-      <path d="M21.4 38.6q2.6 1.2 4.6.2t2.4-1.6" fill="none" stroke="#1E2433" strokeWidth="1.4" strokeLinecap="round" />
-      {/* тюбетейка, лихо набок */}
-      <g transform="rotate(-10 24 13)">
-        <path d="M12.6 10.2 13.6 17q10.4 3.4 20.8 0l1-6.8Z" fill={url("hat")} />
-        <ellipse cx="24" cy="10.2" rx="11.6" ry="3.4" fill="#2F74F6" />
-        <path d="M14.6 14.6l2.2-2.4 2.2 2.4 2.2-2.4 2.2 2.4 2.2-2.4 2.2 2.4 2.2-2.4 2.2 2.4 2.2-2.4" fill="none" stroke="#FFD43B" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
-        <circle cx="24" cy="10" r="1.6" fill="#FFD43B" />
-        <ellipse cx="18.5" cy="9.4" rx="4" ry="1.1" fill="#fff" opacity=".45" />
+      <path d="M21.4 38.4q2.6 1.2 4.6.2t2.4-1.6" fill="none" stroke="#1E1B2E" strokeWidth="1.4" strokeLinecap="round" />
+      {/* тюбетейка, лихо набок, между ушами */}
+      <g transform="rotate(-10 24 12)">
+        <path d="M15.4 9.6 16.2 15.6q7.8 2.8 15.6 0l.8-6Z" fill={url("hat")} />
+        <ellipse cx="24" cy="9.6" rx="8.6" ry="2.7" fill="#2F74F6" />
+        <path d="M17.2 13.8l1.8-2 1.8 2 1.8-2 1.8 2 1.8-2 1.8 2 1.8-2 1.8 2" fill="none" stroke="#FFD43B" strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx="24" cy="9.4" r="1.4" fill="#FFD43B" />
+        <ellipse cx="20" cy="8.9" rx="3" ry=".9" fill="#fff" opacity=".45" />
       </g>
     </svg>
   );
