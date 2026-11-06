@@ -803,3 +803,110 @@ h2 { letter-spacing: -.3px; }
 
 /* ИИ-черновик задания в редакторе урока — отличается от сохранённых */
 .task.task-draft { border: 1px dashed var(--orange); background: #fffaf0; }
+
+/* ===================== План на сегодня (ученик) ===================== */
+.plan-page .hcard { margin-bottom: 20px; }
+.plan-page .subtitle { margin-bottom: 28px; }
+/* пилюли статусов: семантика отдельно от синего акцента; красный — только для реальной проблемы */
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; line-height: 1; padding: 6px 10px; border-radius: 999px; white-space: nowrap; flex: none; }
+.pill.todo { background: #F1F5F9; color: #64748B; }
+.pill.learning { background: #FFF7E6; color: #D97706; }
+.pill.done { background: #DCFCE7; color: #16A34A; }
+.pill.today { background: var(--accent-soft); color: var(--accent); }
+.pill.missed { background: #FEECEE; color: #DC2626; }
+.pill.info { background: #F1F5F9; color: var(--fg2); font-weight: 500; }
+.pdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; background: #94A3B8; }
+.pdot.learning { background: #D97706; } .pdot.done { background: #16A34A; } .pdot.todo { background: #94A3B8; }
+.pdot.missed { background: #DC2626; } .pdot.review { background: transparent; box-shadow: inset 0 0 0 1.5px #CBD5E1; }
+
+/* 1. Сегодня */
+.pl-today .next-eyebrow { margin-bottom: 10px; }
+.pl-topic { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.pl-topic .next-title { margin: 0; font-size: 26px; }
+.pl-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.pl-prog { margin-bottom: 8px; }
+.pl-prog-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; margin-bottom: 10px; }
+.pl-prog-row b { font-weight: 600; }
+.pl-done { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: #F0FDF4; border-radius: 14px; padding: 14px 18px; margin-bottom: 8px; }
+.pl-done b { display: block; font-weight: 600; color: #14532D; }
+.pl-done-ico { width: 36px; height: 36px; border-radius: 50%; background: #16A34A; color: #fff; display: grid; place-items: center; flex: none; }
+.pl-steps { list-style: none; margin: 12px 0 0; padding: 0; }
+.pl-steps > li { border-top: 1px solid var(--line); scroll-margin-top: calc(var(--header) + 12px); }
+.pl-steps > li:first-child { border-top: 0; }
+.pl-step { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 14px; text-align: left; padding: 8px 12px; margin: 2px 0; border-radius: 12px; color: var(--muted); transition: background .15s; }
+.pl-step:hover { background: #F6F7F9; }
+.pl-step:active { background: #EEF1F5; }
+.pl-step > svg { transition: transform .15s; flex: none; }
+.pl-steps li.open .pl-step > svg { transform: rotate(90deg); }
+.pl-step-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-step-sub { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.pl-step-sub em { font-style: normal; color: var(--accent); font-weight: 600; }
+.pl-min { font-size: 13px; color: var(--muted); white-space: nowrap; flex: none; font-variant-numeric: tabular-nums; }
+.pl-steps li.cur .pl-step { background: var(--accent-soft); }
+.pl-steps li.cur .pl-step:hover { background: #E3ECFE; }
+.pl-steps li.cur .step-mark { border: 2px solid var(--accent); box-shadow: inset 0 0 0 3px #fff; background: var(--accent); }
+.pl-steps li.done .step-mark, .pl-mini li.done .step-mark { background: #16A34A; border-color: #16A34A; }
+.pl-steps li.done .step-title { color: var(--muted); }
+.pl-body { padding: 4px 12px 16px 48px; }
+.pl-body .task { border-color: var(--line); }
+.pl-today .next-cta { margin-top: 20px; }
+
+/* 2. Эта неделя */
+.pl-arrow { width: 32px; height: 32px; border-radius: 8px; display: inline-grid; place-items: center; color: var(--fg2); transition: background .15s; }
+.pl-arrow:hover:not(:disabled) { background: #F1F5F9; }
+.pl-arrow:active:not(:disabled) { background: #E2E8F0; }
+.pl-arrow:disabled { opacity: .35; cursor: default; }
+.pl-strip { display: grid; grid-template-columns: repeat(7, minmax(56px, 1fr)); gap: 8px; }
+.pl-day { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 14px; border: 1.5px solid transparent;
+  background: #F8FAFC; color: var(--fg); transition: background .15s, border-color .15s, transform .1s; }
+.pl-day:hover { background: #F1F5F9; }
+.pl-day:active { transform: translateY(1px); }
+.pl-dow { font-size: 12px; font-weight: 500; color: var(--muted); }
+.pl-num { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pl-mark { height: 14px; display: grid; place-items: center; color: #16A34A; }
+.pl-day.past .pl-num, .pl-day.nodata .pl-num { color: var(--muted); }
+.pl-day.today { border-color: var(--accent); background: #fff; }
+.pl-day.today .pl-dow { color: var(--accent); }
+.pl-day.sel:not(.today) { border-color: #CBD5E1; background: #fff; }
+.pl-day.sel { box-shadow: 0 1px 2px rgba(15,23,42,.06), 0 4px 12px rgba(15,23,42,.06); }
+.pl-daybox { margin-top: 16px; background: #F8FAFC; border-radius: 14px; padding: 16px 18px; }
+.pl-tps { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; }
+.pl-tp { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.pl-mini { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.pl-mini li { display: flex; align-items: center; gap: 10px; color: var(--fg2); }
+.pl-mini .step-mark { width: 18px; height: 18px; }
+.pl-mini li.done span.grow { color: var(--muted); }
+.pl-past { margin-top: 12px; }
+
+/* строки списков: ~52px, едва заметные разделители, hover */
+.pl-row { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 8px 12px; text-align: left;
+  border-top: 1px solid #EEF0F3; font-size: 14px; color: var(--fg); transition: background .15s; }
+.pl-row:first-child { border-top: 0; }
+button.pl-row { border-radius: 0; }
+button.pl-row:hover, .pl-row.static:hover { background: #F6F7F9; }
+button.pl-row:active { background: #EEF1F5; }
+.pl-row-date { width: 104px; flex: none; color: var(--muted); font-size: 13px; }
+.pl-name { font-weight: 500; min-width: 0; }
+.pl-st { font-size: 13px; font-weight: 500; white-space: nowrap; flex: none; }
+.pl-st.todo { color: #94A3B8; } .pl-st.learning { color: #D97706; } .pl-st.done { color: #16A34A; }
+
+/* 3. Цель на месяц */
+.pl-goal-head { display: flex; align-items: center; gap: 20px; margin-bottom: 12px; }
+.pl-goal-head h2 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+.pl-goal-count { font-size: 14px; font-weight: 600; color: var(--fg); }
+.stu .pl-goal .ring b { font-size: 14px; }
+.stu .pl-goal .ring::before { width: calc(var(--size) - 12px); height: calc(var(--size) - 12px); }
+.pl-list { margin: 0 -12px; }
+.pl-more { margin-top: 12px; }
+
+@media (max-width: 900px) {
+  .pl-topic .next-title { font-size: 22px; }
+  .pl-strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 20px; margin: 0 -20px; padding: 2px 20px 4px; scrollbar-width: none; }
+  .pl-strip::-webkit-scrollbar { display: none; }
+  .pl-day { flex: 0 0 64px; scroll-snap-align: start; }
+  .pl-body { padding-left: 12px; }
+  .pl-row-date { width: 84px; }
+  .pl-goal-head { align-items: flex-start; gap: 14px; }
+  .stu .pl-goal .ring { --size: 56px !important; }
+  .plan-page .hcard-head { flex-wrap: wrap; }
+}
