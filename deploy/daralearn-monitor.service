@@ -1,0 +1,11 @@
+[Unit]
+Description=DaraLearn uptime check (/api/health -> Healthchecks.io -> email)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=era
+EnvironmentFile=/etc/daralearn-monitor.env
+ExecStart=/home/era/daralearn/deploy/monitor.sh
+TimeoutStartSec=50

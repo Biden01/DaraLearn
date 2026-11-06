@@ -2,7 +2,7 @@ import io
 
 from openpyxl import Workbook, load_workbook
 
-from tests.conftest import diagnostic, register, uid
+from tests.conftest import client, diagnostic, register, uid
 
 
 def test_auth_and_roles(admin):
@@ -252,3 +252,16 @@ def test_student_sees_only_subjects_with_lessons():
     assert [x["slug"] for x in subj] == ["math"]  # пилот: пустые предметы скрыты
     assert all(x["active"] and x["progress"]["total"] > 0 for x in subj)
     assert s.get("/api/content/courses", params={"subject": "phys"}).status_code == 404
+
+
+def test_health_checks_db(monkeypatch):
+    from app import main
+    c = client()
+    assert c.ok("GET", "/api/health") == {"status": "ok", "db": "ok"}
+
+    class Down:
+        def connect(self):
+            raise RuntimeError("db down")
+    monkeypatch.setattr(main, "engine", Down())
+    r = c.get("/api/health")
+    assert r.status_code == 503 and r.json()["db"] == "down"

@@ -2,9 +2,12 @@ import logging
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app import models  # noqa: F401  регистрирует таблицы
 from app.core.config import settings
+from app.core.db import engine
 from app.modules.admin.router import router as admin_router
 from app.modules.analytics.router import router as analytics_router
 from app.modules.content.admin import router as content_admin_router
@@ -42,8 +45,15 @@ api = APIRouter(prefix="/api")
 
 
 @api.get("/health", tags=["system"])
-def health() -> dict:
-    return {"status": "ok"}
+def health():
+    # Проверяем и базу: без неё API бесполезен, мониторинг должен это видеть.
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception:
+        logging.getLogger("health").exception("health: база недоступна")
+        return JSONResponse({"status": "error", "db": "down"}, status_code=503)
+    return {"status": "ok", "db": "ok"}
 
 
 for r in (analytics_router, auth_router, school_router, admin_router, content_admin_router, content_router, events_router, state_router,
