@@ -159,7 +159,44 @@ def test_practice_check_outcome(db):
     key = {x.id: x.answer for x in db.query(Task).filter(Task.id.in_([x["id"] for x in a["tasks"]]))}
     r = s.ok("POST", f"/api/verification/attempts/{a['id']}/submit", json={"answers": {str(k): v for k, v in key.items()}})
     assert r["outcome"] and r["outcome"]["helped"] is True and r["outcome"]["after"] > r["outcome"]["before"]
-    assert s.ok("GET", "/api/verification/checks") == []
+    # дальше ждёт только интервальное повторение (если навык подтверждён), и оно ещё не наступило
+    assert all(c["reason"] == "review" and not c["due"] for c in s.ok("GET", "/api/verification/checks"))
+
+
+def _pass_check(s, db, check_id):
+    from app.modules.content.models import Task
+    a = s.ok("POST", "/api/verification/attempts", 201, json={"kind": "verification", "check_id": check_id})
+    key = {x.id: x.answer for x in db.query(Task).filter(Task.id.in_([x["id"] for x in a["tasks"]]))}
+    return s.ok("POST", f"/api/verification/attempts/{a['id']}/submit", json={"answers": {str(k): v for k, v in key.items()}})
+
+
+def test_spaced_review_after_mastery(db):
+    from app.modules.verification.models import Check
+    from app.modules.verification.service import REVIEW_DAYS
+    s = register()
+    from datetime import datetime, timezone
+    diagnostic(s)  # навык в порядке — проверка его подтвердит
+    uid_ = s.ok("GET", "/api/auth/me")["id"]
+    from app.modules.content.models import Lesson
+    from app.modules.verification.service import outcome_stats, schedule_check
+    schedule_check(db, uid_, db.query(Lesson).filter(Lesson.slug == "sqrt").one().id, "teacher",
+                   due=datetime.now(timezone.utc))  # как «проверка классу» от учителя
+    db.commit()
+    stats0 = outcome_stats(db, {uid_})["total"]
+    _pass_check(s, db, s.ok("GET", "/api/verification/checks")[0]["id"])
+    for days in REVIEW_DAYS:
+        db.expire_all()
+        pending = db.query(Check).filter(Check.user_id == uid_, Check.status == "pending").all()
+        assert len(pending) == 1 and pending[0].reason == "review", "после подтверждения — повторение"
+        last = db.query(Check).filter(Check.user_id == uid_, Check.status == "done").order_by(Check.done_at.desc()).first()
+        assert round((pending[0].due_at - last.done_at).total_seconds() / 86400) == days
+        _make_due(db, uid_)
+        r = _pass_check(s, db, pending[0].id)
+        assert r["outcome"]["helped"] is True  # навык удержан
+    db.expire_all()
+    assert db.query(Check).filter(Check.user_id == uid_, Check.status == "pending").count() == 0  # цепочка 1/3/6 недель закончилась
+    # повторения не входят в «эффект помощи»
+    assert outcome_stats(db, {uid_})["total"] == stats0 + 1
 
 
 def test_tutor_stages_and_teacher_rule(db):

@@ -27,7 +27,7 @@ def tutor_sessions_by_lesson(db: Session, user_id: int) -> dict[int, int]:
     rows = db.execute(select(TutorSession.lesson_id, func.count()).where(
         TutorSession.user_id == user_id, TutorSession.result == "failed").group_by(TutorSession.lesson_id)).all()
     rows += db.execute(select(Outcome.lesson_id, func.count()).where(
-        Outcome.user_id == user_id, Outcome.helped.is_(False)).group_by(Outcome.lesson_id)).all()
+        Outcome.user_id == user_id, Outcome.helped.is_(False), Outcome.reason != "review").group_by(Outcome.lesson_id)).all()
     for lid, n in rows:
         if lid:
             out[lid] = out.get(lid, 0) + n
