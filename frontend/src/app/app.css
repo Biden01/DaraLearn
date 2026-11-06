@@ -554,3 +554,24 @@ h2 { letter-spacing: -.3px; }
   .att-row .att-strip .att-cell:nth-child(-n+7) { display: none; }  /* на телефоне — последняя неделя */
 }
 .att-cell.big.none { color: transparent; }
+
+/* ---------- Документы команды (#/docs): отрисованный Markdown ---------- */
+.md { line-height: 1.6; font-size: 15px; max-width: 980px; overflow-wrap: anywhere; }
+.md h2 { font-size: 24px; margin: 0 0 12px; } .md h3 { font-size: 19px; margin: 28px 0 10px; }
+.md h4 { font-size: 16px; margin: 22px 0 8px; } .md h5 { font-size: 15px; margin: 18px 0 6px; }
+.md p, .md ul, .md ol, .md blockquote, .md pre, .md .md-table { margin: 0 0 12px; }
+.md ul, .md ol { padding-left: 22px; } .md li { margin: 3px 0; }
+.md .md-task { list-style: none; margin-left: -22px; display: flex; gap: 8px; align-items: baseline; }
+.md .md-check { flex: 0 0 16px; height: 16px; border: 1.5px solid #b9bdcc; border-radius: 4px; font-size: 11px; line-height: 13px;
+  text-align: center; color: #fff; position: relative; top: 2px; }
+.md .md-check.on { background: var(--green); border-color: var(--green); }
+.md code { background: #f1f3f7; border-radius: 5px; padding: 1px 5px; font-size: .9em; }
+.md pre { background: #f1f3f7; border-radius: 9px; padding: 12px 14px; overflow-x: auto; }
+.md pre code { background: none; padding: 0; }
+.md blockquote { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--muted); }
+.md a { color: var(--accent); }
+.md .md-table { overflow-x: auto; }
+.md table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.md th, .md td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+.md th { background: #f6f7fa; font-weight: 600; }
+@media (max-width: 700px) { .md { font-size: 14px; } .md table { min-width: 560px; } }
