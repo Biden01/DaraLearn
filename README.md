@@ -15,10 +15,13 @@ docker compose up -d              # база + API на http://localhost:8000/ap
 cd frontend && npm install && npm run dev   # http://localhost:5173
 ```
 
-## Деплой
-```bash
-sudo ./deploy/deploy.sh
-```
+## CI и деплой
+- CI (`.github/workflows/ci.yml`): `pytest` с Postgres и `vite build` на каждый push в любую ветку и на каждый PR.
+- Работаем через ветки и PR в `main`; мержим только при зелёном CI.
+- Автодеплой (`deploy/autodeploy.sh`, раз в минуту) выкладывает новый коммит `main` **только после
+  успешного CI на нём**: пока CI идёт — ждёт, упал — прод остаётся на прошлой версии
+  (`journalctl -u daralearn-autodeploy` покажет «CI ... не прошёл»).
+- Ручной деплой (минуя CI): `./deploy/deploy.sh`.
 
 ## Заявки с лендинга
 Заявки сохраняются в таблицу `leads` и видны админу в кабинете («Заявки»). Список через - API:

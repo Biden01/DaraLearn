@@ -1,10 +1,15 @@
 name: CI
 
+# Тесты и сборка на каждый push в любую ветку и на каждый PR.
+# Автодеплой (deploy/autodeploy.sh) выкладывает коммит main только после
+# успешного прогона этого workflow на нём.
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   backend:
