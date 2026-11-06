@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useId } from "react";
 
 export const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -43,23 +43,77 @@ const P = {
   checkc: <><circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" /></>,
 };
 
-// Dara — персонаж AI Tutor: весёлый рыжий лисёнок (плоский, читается и в 20 px).
+// Dara — персонаж AI Tutor: крутой снежный барс в синей тюбетейке с жёлтым орнаментом.
+// Объёмный стиль (градиенты + блики); id градиентов уникальны на каждый экземпляр.
 export function Dara({ s = 24, title }) {
+  const u = useId().replace(/:/g, "");
+  const id = (k) => `${k}${u}`, url = (k) => `url(#${k}${u})`;
   return (
     <svg width={s} height={s} viewBox="0 0 48 48" role={title ? "img" : undefined} aria-label={title}
       aria-hidden={title ? undefined : "true"} className="dara">
-      {/* голова с ушами */}
-      <path d="M24 43C13.5 43 5.5 35.5 5.5 25V7.5l11 7.2c2.3-1 4.8-1.5 7.5-1.5s5.2.5 7.5 1.5l11-7.2V25C42.5 35.5 34.5 43 24 43Z" fill="#F97316" />
-      <path d="M9 12.5l6.2 4-5.4 4.6zM39 12.5l-6.2 4 5.4 4.6z" fill="#9A3412" />
-      {/* светлая мордочка */}
-      <path d="M24 43c-7 0-12.6-4.3-14.6-10.6 4.8-1.6 10 .2 14.6 4 4.6-3.8 9.8-5.6 14.6-4C36.6 38.7 31 43 24 43Z" fill="#FFF4E8" />
-      {/* весёлые прищуренные глаза */}
-      <path d="M14.8 27.2c1.3-2.6 4.6-2.6 5.9 0M27.3 27.2c1.3-2.6 4.6-2.6 5.9 0" fill="none" stroke="#1E1B2E" strokeWidth="2.4" strokeLinecap="round" />
-      <circle cx="13.6" cy="31.6" r="1.9" fill="#FB7185" opacity=".55" />
-      <circle cx="34.4" cy="31.6" r="1.9" fill="#FB7185" opacity=".55" />
-      {/* нос и улыбка */}
-      <ellipse cx="24" cy="33.6" rx="2.6" ry="1.9" fill="#1E1B2E" />
-      <path d="M20.6 37c1 1.5 2.1 2.2 3.4 2.2s2.4-.7 3.4-2.2" fill="none" stroke="#1E1B2E" strokeWidth="1.7" strokeLinecap="round" />
+      <defs>
+        <radialGradient id={id("fur")} cx="40%" cy="38%" r="70%">
+          <stop offset="0" stopColor="#FFFFFF" /><stop offset=".6" stopColor="#E9EEF5" /><stop offset="1" stopColor="#B9C4D3" />
+        </radialGradient>
+        <radialGradient id={id("muz")} cx="45%" cy="35%" r="70%">
+          <stop offset="0" stopColor="#FFFFFF" /><stop offset="1" stopColor="#DDE4EE" />
+        </radialGradient>
+        <linearGradient id={id("hat")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#3B82FF" /><stop offset="1" stopColor="#0047C7" />
+        </linearGradient>
+        <radialGradient id={id("iris")} cx="40%" cy="35%" r="65%">
+          <stop offset="0" stopColor="#9FE7FF" /><stop offset="1" stopColor="#0058F4" />
+        </radialGradient>
+        <clipPath id={id("el")}><path d="M13.6 28.4Q17.5 27 21.4 28.4Q21 32.4 17.5 32.4Q14 32.4 13.6 28.4Z" /></clipPath>
+        <clipPath id={id("er")}><path d="M26.6 28.4Q30.5 27 34.4 28.4Q34 32.4 30.5 32.4Q27 32.4 26.6 28.4Z" /></clipPath>
+      </defs>
+      {/* уши */}
+      <circle cx="11" cy="19" r="5.4" fill={url("fur")} stroke="#9AA6B8" strokeWidth=".8" />
+      <circle cx="37" cy="19" r="5.4" fill={url("fur")} stroke="#9AA6B8" strokeWidth=".8" />
+      <circle cx="11.3" cy="19.6" r="2.7" fill="#8A97AA" />
+      <circle cx="36.7" cy="19.6" r="2.7" fill="#8A97AA" />
+      {/* голова */}
+      <path d="M24 44.5C13.8 44.5 6.5 38 6.5 29.8 6.5 21.2 14.2 15.5 24 15.5s17.5 5.7 17.5 14.3c0 8.2-7.3 14.7-17.5 14.7Z" fill={url("fur")} stroke="#9AA6B8" strokeWidth=".8" />
+      {/* пятна-розетки */}
+      <g fill="none" stroke="#5B6678" strokeWidth="1.3" strokeLinecap="round" opacity=".75">
+        <path d="M20.5 21.6a1.8 1.8 0 0 1 3 0M25.6 22.8a1.6 1.6 0 0 1 2.7.4" />
+        <path d="M9.4 29.6a2 2 0 0 1 1.6-2.4M38.8 30.4a2 2 0 0 0-1.4-2.6M10.6 34.6a1.6 1.6 0 0 1 .4-2" />
+      </g>
+      <g fill="#5B6678" opacity=".7">
+        <circle cx="24" cy="18.6" r=".9" /><circle cx="17.4" cy="23.4" r=".8" /><circle cx="31" cy="23.6" r=".8" />
+        <circle cx="37.6" cy="34.6" r=".8" />
+      </g>
+      {/* объёмный блик на голове */}
+      <ellipse cx="15.5" cy="24" rx="5" ry="2.6" fill="#fff" opacity=".7" transform="rotate(-25 15.5 24)" />
+      {/* глаза: уверенный прищур */}
+      {[["el", 17.5], ["er", 30.5]].map(([k, x]) => (
+        <g key={k}>
+          <path d={k === "el" ? "M13.6 28.4Q17.5 27 21.4 28.4Q21 32.4 17.5 32.4Q14 32.4 13.6 28.4Z" : "M26.6 28.4Q30.5 27 34.4 28.4Q34 32.4 30.5 32.4Q27 32.4 26.6 28.4Z"} fill="#fff" />
+          <g clipPath={url(k)}>
+            <circle cx={x + .6} cy="30.2" r="2.6" fill={url("iris")} />
+            <circle cx={x + .6} cy="30.2" r="1.1" fill="#0B1530" />
+            <circle cx={x - .2} cy="29.2" r=".7" fill="#fff" />
+          </g>
+          <path d={`M${x - 4.2} 28.4Q${x} 26.8 ${x + 4.2} 28.4`} fill="none" stroke="#1E2433" strokeWidth="1.6" strokeLinecap="round" />
+        </g>
+      ))}
+      {/* брови: одна приподнята */}
+      <path d="M14.2 25.4q3-1.2 6 -.2M27.6 24.4q3.2-2 6.4-.6" fill="none" stroke="#5B6678" strokeWidth="1.4" strokeLinecap="round" />
+      {/* мордочка */}
+      <ellipse cx="21.2" cy="36.4" rx="4" ry="3.1" fill={url("muz")} />
+      <ellipse cx="26.8" cy="36.4" rx="4" ry="3.1" fill={url("muz")} />
+      <path d="M21.6 33.2h4.8c.6 0 .9.7.5 1.1l-2.2 2.1a1 1 0 0 1-1.4 0l-2.2-2.1c-.4-.4-.1-1.1.5-1.1Z" fill="#E48A9C" />
+      <ellipse cx="23.4" cy="33.8" rx="1" ry=".45" fill="#fff" opacity=".7" />
+      {/* ухмылка */}
+      <path d="M21.4 38.6q2.6 1.2 4.6.2t2.4-1.6" fill="none" stroke="#1E2433" strokeWidth="1.4" strokeLinecap="round" />
+      {/* тюбетейка, лихо набок */}
+      <g transform="rotate(-10 24 13)">
+        <path d="M12.6 10.2 13.6 17q10.4 3.4 20.8 0l1-6.8Z" fill={url("hat")} />
+        <ellipse cx="24" cy="10.2" rx="11.6" ry="3.4" fill="#2F74F6" />
+        <path d="M14.6 14.6l2.2-2.4 2.2 2.4 2.2-2.4 2.2 2.4 2.2-2.4 2.2 2.4 2.2-2.4 2.2 2.4 2.2-2.4" fill="none" stroke="#FFD43B" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx="24" cy="10" r="1.6" fill="#FFD43B" />
+        <ellipse cx="18.5" cy="9.4" rx="4" ry="1.1" fill="#fff" opacity=".45" />
+      </g>
     </svg>
   );
 }
