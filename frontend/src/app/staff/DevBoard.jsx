@@ -7,6 +7,20 @@ const POINTS = [0, 1, 2, 3, 5, 8, 13];
 const byPos = (a, b) => a.position - b.position || a.id - b.id;
 const DRAG_THRESHOLD = 6; // px до начала переноса — отличает перенос от тапа/клика
 
+const CardBody = ({ x, d }) => (
+  <>
+    {x.label && <span className={`dev-label l-${x.label}`}>{d.labels[x.label]}</span>}
+    <div className="dev-card-title">{x.title}</div>
+    <div className="row between" style={{ marginTop: 8 }}>
+      <span className="muted small">#{x.id}{x.description ? " · ≡" : ""}</span>
+      <span className="row" style={{ gap: 6 }}>
+        {x.points > 0 && <span className="badge gray">{x.points}</span>}
+        {x.assignee && <span className={`dev-ava m-${x.assignee}`} title={x.assignee}>{x.assignee[0].toUpperCase()}</span>}
+      </span>
+    </div>
+  </>
+);
+
 // Scrum-доска команды как в Trello: колонки, перетаскивание карточек, исполнители, story points.
 export default function DevBoard() {
   const { t, toast } = useApp();
@@ -15,6 +29,8 @@ export default function DevBoard() {
   const [who, setWho] = useState("");
   const [drag, setDrag] = useState(null);
   const [over, setOver] = useState(null); // {column, before} — куда упадёт карточка
+  // «призрак» карточки под курсором/пальцем: с Pointer Events браузер сам его не рисует
+  const [ghost, setGhost] = useState(null); // {task, x, y, offX, offY, w}
   const [edit, setEdit] = useState(null);
   const [adding, setAdding] = useState(null);
   const [sprints, setSprints] = useState([]);
@@ -41,7 +57,7 @@ export default function DevBoard() {
   // новая позиция — середина между соседями, остальные карточки не трогаем
   const drop = (column, beforeId) => {
     const task = tasks.find((x) => x.id === drag);
-    setDrag(null); setOver(null);
+    setDrag(null); setOver(null); setGhost(null);
     if (!task || (task.column === column && task.id === beforeId)) return;
     const col = inCol(column).filter((x) => x.id !== task.id);
     const i = beforeId == null ? col.length : col.findIndex((x) => x.id === beforeId);
@@ -65,9 +81,12 @@ export default function DevBoard() {
       if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) < DRAG_THRESHOLD) return;
       p.dragging = true;
       setDrag(p.id);
+      const r = e.currentTarget.getBoundingClientRect();
+      p.ghost = { task: tasks.find((x) => x.id === p.id), offX: p.startX - r.left, offY: p.startY - r.top, w: r.width };
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* перенос продолжится и без захвата */ }
     }
     e.preventDefault();
+    setGhost({ ...p.ghost, x: e.clientX, y: e.clientY });
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const cardEl = el?.closest("[data-task-id]");
     const colEl = el?.closest("[data-column]");
@@ -92,7 +111,7 @@ export default function DevBoard() {
     const p = pointerRef.current;
     if (!p || p.pointerId !== e.pointerId) return;
     pointerRef.current = null;
-    if (p.dragging) { justDraggedRef.current = true; setDrag(null); setOver(null); }
+    if (p.dragging) { justDraggedRef.current = true; setDrag(null); setOver(null); setGhost(null); }
   };
 
   const onCardClick = (task) => {
@@ -166,15 +185,7 @@ export default function DevBoard() {
                     onPointerDown={(e) => onCardPointerDown(e, x, c)} onPointerMove={onCardPointerMove}
                     onPointerUp={onCardPointerUp} onPointerCancel={onCardPointerCancel}
                     onClick={() => onCardClick(x)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setEdit(x)}>
-                    {x.label && <span className={`dev-label l-${x.label}`}>{d.labels[x.label]}</span>}
-                    <div className="dev-card-title">{x.title}</div>
-                    <div className="row between" style={{ marginTop: 8 }}>
-                      <span className="muted small">#{x.id}{x.description ? " · ≡" : ""}</span>
-                      <span className="row" style={{ gap: 6 }}>
-                        {x.points > 0 && <span className="badge gray">{x.points}</span>}
-                        {x.assignee && <span className={`dev-ava m-${x.assignee}`} title={x.assignee}>{x.assignee[0].toUpperCase()}</span>}
-                      </span>
-                    </div>
+                    <CardBody x={x} d={d} />
                   </article>
                 ))}
                 {over?.column === c && over.before == null && drag && <div className="dev-drop" />}
@@ -188,6 +199,13 @@ export default function DevBoard() {
           );
         })}
       </div>
+
+      {ghost && (
+        <article className="dev-card dev-ghost" aria-hidden="true"
+          style={{ left: ghost.x - ghost.offX, top: ghost.y - ghost.offY, width: ghost.w }}>
+          <CardBody x={ghost.task} d={d} />
+        </article>
+      )}
 
       {sprints.length > 0 && (
         <div className="card" style={{ marginTop: 18 }}>
