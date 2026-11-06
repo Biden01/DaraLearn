@@ -15,3 +15,17 @@ def test_dev_board_roundtrip(admin):
     assert admin.ok("GET", "/api/dev/sprints")[0]["sprint"] == closed["sprint"]
     keep = admin.ok("POST", "/api/dev/tasks", 201, json={"title": "Удалить"})
     admin.ok("DELETE", f"/api/dev/tasks/{keep['id']}", 204)
+
+
+def test_board_stamp_changes(admin):
+    s0 = admin.ok("GET", "/api/dev/board/stamp")["stamp"]
+    assert admin.ok("GET", "/api/dev/board")["stamp"] == s0
+    assert admin.ok("GET", "/api/dev/board/stamp")["stamp"] == s0  # без изменений — тот же
+    t = admin.ok("POST", "/api/dev/tasks", 201, json={"title": "Live"})
+    s1 = admin.ok("GET", "/api/dev/board/stamp")["stamp"]
+    assert s1 != s0
+    admin.ok("PATCH", f"/api/dev/tasks/{t['id']}", json={"column": "doing"})
+    s2 = admin.ok("GET", "/api/dev/board/stamp")["stamp"]
+    assert s2 != s1
+    admin.ok("DELETE", f"/api/dev/tasks/{t['id']}", 204)
+    assert admin.ok("GET", "/api/dev/board/stamp")["stamp"] not in (s1, s2)
