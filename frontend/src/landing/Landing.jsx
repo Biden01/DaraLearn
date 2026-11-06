@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TEXT } from "./text.js";
 import HeroDemo from "./HeroDemo.jsx";
 import PilotForm from "./PilotForm.jsx";
@@ -30,7 +30,19 @@ const ICONS = {
 };
 const LOOP_ICONS = ["search", "help", "check"];
 const ROLE_ICONS = ["student", "teacher", "bell"];
-const INSIDE_ICONS = ["pulse", "map", "chat", "book", "chart", "calendar"];
+// Плитки над заголовком: [иконка, индекс пункта из t.inside.items].
+const HERO_TILES = [["pulse", 0], ["chat", 2], ["map", 1], ["chart", 4], ["book", 3]];
+const CHIPS = [["pulse", 0], ["map", 1], ["chat", 2], ["chart", 4]];
+
+// Мини-иллюстрации для плиток «Что внутри» — без текста, чтобы не переводить.
+const VISUALS = [
+  <div className="v-rows">{[86, 64, 40, 92].map((w) => <i key={w} style={{ "--w": `${w}%` }} />)}</div>,
+  <svg className="v-map" viewBox="0 0 120 70"><path d="M24 16 60 54M96 16 60 54" /><circle cx="24" cy="16" r="9" /><circle cx="96" cy="16" r="9" className="gap" /><circle cx="60" cy="54" r="11" className="cur" /></svg>,
+  <div className="v-chat"><i /><i /><i /></div>,
+  <div className="v-cards"><i /><i /><i /></div>,
+  <div className="v-bars">{[30, 46, 40, 62, 74, 90].map((h, i) => <i key={i} style={{ "--h": `${h}%` }} />)}</div>,
+  <div className="v-cal">{Array.from({ length: 21 }, (_, i) => <i key={i} className={[3, 8, 11, 17].includes(i) ? "on" : i === 13 ? "test" : ""} />)}</div>,
+];
 
 function Icon({ name }) {
   return (
@@ -71,6 +83,12 @@ export default function Landing() {
   const [lang, setLang] = useState(initialLang);
   const [scrolled, setScrolled] = useState(false);
   const t = TEXT[lang];
+  const railRef = useRef(null);
+  const slide = (dir) => {
+    const rail = railRef.current;
+    const card = rail?.querySelector(".feat");
+    if (card) rail.scrollBy({ left: dir * (card.offsetWidth + 20), behavior: "smooth" });
+  };
   const [titleA, ...titleB] = t.hero.title.split(". ");
   useReveal();
 
@@ -111,23 +129,47 @@ export default function Landing() {
         <section className="hero">
           <div className="hero-bg" aria-hidden="true" />
           <div className="wrap hero-in">
-            <div className="hero-copy">
-              <a href="#pilot" className="badge"><span className="badge-dot" />{t.hero.badge}<span aria-hidden="true">→</span></a>
-              <h1>{titleA}.{titleB.length > 0 && <> <span className="accent">{titleB.join(". ")}</span></>}</h1>
-              <p className="lead">{t.hero.lead}</p>
-              <div className="cta">
+            <ul className="hero-tiles" aria-hidden="true">
+              {HERO_TILES.map(([icon, i], n) => (
+                <li key={icon} className={`tile tile-${n}`}>
+                  <Icon name={icon} />
+                  <span>{t.inside.items[i][0]}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="#pilot" className="badge"><span className="badge-dot" />{t.hero.badge}<span aria-hidden="true">→</span></a>
+            <h1>{titleA}.{titleB.length > 0 && <> <span className="accent">{titleB.join(". ")}</span></>}</h1>
+            <p className="lead">{t.hero.lead}</p>
+            <div className="cta">
+              <div className="cta-pill">
                 <a href="/app#register" className="btn lg">{t.hero.start}<span aria-hidden="true">→</span></a>
-                <a href="#pilot" className="btn ghost lg">{t.hero.pilot}</a>
+                <p>{t.hero.note}</p>
               </div>
-              <p className="muted small">{t.hero.note}</p>
-              <ul className="facts">
-                {t.hero.facts.map(([b, s]) => <li key={b}><b>{b}</b><span>{s}</span></li>)}
-              </ul>
+              <a href="#pilot" className="btn ghost lg">{t.hero.pilot}</a>
             </div>
-            <div className="hero-demo">
-              <div className="window">
-                <div className="window-bar" aria-hidden="true"><i /><i /><i /><span>daralearn.kz/app</span></div>
-                <HeroDemo t={t.demo} key={lang} />
+            <ul className="facts">
+              {t.hero.facts.map(([b, s]) => <li key={b}><b>{b}</b><span>{s}</span></li>)}
+            </ul>
+          </div>
+        </section>
+
+        <section className="platform">
+          <div className="wrap">
+            <div className="stage reveal">
+              <Head kicker="DaraLearn" title={t.platform.title} lead={t.platform.lead} center />
+              <div className="laptop">
+                <div className="laptop-screen">
+                  <div className="window">
+                    <div className="window-bar" aria-hidden="true"><i /><i /><i /><span>daralearn.kz/app</span></div>
+                    <HeroDemo t={t.demo} key={lang} />
+                  </div>
+                </div>
+                <div className="laptop-base" aria-hidden="true" />
+                {CHIPS.map(([icon, i], n) => (
+                  <div key={icon} className={`chip chip-${n}`} aria-hidden="true">
+                    <span className="ico-sm"><Icon name={icon} /></span>{t.inside.items[i][0]}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -145,6 +187,37 @@ export default function Landing() {
                 </li>
               ))}
             </ol>
+          </div>
+        </section>
+
+        <section className="rail-sec">
+          <div className="wrap">
+            <div className="row-head">
+              <Head kicker={t.inside.kicker} title={t.inside.title} />
+              <div className="arrows">
+                <button type="button" aria-label="←" onClick={() => slide(-1)}>←</button>
+                <button type="button" aria-label="→" onClick={() => slide(1)}>→</button>
+              </div>
+            </div>
+          </div>
+          <div className="rail" ref={railRef}>
+            {t.inside.items.map(([h, d], i) => (
+              <article key={h} className={`feat feat-${i}`}>
+                <div className="feat-vis" aria-hidden="true">{VISUALS[i]}</div>
+                <h3>{h}</h3>
+                <p>{d}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="cta-band">
+          <div className="wrap cta-band-in">
+            <div>
+              <h2>{t.band.title}</h2>
+              <p>{t.band.text}</p>
+            </div>
+            <a href="#pilot" className="btn yellow lg">{t.hero.pilot}<span aria-hidden="true">→</span></a>
           </div>
         </section>
 
@@ -172,20 +245,6 @@ export default function Landing() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section>
-          <div className="wrap">
-            <Head kicker={t.inside.kicker} title={t.inside.title} />
-            <dl className="inside">
-              {t.inside.items.map(([h, d], i) => (
-                <div key={h} className="reveal" style={{ "--d": `${(i % 3) * 70}ms` }}>
-                  <dt><span className="ico-sm"><Icon name={INSIDE_ICONS[i]} /></span>{h}</dt>
-                  <dd>{d}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
         </section>
 
