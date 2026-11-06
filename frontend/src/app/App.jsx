@@ -48,7 +48,7 @@ const STAFF_VIEW = { class: ClassMap, student: StudentCard };
 const ROLES = {
   student: {
     nav: [["", "home", "home"], ["plan", "plan", "doc"], ["calendar", "calendar", "cal"],
-      ["subjects", "subjects", "book"], ["courses", "courses", "case"], ["tutor", "tutor", "spark"],
+      ["subjects", "subjects", "book"], ["courses", "courses", "case"], ["tutor", "tutor", "dara"],
       ["diagnostics", "diagnostics", "docchk"], ["quiz", "quiz", "checkc"], ["gaps", "gaps", "target"],
       ["progress", "progress", "chart"]],
     // меню группами (заголовок группы — t.navGroups) и нижний таб-бар на телефоне

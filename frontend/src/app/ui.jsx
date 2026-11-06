@@ -43,7 +43,29 @@ const P = {
   checkc: <><circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" /></>,
 };
 
+// Dara — персонаж AI Tutor: весёлый рыжий лисёнок (плоский, читается и в 20 px).
+export function Dara({ s = 24, title }) {
+  return (
+    <svg width={s} height={s} viewBox="0 0 48 48" role={title ? "img" : undefined} aria-label={title}
+      aria-hidden={title ? undefined : "true"} className="dara">
+      {/* голова с ушами */}
+      <path d="M24 43C13.5 43 5.5 35.5 5.5 25V7.5l11 7.2c2.3-1 4.8-1.5 7.5-1.5s5.2.5 7.5 1.5l11-7.2V25C42.5 35.5 34.5 43 24 43Z" fill="#F97316" />
+      <path d="M9 12.5l6.2 4-5.4 4.6zM39 12.5l-6.2 4 5.4 4.6z" fill="#9A3412" />
+      {/* светлая мордочка */}
+      <path d="M24 43c-7 0-12.6-4.3-14.6-10.6 4.8-1.6 10 .2 14.6 4 4.6-3.8 9.8-5.6 14.6-4C36.6 38.7 31 43 24 43Z" fill="#FFF4E8" />
+      {/* весёлые прищуренные глаза */}
+      <path d="M14.8 27.2c1.3-2.6 4.6-2.6 5.9 0M27.3 27.2c1.3-2.6 4.6-2.6 5.9 0" fill="none" stroke="#1E1B2E" strokeWidth="2.4" strokeLinecap="round" />
+      <circle cx="13.6" cy="31.6" r="1.9" fill="#FB7185" opacity=".55" />
+      <circle cx="34.4" cy="31.6" r="1.9" fill="#FB7185" opacity=".55" />
+      {/* нос и улыбка */}
+      <ellipse cx="24" cy="33.6" rx="2.6" ry="1.9" fill="#1E1B2E" />
+      <path d="M20.6 37c1 1.5 2.1 2.2 3.4 2.2s2.4-.7 3.4-2.2" fill="none" stroke="#1E1B2E" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function Icon({ n, s = 20 }) {
+  if (n === "dara") return <Dara s={s} />;
   return (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{P[n]}</svg>

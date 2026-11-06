@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Crumb, Icon, Rich, useApp } from "../ui.jsx";
+import { Bar, Box, Crumb, Dara, Icon, Rich, useApp } from "../ui.jsx";
 import TutorTask from "./TutorTask.jsx";
 
 const hhmm = (iso) => new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-const BotAva = () => <div className="avatar bot-ava"><Icon n="bot" s={18} /></div>;
+const BotAva = () => <div className="avatar bot-ava"><Dara s={26} /></div>;
 
 export default function Tutor() {
   const { t, L, route, toast } = useApp();
@@ -215,7 +215,7 @@ export default function Tutor() {
               </div>
             ) : msgs.length === 0 && !busy && !hasLesson ? (
               <div className="chat-empty">
-                <div className="bot-ava big" style={{ marginBottom: 14 }}><Icon n="bot" s={30} /></div>
+                <div className="bot-ava big" style={{ marginBottom: 14 }}><Dara s={50} title="Dara" /></div>
                 <p className="t-strong" style={{ margin: "0 0 6px", fontSize: 16 }}>{tp.hello}</p>
                 <p className="muted" style={{ margin: "0 0 18px", lineHeight: 1.5 }}>{tp.freeTip}</p>
                 {!locked && !noLeft && (

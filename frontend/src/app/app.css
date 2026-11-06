@@ -226,7 +226,7 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
 .msg { display: flex; gap: 10px; max-width: 80%; align-items: flex-end; }
 .msg.me { align-self: flex-end; flex-direction: row-reverse; }
 .msg.me .time { text-align: right; }
-.bot-ava { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; margin-bottom: 18px; }
+.bot-ava { width: 32px; height: 32px; border-radius: 50%; background: #FFEDD5; color: var(--accent); overflow: hidden; display: grid; place-items: center; flex: none; margin-bottom: 18px; }
 .bot-ava.big { width: 60px; height: 60px; margin: 0 auto; }
 .bubble, .task-card, .tutor-check .task { font-family: "Onest Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Segoe UI Symbol", "Cambria Math", "STIX Two Math", "Noto Sans Math", sans-serif; }
 .bubble { padding: 11px 15px; border-radius: 16px; background: #f3f5f8; font-size: 15px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
