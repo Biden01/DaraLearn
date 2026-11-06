@@ -1,7 +1,7 @@
 // Короткий опрос удобства (ученик, учитель): приглашение-карточка и форма с оценками 1–5.
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
-import { Box, useApp } from "./ui.jsx";
+import { Box, Icon, useApp } from "./ui.jsx";
 
 const LATER_DAYS = 3;
 const laterKey = (survey) => `dl_survey_later_${survey}`;
@@ -11,7 +11,7 @@ function postponed(survey) {
 }
 
 // always=false — только приглашение, пока нет ответа (главная); always=true — всегда, с возможностью изменить ответ.
-export default function SurveyCard({ always = false }) {
+export default function SurveyCard({ always = false, quiet = false }) {
   const { t, user, toast } = useApp();
   const s = t.survey;
   const [data, setData] = useState(null);
@@ -46,6 +46,19 @@ export default function SurveyCard({ always = false }) {
     setBusy(false);
   }
 
+  // quiet — тихая строка на главной ученика: иконка, текст, текстовые кнопки
+  if (!open && quiet) {
+    return (
+      <div className="quiet-row">
+        <Box icon="star" c="purple" size={36} />
+        <p className="grow"><b>{s.title}</b><span className="hide-sm"> · {data.answered ? s.answered : s.invite[user.role]}</span>
+          <span className="show-sm"> · {s.short}</span></p>
+        <button className="tlink" onClick={() => setOpen(true)}>{data.answered ? s.edit : s.go}</button>
+        {!data.answered && !always && <button className="tlink gray hide-sm" onClick={later}>{s.later}</button>}
+        {!data.answered && !always && <button className="later-x" aria-label={s.later} title={s.later} onClick={later}><Icon n="x" s={18} /></button>}
+      </div>
+    );
+  }
   if (!open) {
     return (
       <div className="card row wrap" style={{ marginBottom: 20, gap: 16 }}>

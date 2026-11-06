@@ -38,6 +38,7 @@ import Docs from "./staff/Docs.jsx";
 import TeacherTime from "./staff/TeacherTime.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
 import "@fontsource-variable/onest";
+import "@fontsource-variable/inter";
 import "./app.css";
 
 const NAV_BOTTOM = [["profile", "profile", "user"], ["settings", "settings", "gear"], ["help", "help", "help"]];
@@ -46,9 +47,14 @@ const STAFF_VIEW = { class: ClassMap, student: StudentCard };
 // меню и страницы по ролям
 const ROLES = {
   student: {
-    nav: [["", "home", "home"], ["plan", "plan", "clip"], ["subjects", "subjects", "book"], ["courses", "courses", "case"],
-      ["diagnostics", "diagnostics", "doc"], ["gaps", "gaps", "target"], ["tutor", "tutor", "bot"],
-      ["quiz", "quiz", "clip"], ["progress", "progress", "chart"], ["calendar", "calendar", "cal"]],
+    nav: [["", "home", "home"], ["plan", "plan", "doc"], ["calendar", "calendar", "cal"],
+      ["subjects", "subjects", "book"], ["courses", "courses", "case"], ["tutor", "tutor", "spark"],
+      ["diagnostics", "diagnostics", "docchk"], ["quiz", "quiz", "checkc"], ["gaps", "gaps", "target"],
+      ["progress", "progress", "chart"]],
+    // меню группами (заголовок группы — t.navGroups) и нижний таб-бар на телефоне
+    groups: [[null, ["", "plan", "calendar"]], ["learn", ["subjects", "courses", "tutor"]],
+      ["check", ["diagnostics", "quiz", "gaps"]], ["analyze", ["progress"]]],
+    tabs: ["", "plan", "subjects", "tutor"],
     pages: { "": Home, plan: Plan, subjects: Subjects, courses: Courses, diagnostics: Diagnostics, gaps: Gaps, tutor: Tutor,
       quiz: Quiz, result: Result, progress: Progress, calendar: Calendar },
   },
@@ -119,6 +125,8 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(storedCollapsed);
   const [alerts, setAlerts] = useState([]);
+  const [planLeft, setPlanLeft] = useState(0); // сколько минут плана на сегодня осталось — бейдж в меню
+  const [moreOpen, setMoreOpen] = useState(false);
   const toastTimer = useRef();
   const t = STRINGS[lang];
 
@@ -139,7 +147,7 @@ export default function App() {
 
   useEffect(() => {
     api("/auth/me").then((u) => { setUser(u); setLangState(u.lang); }).catch(() => setUser(null));
-    const onHash = () => { setRoute(parseHash()); setMenuOpen(false); window.scrollTo(0, 0); };
+    const onHash = () => { setRoute(parseHash()); setMenuOpen(false); setMoreOpen(false); window.scrollTo(0, 0); };
     const onUnauth = () => setUser(null);
     window.addEventListener("hashchange", onHash);
     window.addEventListener("dl:unauthorized", onUnauth);
@@ -148,14 +156,29 @@ export default function App() {
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
-  // важные рекомендации — уведомления колокольчика
+  // кабинет ученика — своё оформление (шрифт, фон, меню группами, таб-бар)
+  const isStudent = !!user && !user.must_change_password && user.role === "student";
+  useEffect(() => {
+    document.body.classList.toggle("stu", isStudent);
+    return () => document.body.classList.remove("stu");
+  }, [isStudent]);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") setMoreOpen(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
+
+  // важные рекомендации — уведомления колокольчика и счётчик «Олқылықтарым»; остаток плана — бейдж «Бүгінгі жоспар»
   useEffect(() => {
     if (user?.role !== "student") return;
     api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2))).catch(() => {});
+    api("/plan/today").then((p) => setPlanLeft(p.items.length ? Math.max(0, p.total_minutes - p.done_minutes) : 0)).catch(() => {});
   }, [user, route.page]);
 
   const ctx = useMemo(() => ({
-    t, lang, setLang, user, setUser, toast, route,
+    t, lang, setLang, user, setUser, toast, route, alerts,
     L: (v) => pick(v, lang),
     go: (hash) => { window.location.hash = hash; },
     startTest: async (body) => {
@@ -164,11 +187,11 @@ export default function App() {
         window.location.hash = `#/test/${a.id}`;
       } catch { toast(t.error); }
     },
-  }), [t, lang, setLang, user, toast, route]);
+  }), [t, lang, setLang, user, toast, route, alerts]);
 
   // на телефоне бургер открывает выезжающее меню, на компьютере сворачивает его до иконок
   const onMenu = () => {
-    if (window.matchMedia("(max-width: 820px)").matches) return setMenuOpen(true);
+    if (window.matchMedia("(max-width: 900px)").matches) return setMenuOpen(true);
     setCollapsed((c) => {
       try { localStorage.setItem("dl_nav", c ? "full" : "min"); } catch { /* */ }
       return !c;
@@ -189,17 +212,32 @@ export default function App() {
     const mapped = ACTIVE[route.page] ?? route.page;
     const active = [...role.nav, ...NAV_BOTTOM].some(([k]) => k === mapped) ? mapped : "";
     const NAV = role.nav;
+    const byKey = Object.fromEntries(NAV.map((x) => [x[0], x]));
+    const badges = { plan: planLeft > 0 ? t.min(planLeft) : null, gaps: alerts.length || null };
+    const name = (label) => t.nav[label] ?? t.snav[label];
     const link = ([k, label, icon]) => (
       <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
-        title={collapsed ? t.nav[label] ?? t.snav[label] : undefined}>
-        <Icon n={icon} /><span>{t.nav[label] ?? t.snav[label]}</span>
+        title={collapsed ? name(label) : undefined}>
+        <Icon n={icon} /><span>{name(label)}</span>
+        {badges[k] && <em className="nav-badge">{badges[k]}</em>}
       </a>
     );
+    // меню ученика — группами; у остальных ролей — списком, как раньше
+    const navMain = role.groups
+      ? role.groups.map(([g, keys]) => (
+        <div className="nav-group" key={g || "top"} role="group" aria-label={g ? t.navGroups[g] : undefined}>
+          {g && <div className="nav-group-title" aria-hidden="true">{t.navGroups[g]}</div>}
+          {keys.map((k) => link(byKey[k]))}
+        </div>
+      ))
+      : NAV.map(link);
+    const tabs = role.tabs;
+    const moreActive = tabs && !tabs.includes(active);
     body = (
       <div className={`${menuOpen ? "menu-open" : ""} ${collapsed ? "nav-min" : ""}`}>
         <aside className="sidebar" style={menuOpen ? { transform: "none" } : undefined}>
           <a href="#/" className="brand"><img src="/logo.png" alt="" /> <span>DaraLearn</span></a>
-          <nav className="nav" aria-label="Main">{NAV.map(link)}</nav>
+          <nav className="nav" aria-label="Main">{navMain}</nav>
           <nav className="nav nav-bottom">
             {NAV_BOTTOM.map(link)}
             <InstallLink collapsed={collapsed} label={t.install} />
@@ -208,6 +246,38 @@ export default function App() {
         {menuOpen && <div className="overlay" style={{ display: "block", position: "fixed", inset: 0, background: "rgba(17,19,41,.3)", zIndex: 25 }} onClick={() => setMenuOpen(false)} />}
         <Header alerts={alerts} onMenu={onMenu} collapsed={collapsed} />
         <main className="main" id="app"><Page key={route.page + route.param} /></main>
+        {tabs && (
+          <nav className="tabbar" aria-label={t.menu}>
+            {tabs.map((k) => (
+              <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}>
+                <Icon n={byKey[k][2]} s={22} /><span>{t.tabs[k]}</span>
+              </a>
+            ))}
+            <button className={moreActive || moreOpen ? "active" : ""} aria-expanded={moreOpen} aria-haspopup="dialog"
+              onClick={() => setMoreOpen((o) => !o)}>
+              <Icon n="menu" s={22} /><span>{t.tabs.more}</span>
+            </button>
+          </nav>
+        )}
+        {tabs && moreOpen && (
+          <div className="sheet-wrap" onClick={() => setMoreOpen(false)}>
+            <div className="sheet nav" role="dialog" aria-label={t.tabs.more} onClick={(e) => e.stopPropagation()}>
+              {role.groups.map(([g, keys]) => {
+                const rest = keys.filter((k) => !tabs.includes(k));
+                return rest.length ? (
+                  <div className="nav-group" key={g || "top"}>
+                    {g && <div className="nav-group-title">{t.navGroups[g]}</div>}
+                    {rest.map((k) => link(byKey[k]))}
+                  </div>
+                ) : null;
+              })}
+              <div className="nav-group sheet-bottom">
+                {NAV_BOTTOM.map(link)}
+                <InstallLink label={t.install} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -243,8 +313,8 @@ function Bell({ alerts }) {
   const badge = { 3: "red", 2: "orange", 1: "gray" };
   return (
     <div className="bell-wrap" ref={box}>
-      <button className="bell" aria-label={t.notif.title} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <Icon n="bell" s={22} />{n > 0 && <span className="bell-count">{n > 9 ? "9+" : n}</span>}
+      <button className="bell" aria-label={n ? `${t.notif.title}: ${n}` : t.notif.title} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <Icon n="bell" s={22} />{n > 0 && <span className="bell-dot" aria-hidden="true" />}
       </button>
       {open && (
         <div className="bell-pop" role="dialog" aria-label={t.notif.title}>
@@ -281,7 +351,9 @@ function Header({ alerts, onMenu, collapsed }) {
   const [q, setQ] = useState("");
   const [index, setIndex] = useState([]);
   const [sel, setSel] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false); // телефон: поиск открывается по иконке
   const input = useRef();
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
   useEffect(() => {
     api("/content/courses?subject=math").then((cs) => {
@@ -304,10 +376,12 @@ function Header({ alerts, onMenu, collapsed }) {
       .filter((x) => x.title.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 7)
     : [];
 
-  const goTo = (h) => { window.location.hash = h.href; setQ(""); input.current?.blur(); };
+  const goTo = (h) => { window.location.hash = h.href; setQ(""); setSearchOpen(false); input.current?.blur(); };
+  const openSearch = () => { setSearchOpen(true); setTimeout(() => input.current?.focus(), 0); };
   return (
-    <header className="header">
+    <header className={`header ${searchOpen ? "search-open" : ""}`}>
       <button className="burger" aria-label={t.menu} aria-expanded={!collapsed} onClick={onMenu}><Icon n="menu" s={22} /></button>
+      <a href="#/" className="m-brand" aria-label="DaraLearn"><img src="/logo.png" alt="" /></a>
       <label className="search">
         <Icon n="search" s={18} />
         <input ref={input} value={q} placeholder={t.search} aria-label={t.search}
@@ -316,13 +390,15 @@ function Header({ alerts, onMenu, collapsed }) {
             if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(s + 1, hits.length - 1)); }
             if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
             if (e.key === "Enter" && hits[sel]) goTo(hits[sel]);
-            if (e.key === "Escape") setQ("");
-          }} />
-        <span className="kbd">Ctrl K</span>
+            if (e.key === "Escape") { setQ(""); setSearchOpen(false); }
+          }}
+          onBlur={() => { if (!q.trim()) setSearchOpen(false); }} />
+        <span className="kbd" aria-hidden="true">{isMac ? "⌘K" : "Ctrl K"}</span>
         {q.trim() && (
           <div className="search-pop" role="listbox">
             {hits.length ? hits.map((h, i) => (
-              <a key={h.href + h.title} href={h.href} className={i === sel ? "on" : ""} onClick={() => setQ("")}>
+              <a key={h.href + h.title} href={h.href} className={i === sel ? "on" : ""} onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { setQ(""); setSearchOpen(false); }}>
                 <span>{h.title}</span><span className="muted small">{h.hint}</span>
               </a>
             )) : <div className="muted small" style={{ padding: 10 }}>{t.nothing}</div>}
@@ -330,6 +406,7 @@ function Header({ alerts, onMenu, collapsed }) {
         )}
       </label>
       <div className="header-right">
+        <button className="search-btn" aria-label={t.search} onClick={openSearch}><Icon n="search" s={22} /></button>
         <div className="lang" role="group" aria-label="Тіл / Язык">
           {["kk", "ru"].map((l) => (
             <button key={l} aria-pressed={lang === l} onClick={() => setLang(l)}>{l === "kk" ? "ҚАЗ" : "РУС"}</button>
