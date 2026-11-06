@@ -13,6 +13,7 @@ export default function ClassMap() {
   const [d, setD] = useState(null);
   const [feed, setFeed] = useState(null);
   const [assign, setAssign] = useState("");
+  const [helpLesson, setHelpLesson] = useState("");
   const m = t.map;
   const id = route.param;
   const load = () => {
@@ -72,6 +73,16 @@ export default function ClassMap() {
                 {d.lessons.map((l) => <option key={l.slug} value={l.slug}>{L(l.title)}</option>)}
               </select>
               <button className="btn sm" disabled={!assign || user.role === "curator"} onClick={doAssign}>{t.start}</button>
+            </div>
+          </div>
+          <div className="card">
+            <p className="card-title" style={{ marginBottom: 8 }}>{t.assist.title}</p>
+            <p className="muted small" style={{ marginTop: 0 }}>{t.assist.help}</p>
+            <div className="row">
+              <select className="grow" value={helpLesson} onChange={(e) => setHelpLesson(e.target.value)} style={{ border: "1px solid var(--line)", borderRadius: 9, padding: 10 }}>
+                {[...d.lessons].sort((a, b) => b.gaps - a.gaps).map((l) => <option key={l.slug} value={l.slug}>{L(l.title)}{l.gaps ? ` · ${m.gaps(l.gaps)}` : ""}</option>)}
+              </select>
+              <a className="btn sm" href={`#/assist/${id}?lesson=${helpLesson || [...d.lessons].sort((a, b) => b.gaps - a.gaps)[0]?.slug || ""}`}>{t.open}</a>
             </div>
           </div>
           <div className="card">

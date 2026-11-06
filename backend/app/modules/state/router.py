@@ -1,7 +1,10 @@
 """Proof Engine и Student State: уверенность оценки, динамика, последняя проверка; практика и независимая проверка учитываются отдельно."""
 from datetime import date, datetime, timedelta, timezone
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -44,6 +47,57 @@ def student_dashboard(student_id: int, user: User = Depends(require_role("teache
     out["plan"] = {"rate": round(rate, 2), "items": total}
     out["outcomes"] = outcome_stats(db, {s.id})
     return out
+
+
+def _class_lesson(db: Session, user: User, class_id: int, slug: str):
+    from fastapi import HTTPException, status
+    c = get_class(db, user, class_id)
+    lesson = next((l for l in lessons_of(db, subject_by_slug(db, c.subject).id) if l.slug == slug), None)
+    if not lesson:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    return c, lesson
+
+
+@router.get("/classes/{class_id}/assist")
+def class_assist(class_id: int, lesson: str, user: User = Depends(require_role("teacher", "curator")),
+                 db: Session = Depends(get_db)) -> dict:
+    """Помощник учителя: кто с пробелом, ошибки класса, квиз на 5 минут и exit ticket из банка (без ИИ)."""
+    from app.modules.state import assist
+    c, l = _class_lesson(db, user, class_id, lesson)
+    stats = assist.class_skill(db, c, class_students(db, c.id), l)
+    return {"class": {"id": c.id, "name": c.name}, "lesson": {"slug": l.slug, "title": l.title}, **stats,
+            "quiz": assist.pick_tasks(db, l, assist.QUIZ_N, ("practice", "verification")),
+            "exit": assist.pick_tasks(db, l, assist.EXIT_N, ("verification",))}
+
+
+class AssistPlanIn(BaseModel):
+    lesson: str = Field(max_length=80)
+    lang: Literal["kk", "ru"] = "ru"
+
+
+@router.post("/classes/{class_id}/assist/plan")
+def class_assist_plan(class_id: int, payload: AssistPlanIn, user: User = Depends(require_role("teacher", "curator")),
+                      db: Session = Depends(get_db)) -> dict:
+    """План группового объяснения на 10 минут: ИИ по теории навыка и ошибкам этого класса."""
+    from fastapi import HTTPException, status
+    from app.modules.school.router import audit
+    from app.modules.state import assist
+    from app.modules.tutor import gateway
+    c, l = _class_lesson(db, user, class_id, payload.lesson)
+    if not (l.theory.get("ru") or l.theory.get("kk")):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "no_theory")
+    if not gateway.enabled():
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "llm_disabled")
+    stats = assist.class_skill(db, c, class_students(db, c.id), l)
+    try:
+        text, tin, tout = assist.explain_plan(l, stats, payload.lang)
+    except gateway.TutorUnavailable:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "llm_unavailable")
+    if not text:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "empty")
+    audit(db, user, "assist.plan", "lesson", l.id, class_id=c.id, tokens_in=tin, tokens_out=tout)
+    db.commit()
+    return {"text": text}
 
 
 @router.get("/classes/{class_id}")

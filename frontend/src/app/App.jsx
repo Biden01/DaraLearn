@@ -35,6 +35,7 @@ import LessonEdit from "./staff/LessonEdit.jsx";
 import { Leads, Support, Audit } from "./staff/Lists.jsx";
 import DevBoard from "./staff/DevBoard.jsx";
 import Docs from "./staff/Docs.jsx";
+import ClassAssist from "./staff/ClassAssist.jsx";
 import TeacherTime from "./staff/TeacherTime.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
 import "@fontsource-variable/onest";
@@ -43,7 +44,7 @@ import "./app.css";
 
 const NAV_BOTTOM = [["profile", "profile", "user"], ["settings", "settings", "gear"], ["help", "help", "help"]];
 const COMMON = { profile: Profile, settings: Settings, help: Help, lesson: Lesson };
-const STAFF_VIEW = { class: ClassMap, student: StudentCard };
+const STAFF_VIEW = { class: ClassMap, student: StudentCard, assist: ClassAssist };
 // меню и страницы по ролям
 const ROLES = {
   student: {
@@ -74,7 +75,7 @@ const ROLES = {
       support: Support, audit: Audit, dev: DevBoard, docs: Docs, feed: Feed, import: ImportResults, ...STAFF_VIEW },
   },
 };
-const ACTIVE = { lesson: "courses", result: "quiz", class: "classes", student: "classes", edit: "content" };
+const ACTIVE = { lesson: "courses", result: "quiz", class: "classes", student: "classes", assist: "classes", edit: "content" };
 
 // «Установить приложение» (PWA): видна, только когда браузер разрешил установку (Chrome/Edge/Android).
 function InstallLink({ collapsed, label }) {
