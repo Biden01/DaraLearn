@@ -13,6 +13,7 @@ from app.core.db import get_db
 from app.core.security import clear_session, current_user, hash_password, set_session, verify_password
 from app.modules.leads.router import client_ip
 from app.modules.school.invites import apply_invite, find_invite
+from app.modules.school.parents import find_parent_code, link_parent
 from app.modules.school.models import ClassMember, SchoolClass, User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -85,7 +86,9 @@ def register(payload: RegisterIn, request: Request, response: Response, db: Sess
     email = payload.email.lower()
     if db.scalar(select(func.count()).select_from(User).where(User.email == email)):
         raise HTTPException(status.HTTP_409_CONFLICT, "email_taken")
-    inv = find_invite(db, payload.code) if payload.code.strip() else None
+    # код родителя (выдаёт ученик) или приглашение школы/класса
+    parent_link = find_parent_code(db, payload.code) if payload.code.strip() else None
+    inv = find_invite(db, payload.code) if payload.code.strip() and not parent_link else None
     user = User(email=email, password_hash=hash_password(payload.password), name=payload.name.strip(),
                 grade=payload.grade, lang=payload.lang,
                 role="admin" if email in [e.lower() for e in settings.admin_emails] else "student")
@@ -93,6 +96,8 @@ def register(payload: RegisterIn, request: Request, response: Response, db: Sess
     db.flush()
     if inv:
         apply_invite(db, user, inv)
+    if parent_link:
+        link_parent(db, user, parent_link)
     db.commit()
     set_session(response, user.id)
     return user

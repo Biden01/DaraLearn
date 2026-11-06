@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Crumb, useApp } from "../ui.jsx";
 
@@ -30,6 +30,13 @@ export default function Settings() {
       setUser(u); e.target.reset(); toast(u.role === "teacher" ? t.me.joinedTeacher : t.me.joined);
     }
     catch (ex) {
+      if (ex.code === "invalid_code") {
+        // может быть кодом ребёнка: аккаунт без класса становится родительским
+        try {
+          await api("/parents/join", { method: "POST", body: { code } });
+          setUser(await api("/auth/me")); window.location.hash = "#/"; toast(t.parent.added); return;
+        } catch { /* не код ребёнка — покажем обычную ошибку */ }
+      }
       const msg = { invalid_code: t.me.badCode, class_has_teacher: t.me.classHasTeacher, teacher_other_school: t.me.otherSchool }[ex.code];
       toast(msg || t.error);
     }
@@ -95,6 +102,8 @@ export default function Settings() {
           </Section>
         )}
 
+        {student && <ParentsSection />}
+
         <Section title={t.me.password} help={s.pwdHelp}>
           {pwdOpen ? (
             <form className="stack" style={{ gap: 10 }} onSubmit={changePwd}>
@@ -113,6 +122,40 @@ export default function Settings() {
         </Section>
       </div>
     </div>
+  );
+}
+
+// Ученик даёт родителю одноразовый код и видит, кто подключён; отключить может в любой момент.
+function ParentsSection() {
+  const { t, toast } = useApp();
+  const p = t.parents;
+  const [d, setD] = useState(null);
+  const load = () => api("/parents/mine").then(setD).catch(() => setD({ code: null, parents: [] }));
+  useEffect(() => { load(); }, []);
+  async function make() {
+    try { const r = await api("/parents/code", { method: "POST" }); setD((x) => ({ ...x, code: r.code })); } catch { toast(t.error); }
+  }
+  async function unlink(id) {
+    if (!window.confirm(p.confirmUnlink)) return;
+    try { await api(`/parents/links/${id}`, { method: "DELETE" }); load(); } catch { toast(t.error); }
+  }
+  if (!d) return null;
+  return (
+    <Section title={p.title} help={p.help}>
+      <div className="stack" style={{ gap: 10 }}>
+        {d.code && <div>{p.yourCode} <b style={{ fontSize: 20, letterSpacing: 3 }}>{d.code}</b></div>}
+        <div><button className="btn sm ghost" onClick={make}>{d.code ? p.again : p.make}</button></div>
+        <div className="small">
+          {d.parents.length ? (
+            <>{p.linked}{d.parents.map((x) => (
+              <div key={x.id} className="row between" style={{ padding: "6px 0" }}>
+                <span>{x.name}</span><button className="btn sm ghost" onClick={() => unlink(x.id)}>{p.unlink}</button>
+              </div>
+            ))}</>
+          ) : <span className="muted">{p.none}</span>}
+        </div>
+      </div>
+    </Section>
   );
 }
 

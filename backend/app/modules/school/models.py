@@ -25,7 +25,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(200))
     grade: Mapped[int] = mapped_column(Integer, default=8)
     lang: Mapped[str] = mapped_column(String(2), default="kk")  # kk | ru
-    role: Mapped[str] = mapped_column(String(20), default="student")  # student | teacher | curator | admin
+    role: Mapped[str] = mapped_column(String(20), default="student")  # student | teacher | curator | admin | parent
     school_id: Mapped[int | None] = mapped_column(ForeignKey("schools.id", ondelete="SET NULL"), nullable=True, index=True)
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     weekly_goal: Mapped[int] = mapped_column(Integer, default=30)  # заданий в неделю
@@ -97,3 +97,16 @@ class Invite(Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ParentLink(Base):
+    """Родитель ↔ ребёнок. Ученик создаёт код (parent_id пуст), родитель вводит его — связь готова.
+    Родитель видит ребёнка только на чтение; отключить связь может любая сторона."""
+    __tablename__ = "parent_links"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    code: Mapped[str | None] = mapped_column(String(12), unique=True, nullable=True)  # стирается после привязки
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

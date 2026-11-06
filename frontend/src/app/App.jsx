@@ -35,6 +35,7 @@ import LessonEdit from "./staff/LessonEdit.jsx";
 import { Leads, Support, Audit } from "./staff/Lists.jsx";
 import DevBoard from "./staff/DevBoard.jsx";
 import Docs from "./staff/Docs.jsx";
+import ParentHome from "./pages/ParentHome.jsx";
 import TeacherTime from "./staff/TeacherTime.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
 import "@fontsource-variable/onest";
@@ -59,6 +60,10 @@ const ROLES = {
   curator: {
     nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"], ["pilot", "pilot", "chart"]],
     pages: { "": Cases, classes: Classes, feed: Feed, pilot: Pilot, ...STAFF_VIEW },
+  },
+  parent: {
+    nav: [["", "children", "user"]],
+    pages: { "": ParentHome },
   },
   admin: {
     nav: [["", "metrics", "chart"], ["schools", "schools", "home"], ["users", "users", "user"], ["classes", "classes", "case"],
