@@ -20,7 +20,10 @@ from app.modules.verification.service import outcome_stats
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-# $ за 1M токенов (вход, выход) — для оценки расхода AI Tutor
+# $ за 1M токенов (вход, выход) — для оценки расхода AI Tutor.
+# Старые записи TutorMessage ещё хранят модели Claude; модель(и) OpenAI,
+# заданную в LLM_MODEL, нужно дописать сюда с актуальной ценой с
+# platform.openai.com/docs/pricing — иначе расход по ней посчитается как $0.
 PRICES = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0), "claude-haiku-5-5": (0.1, 0.5)}
 
 

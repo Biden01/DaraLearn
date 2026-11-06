@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://daralearn:daralearn@localhost:5432/daralearn"
     cors_origins: list[str] = ["http://localhost:5173"]
     llm_api_key: str = ""
-    llm_model: str = "claude-opus-5-5"
+    # нет надёжного дефолта — модели OpenAI меняются быстро, задавать явно в .env
+    llm_model: str = ""
     tutor_daily_limit: int = 60       # сообщений AI Tutor на ученика в сутки
     check_delay_hours: int = 48       # через сколько после помощи — отложенная проверка
 
