@@ -64,3 +64,31 @@ def test_teacher_sees_who_is_missing(school, db):
     assert one["today"] is False and len(one["days"]) == 35
     kid1.ok("GET", f"/api/plan/students/{sid}/attendance", 403)
     t.ok("GET", "/api/plan/attendance", 403)
+
+
+def test_plan_streak_counts_only_full_plan_days():
+    from app.modules.plan.attendance import streak_summary
+    mon = date(2026, 10, 5)  # понедельник
+    u = User(created_at=datetime.combine(mon - timedelta(days=7), datetime.min.time(), LOCAL_TZ))
+    today = mon + timedelta(days=9)  # среда следующей недели
+    prev = [mon + timedelta(days=i) for i in range(5)]           # пн–пт прошлой недели
+    full = {prev[0], prev[1], prev[3], prev[4], mon + timedelta(days=7), mon + timedelta(days=8)}  # ср — частично
+    present = full | {prev[2], today}
+    s = streak_summary(u, present, full, mon - timedelta(days=7), today)
+    # чт, пт, (сб, вс), пн, вт — 4 подряд; частичная среда прошлой недели серию порвала; сегодня частично — не рвёт
+    assert s["current"] == 4 and s["best"] == 4
+    assert [w["status"] for w in s["week"]] == ["full", "full", "today_partial", "future", "future"]
+    assert (s["week_full"], s["week_days"]) == (2, 5)
+    s2 = streak_summary(u, present - {today}, full, mon - timedelta(days=7), today)
+    assert s2["week"][2]["status"] == "today" and s2["current"] == 4
+
+
+def test_plan_streak_api(db):
+    s = register()
+    diagnostic(s, wrong={"sqrt"})
+    r = s.ok("GET", "/api/plan/streak")
+    assert r["current"] == 0 and len(r["week"]) == 5
+    _do_practice(s, db)  # один шаг из нескольких — план выполнен не целиком
+    r = s.ok("GET", "/api/plan/streak")
+    today = next((w for w in r["week"] if w["day"] == today_local().isoformat()), None)
+    assert r["current"] == 0 and (today is None or today["status"] == "today_partial")  # в выходной дня нет в пн–пт

@@ -113,6 +113,13 @@ def my_attendance(user: User = Depends(require_role("student")), db: Session = D
     return attendance_for(db, [user], today_local(), rules.ATTENDANCE_STUDENT_DAYS)[user.id]
 
 
+@router.get("/streak")
+def my_streak(user: User = Depends(require_role("student")), db: Session = Depends(get_db)) -> dict:
+    """Серия дней с полностью выполненным планом и неделя пн–пт — для мотивации ученика."""
+    from app.modules.plan.attendance import plan_streak
+    return plan_streak(db, user, today_local())
+
+
 @router.get("/students/{student_id}/attendance")
 def student_attendance(student_id: int, user: User = Depends(require_role("teacher", "curator")),
                        db: Session = Depends(get_db)) -> dict:

@@ -24,13 +24,19 @@ def _start(d: date) -> datetime:
 
 def present_days(db: Session, user_ids: list[int], first: date, last: date) -> dict[int, set[date]]:
     """Дни из [first, last], в которые ученик выполнил хотя бы один шаг плана."""
+    return plan_days(db, user_ids, first, last)[0]
+
+
+def plan_days(db: Session, user_ids: list[int], first: date, last: date) -> tuple[dict[int, set[date]], dict[int, set[date]]]:
+    """(дни хотя бы с одним выполненным шагом, дни с полностью выполненным планом) из [first, last]."""
     out: dict[int, set[date]] = {u: set() for u in user_ids}
+    full: dict[int, set[date]] = {u: set() for u in user_ids}
     if not user_ids:
-        return out
+        return out, full
     plans = list(db.scalars(select(DailyPlan).where(DailyPlan.user_id.in_(user_ids), DailyPlan.day >= first,
                                                     DailyPlan.day <= last)))
     if not plans:
-        return out
+        return out, full
     items: dict[int, list[PlanItem]] = {}
     for it in db.scalars(select(PlanItem).where(PlanItem.plan_id.in_([p.id for p in plans]))):
         items.setdefault(it.plan_id, []).append(it)
@@ -57,9 +63,12 @@ def present_days(db: Session, user_ids: list[int], first: date, last: date) -> d
             return bool(it.task_ids) and all(
                 any(since <= a < until for a in answers.get((p.user_id, t), [])) for t in it.task_ids)
 
-        if any(step_done(it) for it in items.get(p.id, [])):
+        done = [step_done(it) for it in items.get(p.id, [])]
+        if any(done):
             out[p.user_id].add(p.day)
-    return out
+        if done and all(done):
+            full[p.user_id].add(p.day)
+    return out, full
 
 
 def is_day_off(d: date) -> bool:
@@ -100,6 +109,50 @@ def summary(user: User, present: set[date], first: date, today: date) -> dict:
     return {"days": days, "present": attended, "school_days": school_days,
             "rate": round(attended / school_days, 2) if school_days else None,
             "streak": streak, "today": today in present, "last_present": last.isoformat() if last else None}
+
+
+STREAK_DAYS = 120  # окно для лучшей серии
+
+
+def plan_streak(db: Session, user: User, today: date) -> dict:
+    """Мотивация без рейтингов: учебные дни подряд с полностью выполненным планом и неделя пн–пт.
+    Выходные серию не рвут, незаконченное «сегодня» тоже; день с частичным планом — рвёт."""
+    first = today - timedelta(days=STREAK_DAYS - 1)
+    present, full = plan_days(db, [user.id], first, today)
+    return streak_summary(user, present[user.id], full[user.id], first, today)
+
+
+def streak_summary(user: User, present: set[date], full: set[date], first: date, today: date) -> dict:
+    joined = user.created_at.astimezone(LOCAL_TZ).date() if user.created_at else first
+
+    def status(d: date) -> str:
+        if d > today:
+            return "future"
+        if d in full:
+            return "full"
+        if d < joined:
+            return "none"
+        if is_day_off(d):
+            return "off"
+        if d == today:
+            return "today_partial" if d in present else "today"
+        return "partial" if d in present else "missed"
+
+    best = run = current = 0
+    d = max(first, joined)
+    while d <= today:
+        st = status(d)
+        if st == "full":
+            run += 1
+            best = max(best, run)
+        elif st not in ("off", "today", "today_partial"):
+            run = 0
+        d += timedelta(days=1)
+    current = run
+    monday = today - timedelta(days=today.weekday())
+    week = [{"day": (monday + timedelta(days=i)).isoformat(), "status": status(monday + timedelta(days=i))} for i in range(5)]
+    return {"current": current, "best": best, "week": week,
+            "week_full": sum(w["status"] == "full" for w in week), "week_days": len(week)}
 
 
 def attendance_for(db: Session, users: list[User], today: date, days: int) -> dict[int, dict]:

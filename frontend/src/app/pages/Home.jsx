@@ -23,10 +23,12 @@ export default function Home() {
   const [classes, setClasses] = useState([]);
   const [plan, setPlan] = useState(null);
   const [att, setAtt] = useState(null);
+  const [streak, setStreak] = useState(null);
   const [subjects, setSubjects] = useState([]);
   const [lessonMin, setLessonMin] = useState({}); // slug → минуты урока (для «≈ N минут»)
   useEffect(() => {
     api("/plan/attendance").then(setAtt).catch(() => {});
+    api("/plan/streak").then(setStreak).catch(() => {});
     api("/plan/today").then(setPlan).catch(() => {});
     api("/state/me").then(setD).catch(() => setD(false));
     api("/verification/checks").then((c) => setChecks(c.filter((x) => x.due))).catch(() => {});
@@ -63,7 +65,7 @@ export default function Home() {
       </div>
 
       <div className="home-grid">
-        {att && <AttendanceCard att={att} />}
+        {att && <AttendanceCard att={att} streak={streak} />}
         <ProgressCard d={d} subjects={subjects} />
       </div>
 
@@ -165,7 +167,7 @@ function PlanCard({ plan }) {
   );
 }
 
-function AttendanceCard({ att }) {
+function AttendanceCard({ att, streak }) {
   const { t } = useApp();
   const h = t.home;
   const days = att.days.slice(-14);
@@ -183,7 +185,31 @@ function AttendanceCard({ att }) {
         {["present", "absent", "today"].map((k) => <span key={k}><i className={`lg ${k}`} />{h.legend[k]}</span>)}
       </div>
       <AttToday a={att} self />
+      {streak && <StreakBlock s={streak} />}
     </section>
+  );
+}
+
+// Серия по плану (как недельная серия в Brilliant): пн–пт кружками, текущая и лучшая серия. Без рейтингов.
+function StreakBlock({ s }) {
+  const { t } = useApp();
+  const k = t.att.pstreak;
+  const icon = { full: "fire", partial: "check", today_partial: "check", missed: "x" };
+  return (
+    <div className="streak">
+      <div className="row between"><b className="small">{k.title}</b>{s.best > 0 && <span className="muted small">{k.best(s.best)}</span>}</div>
+      <div className="streak-week">
+        {s.week.map((w, i) => (
+          <div key={w.day} className="streak-day" title={k.st[w.status]} aria-label={`${t.att.week[i]} · ${k.st[w.status]}`}>
+            <span className={`streak-dot ${w.status}`}>{icon[w.status] && <Icon n={icon[w.status]} s={15} />}</span>
+            <span className="muted small">{t.att.week[i]}</span>
+          </div>
+        ))}
+      </div>
+      <p className="small" style={{ margin: "10px 0 2px", color: s.current ? "var(--orange)" : undefined }}>
+        {s.current ? k.current(s.current) : k.zero}</p>
+      <p className="muted small" style={{ margin: 0 }}>{k.week(s.week_full, s.week_days)}</p>
+    </div>
   );
 }
 

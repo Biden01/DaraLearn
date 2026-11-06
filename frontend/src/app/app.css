@@ -803,3 +803,14 @@ h2 { letter-spacing: -.3px; }
 
 /* ИИ-черновик задания в редакторе урока — отличается от сохранённых */
 .task.task-draft { border: 1px dashed var(--orange); background: #fffaf0; }
+
+/* Серия по плану на главной ученика */
+.streak { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 16px; }
+.streak-week { margin-top: 10px; display: flex; justify-content: space-between; gap: 6px; }
+.streak-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.streak-dot { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--line); color: #b9bdcc; }
+.streak-dot.full { background: var(--orange); border-color: var(--orange); color: #fff; }
+.streak-dot.partial, .streak-dot.today_partial { border-color: var(--orange); color: var(--orange); }
+.streak-dot.today { border-color: var(--accent); border-style: dashed; }
+.streak-dot.missed { background: #f6f7fa; color: #b9bdcc; }
+.streak-dot.future { opacity: .55; }
