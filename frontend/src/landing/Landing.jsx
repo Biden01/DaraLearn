@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { TEXT } from "./text.js";
 import HeroDemo from "./HeroDemo.jsx";
+import HeroCarousel from "./HeroCarousel.jsx";
 import PilotForm from "./PilotForm.jsx";
 import "@fontsource-variable/onest";
 import "./landing.css";
@@ -30,8 +31,8 @@ const ICONS = {
 };
 const LOOP_ICONS = ["search", "help", "check"];
 const ROLE_ICONS = ["student", "teacher", "bell"];
-// Плитки над заголовком: [иконка, индекс пункта из t.inside.items].
-const HERO_TILES = [["pulse", 0], ["chat", 2], ["map", 1], ["chart", 4], ["book", 3]];
+// Карточки карусели в герое: [номер фото, пункт из t.inside.items, роль из t.roles.items].
+const HERO_SLIDES = [[1, 0, 0], [2, 2, 0], [3, 1, 1], [4, 3, 0], [5, 4, 2]];
 const CHIPS = [["pulse", 0], ["map", 1], ["chat", 2], ["chart", 4]];
 
 // Мини-иллюстрации для плиток «Что внутри» — без текста, чтобы не переводить.
@@ -129,14 +130,12 @@ export default function Landing() {
         <section className="hero">
           <div className="hero-bg" aria-hidden="true" />
           <div className="wrap hero-in">
-            <ul className="hero-tiles" aria-hidden="true">
-              {HERO_TILES.map(([icon, i], n) => (
-                <li key={icon} className={`tile tile-${n}`}>
-                  <Icon name={icon} />
-                  <span>{t.inside.items[i][0]}</span>
-                </li>
-              ))}
-            </ul>
+            <HeroCarousel label={t.inside.title} slides={HERO_SLIDES.map(([img, item, role]) => ({
+              image: `/landing/slide-${img}.jpg`,
+              title: t.inside.items[item][0],
+              description: t.inside.items[item][1],
+              badge: t.roles.items[role][0],
+            }))} key={lang} />
             <a href="#pilot" className="badge"><span className="badge-dot" />{t.hero.badge}<span aria-hidden="true">→</span></a>
             <h1>{titleA}.{titleB.length > 0 && <> <span className="accent">{titleB.join(". ")}</span></>}</h1>
             <p className="lead">{t.hero.lead}</p>
