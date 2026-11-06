@@ -800,3 +800,6 @@ h2 { letter-spacing: -.3px; }
   .stu .kbd { display: none; }
   .quick-link .muted { white-space: normal; }
 }
+
+/* ИИ-черновик задания в редакторе урока — отличается от сохранённых */
+.task.task-draft { border: 1px dashed var(--orange); background: #fffaf0; }

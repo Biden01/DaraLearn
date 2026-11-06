@@ -7,13 +7,17 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.modules.decisions.models import Recommendation
 from app.modules.school.models import User
-from app.modules.state.engine import SkillState, compute_states
+from app.modules.state.engine import MASTERED, SkillState, compute_states
 from app.modules.verification.models import AdviserCase, Attempt, Check, Outcome
 
 PLAN_WINDOW_DAYS = 14
 PLAN_MIN_ITEMS = 2
 PLAN_RATE_LIMIT = 0.5
 WATCH_DAYS = 14
+# Интервальное повторение: после подтверждённого навыка — повторные проверки через 1, 3 и 6 недель.
+# Навык забыт (proof ниже MASTERED) — цепочка обрывается, дальше работают обычные правила Decision Engine.
+REVIEW = "review"
+REVIEW_DAYS = (7, 21, 42)
 
 
 def schedule_check(db: Session, user_id: int, lesson_id: int, reason: str, rec_id: int | None = None,
@@ -35,17 +39,36 @@ def complete_check(db: Session, attempt: Attempt) -> Outcome | None:
     c = db.scalar(select(Check).where(Check.attempt_id == attempt.id, Check.status == "pending"))
     if not c:
         return None
-    after = compute_states(db, attempt.user_id).get(c.lesson_id, SkillState()).indep
+    st = compute_states(db, attempt.user_id).get(c.lesson_id, SkillState())
+    after = st.indep
     c.status, c.done_at = "done", datetime.now(timezone.utc)
+    # для повторения «помогло» = навык удержан; для проверки после помощи — рост или освоение
+    helped = after >= MASTERED if c.reason == REVIEW else (after > c.before_proof or after >= MASTERED)
     o = Outcome(user_id=c.user_id, lesson_id=c.lesson_id, check_id=c.id, reason=c.reason, before=c.before_proof,
-                after=after, helped=after > c.before_proof or after >= 0.8)
+                after=after, helped=helped)
     db.add(o)
+    if st.status == "mastered":  # подтверждено независимо — дальше повторения, иначе работают обычные правила
+        _schedule_review(db, c)
     if c.recommendation_id and o.helped:
         r = db.get(Recommendation, c.recommendation_id)
         if r and r.status != "done":
             r.status, r.done_at = "done", c.done_at
     db.flush()
     return o
+
+
+def _schedule_review(db: Session, done: Check) -> None:
+    """Следующее повторение навыка: номер шага = сколько повторений подряд уже пройдено после последней помощи."""
+    db.flush()  # autoflush выключен: без этого текущая проверка в базе ещё «pending», и schedule_check откажет
+    history = db.scalars(select(Check.reason).where(Check.user_id == done.user_id, Check.lesson_id == done.lesson_id,
+                                                    Check.status == "done").order_by(Check.done_at.desc(), Check.id.desc()))
+    step = 0
+    for reason in history:
+        if reason != REVIEW:
+            break
+        step += 1
+    if step < len(REVIEW_DAYS):
+        schedule_check(db, done.user_id, done.lesson_id, REVIEW, due=done.done_at + timedelta(days=REVIEW_DAYS[step]))
 
 
 def plan_rate(db: Session, user_id: int, now: datetime | None = None) -> tuple[float, int]:
@@ -88,7 +111,7 @@ def refresh_cases(db: Session, students: list[User]) -> None:
 
 
 def outcome_stats(db: Session, user_ids: set[int] | None = None) -> dict:
-    stmt = select(Outcome)
+    stmt = select(Outcome).where(Outcome.reason != REVIEW)  # эффект помощи; повторения — удержание, не помощь
     if user_ids is not None:
         stmt = stmt.where(Outcome.user_id.in_(user_ids or {-1}))
     rows = list(db.scalars(stmt))
