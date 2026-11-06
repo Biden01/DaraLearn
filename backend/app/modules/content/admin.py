@@ -12,11 +12,13 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.security import require_role
+from app.modules.content import generate as gen
 from app.modules.content.models import Course, Lesson, Task
 from app.modules.content.service import set_theory
 from app.modules.events.models import LearningEvent
 from app.modules.school.models import User
 from app.modules.school.router import audit
+from app.modules.tutor import gateway
 
 router = APIRouter(prefix="/content/admin", tags=["content-admin"])
 
@@ -51,6 +53,12 @@ class TaskIn(BaseModel):
     options: list[str | Text2] = Field(min_length=2, max_length=6)
     answer: int = Field(ge=0, le=5)
     explanation: Text2
+    ai: bool = False  # принят ИИ-черновик — source="ai", чтобы такие задания было видно отдельно
+
+
+class GenerateIn(BaseModel):
+    purpose: Literal["diagnostic", "practice", "verification"] = "practice"
+    count: int = Field(default=3, ge=1, le=5)
 
 
 def _task_out(t: Task, lesson_slug: str) -> dict:
@@ -130,12 +138,31 @@ def create_task(payload: TaskIn, user: User = Depends(require_role("admin")), db
     n = db.scalar(select(func.count()).select_from(Task).where(Task.lesson_id == l.id)) or 0
     t = Task(slug=f"{l.slug}-a{n + 1}-{user.id}", lesson_id=l.id, purpose=payload.purpose, question=payload.question.model_dump(),
              options=[_opt(o) for o in payload.options], answer=payload.answer, explanation=payload.explanation.model_dump(),
-             source="admin")
+             source="ai" if payload.ai else "admin")
     db.add(t)
     db.flush()
     audit(db, user, "task.create", "task", t.id)
     db.commit()
     return _task_out(t, l.slug)
+
+
+@router.post("/lessons/{slug}/generate")
+def generate_tasks(slug: str, payload: GenerateIn, user: User = Depends(require_role("admin")),
+                   db: Session = Depends(get_db)) -> dict:
+    """ИИ-черновики заданий по теории навыка. Ничего не сохраняет: черновик принимают через POST /tasks (ai=true)."""
+    l = _lesson_or_404(db, slug)
+    if not gateway.enabled():
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "llm_disabled")
+    existing = list(db.scalars(select(Task).where(Task.lesson_id == l.id, Task.purpose != "archived").order_by(Task.id)))
+    try:
+        drafts, tin, tout = gen.generate(l, existing, payload.purpose, payload.count)
+    except gateway.TutorUnavailable:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "llm_unavailable")
+    except gen.GenerationFailed as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
+    audit(db, user, "task.generate", "lesson", l.id, purpose=payload.purpose, drafts=len(drafts), tokens_in=tin, tokens_out=tout)
+    db.commit()
+    return {"drafts": drafts}
 
 
 @router.put("/tasks/{task_id}")

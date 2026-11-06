@@ -575,3 +575,6 @@ h2 { letter-spacing: -.3px; }
 .md th, .md td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
 .md th { background: #f6f7fa; font-weight: 600; }
 @media (max-width: 700px) { .md { font-size: 14px; } .md table { min-width: 560px; } }
+
+/* ИИ-черновик задания в редакторе урока — отличается от сохранённых */
+.task.task-draft { border: 1px dashed var(--orange); background: #fffaf0; }
