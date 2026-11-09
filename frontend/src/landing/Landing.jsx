@@ -4,8 +4,10 @@ import HeroDemo from "./HeroDemo.jsx";
 import HeroCarousel from "./HeroCarousel.jsx";
 import PilotForm from "./PilotForm.jsx";
 import RevealText from "../components/ui/reveal-text.jsx";
+import { ArrowLoop, ArrowCurl, ArrowFlick, SpinBadge } from "./Doodles.jsx";
 import "@fontsource-variable/onest";
 import "./landing.css";
+import "./landing-bold.css";
 
 function initialLang() {
   try {
@@ -137,16 +139,20 @@ export default function Landing() {
               description: t.inside.items[item][1],
               badge: t.roles.items[role][0],
             }))} key={lang} />
-            <RevealText
-              as="h1"
-              key={`title-${lang}`}
-              delay={0.15}
-              duration={0.85}
-              lines={[
-                { text: `${titleA}.` },
-                ...(titleB.length > 0 ? [{ text: titleB.join(". "), className: "accent" }] : []),
-              ]}
-            />
+            <div className="hero-title">
+              <ArrowLoop className="doodle doodle-l" />
+              <ArrowCurl className="doodle doodle-r" />
+              <RevealText
+                as="h1"
+                key={`title-${lang}`}
+                delay={0.15}
+                duration={0.85}
+                lines={[
+                  { text: `${titleA}.` },
+                  ...(titleB.length > 0 ? [{ text: titleB.join(". "), className: "accent" }] : []),
+                ]}
+              />
+            </div>
             <p className="lead">{t.hero.lead}</p>
             <div className="cta">
               <div className="cta-pill">
@@ -159,8 +165,10 @@ export default function Landing() {
               {t.hero.facts.map(([b, s]) => <li key={b}><b>{b}</b><span>{s}</span></li>)}
             </ul>
           </div>
+          <SpinBadge href="/app#register" text={t.hero.start} className="hero-badge" />
         </section>
 
+        <div className="sheet">
         <section className="platform">
           <div className="wrap">
             <div className="stage reveal">
@@ -220,6 +228,7 @@ export default function Landing() {
         </section>
 
         <section className="cta-band">
+          <ArrowFlick className="doodle doodle-band" />
           <div className="wrap cta-band-in">
             <div>
               <h2>{t.band.title}</h2>
@@ -282,6 +291,7 @@ export default function Landing() {
             </div>
           </div>
         </section>
+        </div>
       </main>
 
       <footer className="foot">
