@@ -4,6 +4,7 @@ import HeroDemo from "./HeroDemo.jsx";
 import HeroCarousel from "./HeroCarousel.jsx";
 import PilotForm from "./PilotForm.jsx";
 import RevealText from "../components/ui/reveal-text.jsx";
+import { MacbookPro } from "../components/ui/macbook-pro.jsx";
 import { ArrowLoop, ArrowCurl, ArrowFlick, SpinBadge } from "./Doodles.jsx";
 import "@fontsource-variable/onest";
 import "./landing.css";
@@ -174,13 +175,12 @@ export default function Landing() {
             <div className="stage reveal">
               <Head kicker="DaraLearn" title={t.platform.title} lead={t.platform.lead} center />
               <div className="laptop">
-                <div className="laptop-screen">
+                <MacbookPro>
                   <div className="window">
                     <div className="window-bar" aria-hidden="true"><i /><i /><i /><span>daralearn.kz/app</span></div>
                     <HeroDemo t={t.demo} key={lang} />
                   </div>
-                </div>
-                <div className="laptop-base" aria-hidden="true" />
+                </MacbookPro>
                 {CHIPS.map(([icon, i], n) => (
                   <div key={icon} className={`chip chip-${n}`} aria-hidden="true">
                     <span className="ico-sm"><Icon name={icon} /></span>{t.inside.items[i][0]}
