@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 
 // Мокап MacBook Pro (21st.dev), перенесён под проект: JSX, без Tailwind.
 // - src: картинка на экране (как в оригинале);
@@ -14,7 +14,9 @@ export function MacbookPro({ width = 650, height = 400, src, children, screenWid
   const screenRef = useRef(null);
   const hasScreen = Boolean(children);
 
-  useEffect(() => {
+  // useLayoutEffect: масштаб ставится до первой отрисовки, иначе на миг
+  // видно демо в натуральную ширину 900px, обрезанное экраном.
+  useLayoutEffect(() => {
     const el = screenRef.current;
     if (!el) return;
     const fit = () => el.style.setProperty("--mac-scale", String(el.clientWidth / screenWidth));
