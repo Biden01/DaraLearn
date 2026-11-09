@@ -98,7 +98,7 @@ section { padding-block: 104px; position: relative; }
 .hero-bg::before { width: 900px; height: 900px; left: -420px; top: -240px; box-shadow: 0 0 0 70px rgba(0, 88, 244, .025); }
 .hero-bg::after { width: 760px; height: 760px; right: -380px; top: 120px; border-color: rgba(0, 88, 244, .07); }
 .hero-in { display: flex; flex-direction: column; align-items: center; }
-.hero h1 { max-width: 22ch; margin-inline: auto; }
+.hero h1 { max-width: 22ch; margin-inline: auto; margin-top: 8px; }
 .hero .lead { margin: 22px auto 34px; }
 /* stacked photo carousel */
 .stack { position: relative; width: 100%; height: 430px; margin-bottom: 28px; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; animation: rise .8s var(--ease) both; }
@@ -113,15 +113,6 @@ section { padding-block: 104px; position: relative; }
 .stack-text { position: absolute; left: 20px; right: 20px; bottom: 22px; color: #fff; }
 .stack-title { font-size: 1.25rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
 .stack-desc { font-size: .82rem; line-height: 1.4; color: rgba(255, 255, 255, .78); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.badge {
-  display: inline-flex; align-items: center; gap: 10px; margin-bottom: 22px; padding: 6px 14px 6px 10px;
-  border: 1px solid #cfdcf8; background: rgba(255, 255, 255, .85); border-radius: 999px;
-  font-size: .88rem; font-weight: 600; color: var(--ink); text-decoration: none; box-shadow: var(--shadow-sm);
-  transition: border-color .2s;
-}
-.badge:hover { border-color: var(--blue); }
-.badge > span:last-child { color: var(--blue); }
-.badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px var(--green-soft); }
 .accent { color: var(--blue); display: block; }
 .cta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; }
 .cta-pill { display: flex; align-items: center; gap: 18px; padding: 6px 22px 6px 6px; border-radius: 20px; background: var(--ink-deep); box-shadow: var(--shadow-lg); }

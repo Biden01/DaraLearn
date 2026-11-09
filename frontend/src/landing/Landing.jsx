@@ -3,6 +3,7 @@ import { TEXT } from "./text.js";
 import HeroDemo from "./HeroDemo.jsx";
 import HeroCarousel from "./HeroCarousel.jsx";
 import PilotForm from "./PilotForm.jsx";
+import RevealText from "../components/ui/reveal-text.jsx";
 import "@fontsource-variable/onest";
 import "./landing.css";
 
@@ -136,8 +137,16 @@ export default function Landing() {
               description: t.inside.items[item][1],
               badge: t.roles.items[role][0],
             }))} key={lang} />
-            <a href="#pilot" className="badge"><span className="badge-dot" />{t.hero.badge}<span aria-hidden="true">→</span></a>
-            <h1>{titleA}.{titleB.length > 0 && <> <span className="accent">{titleB.join(". ")}</span></>}</h1>
+            <RevealText
+              as="h1"
+              key={`title-${lang}`}
+              delay={0.15}
+              duration={0.85}
+              lines={[
+                { text: `${titleA}.` },
+                ...(titleB.length > 0 ? [{ text: titleB.join(". "), className: "accent" }] : []),
+              ]}
+            />
             <p className="lead">{t.hero.lead}</p>
             <div className="cta">
               <div className="cta-pill">
