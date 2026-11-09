@@ -41,13 +41,8 @@ h3 { font-weight: 800; }
 .top .btn.sm { min-height: 40px; padding: 0 24px; font-size: .9rem; border-width: 1px; }
 .top-act { margin-left: 0; }
 
-/* логотип из двух пилюль: белое «облачко» DARA + лаймовая LEARN */
-.pill-logo { gap: 4px; font-size: .875rem; font-weight: 900; letter-spacing: -.01em; line-height: 1; color: #000; }
-.pill-logo span { padding: 7px 12px; box-shadow: 0 1px 2px rgba(0, 0, 0, .1); }
-.pl-a { position: relative; background: #fff; border-radius: 16px 16px 16px 3px; }
-.pl-a::after { content: ""; position: absolute; left: 0; bottom: -6px; width: 12px; height: 12px; background: #fff; clip-path: polygon(0 0, 100% 0, 0 100%); }
-.pl-b { background: var(--lime); border-radius: 999px; border: 1.5px solid #fff; }
-.foot .pill-logo .pl-b { border-color: #000; }
+.top .brand { color: #fff; }
+.top .brand img { background: #fff; border-radius: 10px; padding: 2px; }
 .top-nav a:hover { color: #fff; background: rgba(255, 255, 255, .12); }
 .lang { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .3); border-radius: 999px; }
 .lang button { color: rgba(255, 255, 255, .8); border-radius: 999px; }
@@ -163,6 +158,8 @@ h3 { font-weight: 800; }
 
 /* подвал */
 .foot { background: #000; border-top: 0; color: #fff; }
+.foot .brand { color: #fff; }
+.foot .brand img { background: #fff; border-radius: 9px; padding: 2px; }
 .foot .muted { color: rgba(255, 255, 255, .6); }
 .foot-nav a { color: rgba(255, 255, 255, .75); }
 .foot-nav a:hover { color: var(--lime); }
@@ -194,8 +191,6 @@ h3 { font-weight: 800; }
 
 /* совсем узкие телефоны (320–380px): шапка в одну строку без переполнения */
 @media (max-width: 380px) {
-  .pill-logo { font-size: .72rem; gap: 3px; }
-  .pill-logo span { padding: 6px 8px; }
   .lang button { padding: 6px 8px; font-size: .75rem; }
   .top .btn.sm { padding: 0 12px; font-size: .88rem; }
   .hero h1 { font-size: 2rem; }

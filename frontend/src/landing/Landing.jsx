@@ -112,7 +112,7 @@ export default function Landing() {
     <>
       <header className={scrolled ? "top scrolled" : "top"}>
         <div className="wrap top-in">
-          <a href="/" className="brand pill-logo" aria-label="DaraLearn"><span className="pl-a">DARA</span><span className="pl-b">LEARN</span></a>
+          <a href="/" className="brand"><img src="/logo.png" alt="" width="34" height="34" />DaraLearn</a>
           <nav className="top-nav" aria-label="Main">
             <a href="#how">{t.nav.how}</a>
             <a href="#pilot">{t.nav.schools}</a>
@@ -297,7 +297,7 @@ export default function Landing() {
       <footer className="foot">
         <div className="wrap foot-in">
           <div className="foot-brand">
-            <a href="/" className="brand pill-logo" aria-label="DaraLearn"><span className="pl-a">DARA</span><span className="pl-b">LEARN</span></a>
+            <a href="/" className="brand"><img src="/logo.png" alt="" width="28" height="28" />DaraLearn</a>
             <p className="muted small">{t.footer.rights}</p>
           </div>
           <nav className="foot-nav" aria-label="Footer">
