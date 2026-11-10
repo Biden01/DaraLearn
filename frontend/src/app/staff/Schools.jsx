@@ -38,7 +38,7 @@ export default function Schools() {
               <table className="heat" style={{ marginTop: 14 }}><tbody>
                 {s.invites.map((i) => (
                   <tr key={i.id}><td><b style={{ letterSpacing: 2 }}>{i.code}</b></td><td>{t.roles[i.role]}</td><td className="muted small">{a.uses(i.uses, i.max_uses)}</td>
-                    <td className="muted small">{i.expires_at ? `${a.until} ${new Date(i.expires_at).toLocaleDateString()}` : ""}</td></tr>
+                    <td className="muted small">{i.expires_at ? `${a.until} ${new Date(i.expires_at).toLocaleDateString("ru-RU")}` : ""}</td></tr>
                 ))}
               </tbody></table>
             )}

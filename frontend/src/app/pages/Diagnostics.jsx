@@ -12,7 +12,7 @@ export function RecentAttempts() {
     <a key={a.id} href={`#/result/${a.id}`} className="list-item">
       <Box sym={a.subject.sym} c={a.subject.color} size={40} />
       <div className="grow"><div className="t-strong">{t.diag.kind[a.kind]}: {L(a.title)}</div>
-        <div className="muted small">{new Date(a.finished_at).toLocaleDateString()}</div></div>
+        <div className="muted small">{new Date(a.finished_at).toLocaleDateString("ru-RU")}</div></div>
       <b>{Math.round((100 * a.score) / a.total)}%</b>
     </a>
   ));

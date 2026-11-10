@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { STRINGS } from "./i18n.js";
 import { Ctx, Icon, pick, useApp } from "./ui.jsx";
 import { actionHref } from "./pages/actions.js";
+import { dayLabel } from "./pages/Plan.jsx";
 import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
 import Plan from "./pages/Plan.jsx";
@@ -296,7 +297,7 @@ export default function App() {
 
 // Колокольчик: по нажатию — панель с полным текстом уведомлений платформы.
 function Bell({ alerts }) {
-  const { t, L } = useApp();
+  const { t, L, lang } = useApp();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const [showAll, setShowAll] = useState(false);
@@ -357,7 +358,7 @@ function Bell({ alerts }) {
                       <span className="bell-sub">{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
                         {r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}</span>
                     </span>
-                    <span className="bell-date">{r.created_at ? new Date(r.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : ""}</span>
+                    <span className="bell-date">{r.created_at ? dayLabel(r.created_at.slice(0, 10), lang, { day: "numeric", month: "short" }) : ""}</span>
                     <span className="bell-chev"><Icon n="chev" s={16} /></span>
                   </button>
                   {isOpen && (

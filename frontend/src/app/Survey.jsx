@@ -63,7 +63,7 @@ export default function SurveyCard({ always = false, quiet = false }) {
     return (
       <div className="card row wrap" style={{ marginBottom: 20, gap: 16 }}>
         <Box icon="star" c="purple" />
-        <div className="grow"><div className="card-title">{s.title}</div>
+        <div className="grow" style={{ minWidth: 220 }}><div className="card-title">{s.title}</div>
           <div className="muted small">{data.answered ? s.answered : s.invite[user.role]}</div></div>
         <button className="btn" onClick={() => setOpen(true)}>{data.answered ? s.edit : s.start}</button>
         {!data.answered && !always && <button className="btn ghost" onClick={later}>{s.later}</button>}

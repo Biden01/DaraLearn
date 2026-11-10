@@ -38,7 +38,7 @@ export default function Subjects() {
               <div className="t-strong">{s.next ? L(s.next.title) : "—"}</div>
               <div className="row between" style={{ margin: "22px 0 10px" }}><span className="muted small">{sp.progressBy} · {sp.topics(s.progress.total)}</span><b>{s.progress.percent}%</b></div>
               <Bar p={s.progress.percent} />
-              <div className="grid g-3" style={{ margin: "20px 0", textAlign: "center", gap: 10 }}>
+              <div className="grid g-3 stats" style={{ margin: "20px 0", textAlign: "center", gap: 10 }}>
                 <div><div style={{ fontSize: 22, fontWeight: 700 }}>{s.progress.mastered}</div><div className="muted small">{sp.mastered}</div></div>
                 <div><div style={{ fontSize: 22, fontWeight: 700 }}>{s.progress.learning}</div><div className="muted small">{sp.inprog}</div></div>
                 <div><div style={{ fontSize: 22, fontWeight: 700 }}>{s.progress.left}</div><div className="muted small">{sp.left}</div></div>

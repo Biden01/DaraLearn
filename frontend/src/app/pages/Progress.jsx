@@ -30,7 +30,7 @@ export default function Progress() {
         <div><h1>{pp.title}</h1><p className="subtitle">{pp.sub}</p></div>
         <div className="tabs">{Object.entries(pp.range).map(([k, l]) => <button key={k} className={range === k ? "on" : ""} onClick={() => setRange(k)}>{l}</button>)}</div>
       </div>
-      <div className="grid g-4" style={{ marginBottom: 20 }}>
+      <div className="grid g-4 stats" style={{ marginBottom: 20 }}>
         {stats.map(([icon, c, v, l]) => (
           <div className="card row" key={l}><Box icon={icon} c={c} /><div><div style={{ fontSize: 22, fontWeight: 700 }}>{v}</div><div className="muted small">{l}</div></div></div>
         ))}
@@ -61,10 +61,10 @@ export default function Progress() {
             <a href={`#/lesson/${l.slug}`} className="list-item" key={l.slug}>
               <span className={`dot ${l.status}`} />
               <div className="grow">
-                <div className="row between"><span className="t-strong small">{L(l.title)}</span><span className={`small st-${l.status}`}>{t.status[l.status]}</span></div>
+                <div className="row between wrap" style={{ gap: "2px 12px" }}><span className="t-strong small" style={{ flex: "1 1 auto" }}>{L(l.title)}</span><span className={`small st-${l.status}`} style={{ whiteSpace: "nowrap" }}>{t.status[l.status]}</span></div>
                 <div style={{ marginTop: 6 }}><Bar p={l.proof * 100} /></div>
               </div>
-              <span className="muted small" style={{ width: 70, textAlign: "right" }}>{Math.round(l.practice * 100)} / {Math.round(l.proof * 100)}%</span>
+              <span className="muted small" style={{ width: 80, flex: "none", textAlign: "right", whiteSpace: "nowrap" }}>{Math.round(l.practice * 100)} / {Math.round(l.proof * 100)}%</span>
             </a>
           ))}
         </div>

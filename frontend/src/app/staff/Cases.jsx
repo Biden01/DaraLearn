@@ -19,7 +19,7 @@ function Case({ c, onSaved }) {
         <a href={`#/student/${c.student.id}`} className="card-title">{c.student.name} <span className="muted small">{c.student.class}</span></a>
         <span className={`badge ${BADGE[c.status]}`}>{k.status[c.status]}</span>
       </div>
-      <p className="muted small">{k.plan}: <b className="st-gap">{Math.round(c.plan_rate * 100)}%</b> · {new Date(c.created_at).toLocaleDateString()}</p>
+      <p className="muted small">{k.plan}: <b className="st-gap">{Math.round(c.plan_rate * 100)}%</b> · {new Date(c.created_at).toLocaleDateString("ru-RU")}</p>
       <div className="grid g-2" style={{ gap: 12 }}>
         <label className="field">{k.nextStep}<textarea rows={2} value={next} onChange={(e) => setNext(e.target.value)} maxLength={2000} /></label>
         <label className="field">{k.watchUntil}<input type="date" value={until} onChange={(e) => setUntil(e.target.value)} /></label>
