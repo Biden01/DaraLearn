@@ -298,9 +298,12 @@ export default function App() {
 function Bell({ alerts }) {
   const { t, L } = useApp();
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [showAll, setShowAll] = useState(false);
+  const [openId, setOpenId] = useState(null);
   const box = useRef();
   useEffect(() => {
-    if (!open) return;
+    if (!open) { setShowAll(false); setOpenId(null); return; }
     const onDown = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
     const onHash = () => setOpen(false);
@@ -314,7 +317,15 @@ function Bell({ alerts }) {
     };
   }, [open]);
   const n = alerts.length;
-  const badge = { 3: "red", 2: "orange", 1: "gray" };
+  // Сначала важные (высокий приоритет), внутри одного приоритета — самые свежие
+  const sorted = useMemo(() => [...alerts].sort((a, b) =>
+    (b.priority - a.priority) || (Date.parse(b.created_at || 0) || 0) - (Date.parse(a.created_at || 0) || 0)), [alerts]);
+  const n3 = alerts.filter((r) => r.priority === 3).length, n2 = alerts.filter((r) => r.priority === 2).length;
+  const f = n3 > 0 && n2 > 0 ? filter : "all"; // вкладки видны только когда есть оба приоритета
+  const filtered = f === "all" ? sorted : sorted.filter((r) => r.priority === f);
+  const LIMIT = 5;
+  const shown = showAll ? filtered : filtered.slice(0, LIMIT);
+  const hidden = filtered.length - shown.length;
   return (
     <div className="bell-wrap" ref={box}>
       <button className="bell" aria-label={n ? `${t.notif.title}: ${n}` : t.notif.title} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
@@ -322,26 +333,46 @@ function Bell({ alerts }) {
       </button>
       {open && (
         <div className="bell-pop" role="dialog" aria-label={t.notif.title}>
-          <div className="bell-head"><b>{t.notif.title}</b><span className="muted small">{t.notif.from}</span></div>
+          <div className="bell-head">
+            <b>{t.notif.title}{n > 0 && <span className="bell-total">{n}</span>}</b>
+            <span className="muted small">{t.notif.from}</span>
+          </div>
+          {n3 > 0 && n2 > 0 && (
+            <div className="bell-tabs" role="tablist">
+              {[["all", t.notif.tabAll, n], [3, t.notif.tabHigh, n3], [2, t.notif.tabMid, n2]].map(([k, label, c]) => (
+                <button key={k} role="tab" aria-selected={f === k} className={f === k ? "on" : ""}
+                  onClick={() => { setFilter(k); setShowAll(false); setOpenId(null); }}>{label} <span>{c}</span></button>
+              ))}
+            </div>
+          )}
           <div className="bell-list">
-            {n ? alerts.map((r) => (
-              <div className="bell-item" key={r.id ?? r.lesson + r.action}>
-                <div className="row between" style={{ gap: 8, alignItems: "flex-start" }}>
-                  <div className="t-strong">{L(r.title)}</div>
-                  <span className={`badge ${badge[r.priority]}`}>{t.gaps.priority[r.priority]}</span>
+            {shown.length ? shown.map((r) => {
+              const id = r.id ?? r.lesson + r.action, isOpen = openId === id;
+              return (
+                <div className={`bell-item p${r.priority} ${isOpen ? "open" : ""}`} key={id}>
+                  <button className="bell-row" aria-expanded={isOpen} onClick={() => setOpenId(isOpen ? null : id)}>
+                    <span className={`bell-mark p${r.priority}`} role="img" title={t.gaps.priority[r.priority]} aria-label={t.gaps.priority[r.priority]} />
+                    <span className="bell-main">
+                      <span className="bell-title">{L(r.title)}</span>
+                      <span className="bell-sub">{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
+                        {r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}</span>
+                    </span>
+                    <span className="bell-date">{r.created_at ? new Date(r.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : ""}</span>
+                    <span className="bell-chev"><Icon n="chev" s={16} /></span>
+                  </button>
+                  {isOpen && (
+                    <div className="bell-more">
+                      {t.causeHelp[r.cause] && <p className="small" style={{ margin: 0, lineHeight: 1.45 }}>{t.causeHelp[r.cause]}</p>}
+                      {["accepted", "changed"].includes(r.status) && (
+                        <div className="small st-mastered" style={{ marginTop: 6 }}>{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>
+                      )}
+                      <a href={actionHref(r)} className="btn sm" style={{ marginTop: 10 }}>{t.actions[r.action]?.[0] || t.open}</a>
+                    </div>
+                  )}
                 </div>
-                <div className="muted small" style={{ marginTop: 4 }}>{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
-                  {r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}</div>
-                {t.causeHelp[r.cause] && <p className="small" style={{ margin: "8px 0 0", lineHeight: 1.45 }}>{t.causeHelp[r.cause]}</p>}
-                {["accepted", "changed"].includes(r.status) && (
-                  <div className="small st-mastered" style={{ marginTop: 6 }}>{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>
-                )}
-                <div className="row between" style={{ marginTop: 10, gap: 8 }}>
-                  <span className="muted small">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}</span>
-                  <a href={actionHref(r)} className="btn sm">{t.actions[r.action]?.[0] || t.open}</a>
-                </div>
-              </div>
-            )) : <p className="muted small" style={{ padding: 14, margin: 0 }}>{t.notif.empty}</p>}
+              );
+            }) : <p className="muted small" style={{ padding: 14, margin: 0 }}>{t.notif.empty}</p>}
+            {hidden > 0 && <button className="bell-showmore" onClick={() => setShowAll(true)}>{t.notif.more(hidden)}</button>}
           </div>
           <a href="#/gaps" className="bell-foot link">{t.notif.all}</a>
         </div>

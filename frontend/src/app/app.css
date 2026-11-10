@@ -362,8 +362,28 @@ body { color: #111329; -webkit-font-smoothing: antialiased; }
 .bell-pop { position: absolute; top: 46px; right: -8px; width: 380px; max-width: calc(100vw - 32px); background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px -20px rgba(17,19,41,.35); z-index: 40; display: flex; flex-direction: column; max-height: min(560px, calc(100vh - 90px)); }
 .bell-head { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
 .bell-list { overflow-y: auto; }
-.bell-item { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.bell-item { border-bottom: 1px solid var(--line); }
 .bell-item:last-child { border-bottom: 0; }
+.bell-total { margin-left: 8px; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); vertical-align: 1px; }
+.bell-tabs { display: flex; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.bell-tabs button { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-size: 12px; color: #33364a; }
+.bell-tabs button span { color: var(--muted); margin-left: 2px; }
+.bell-tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.bell-tabs button.on span { color: rgba(255,255,255,.8); }
+.bell-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 16px; text-align: left; background: none; border: 0; cursor: pointer; font: inherit; color: inherit; }
+.bell-row:hover, .bell-item.open .bell-row { background: #f7f8fb; }
+.bell-mark { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.bell-mark.p3 { background: var(--red); }
+.bell-mark.p2 { background: var(--orange); }
+.bell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bell-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bell-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bell-date { flex: none; font-size: 11px; color: var(--muted); }
+.bell-chev { flex: none; display: grid; color: var(--muted); transition: transform .15s; }
+.bell-item.open .bell-chev { transform: rotate(90deg); }
+.bell-more { padding: 0 16px 12px 34px; background: #f7f8fb; display: flex; flex-direction: column; align-items: flex-start; }
+.bell-showmore { display: block; width: 100%; padding: 10px; border: 0; border-top: 1px solid var(--line); background: none; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; }
+.bell-showmore:hover { background: #f7f8fb; }
 .bell-foot { display: block; text-align: center; padding: 11px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 600; }
 .bell-count { position: absolute; top: 2px; right: 2px; transform: translate(35%, -35%); min-width: 18px; height: 18px; border-radius: 9px; background: var(--orange); color: #fff; font-size: 10px; font-weight: 700; line-height: 1; display: grid; place-items: center; padding: 0 5px; box-shadow: 0 0 0 2px #fff; pointer-events: none; }
 .search-pop { position: absolute; top: 52px; left: 0; right: 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px -20px rgba(17,19,41,.35); padding: 6px; z-index: 40; }
