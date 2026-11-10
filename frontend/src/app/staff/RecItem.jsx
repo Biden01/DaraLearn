@@ -53,7 +53,7 @@ export default function RecItem({ r, onChange, showStudent = true, covered = 0 }
           </div>
         )}
       </div>
-      <div className="stack" style={{ gap: 6, alignItems: "flex-end" }}>
+      <div className="stack rec-side" style={{ gap: 6, alignItems: "flex-end" }}>
         <span className={`badge ${BADGE[r.status]}`}>{t.rec[r.status]}</span>
         {r.needs_teacher && r.status === "new" && <span className="badge orange">{t.rec.needsTeacher}</span>}
         {!mode && ["new", "accepted", "changed"].includes(r.status) && (

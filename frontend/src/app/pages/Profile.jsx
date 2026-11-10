@@ -55,7 +55,7 @@ function StudentPart({ d, goal, classes, att }) {
   const pct = goal?.total ? Math.round((100 * goal.done) / goal.total) : 0;
   return (
     <>
-      <div className="grid g-4" style={{ marginBottom: 20 }}>
+      <div className="grid g-4 stats" style={{ marginBottom: 20 }}>
         {stats.map(([icon, c, v, l]) => (
           <div className="card row" key={l}><Box icon={icon} c={c} /><div><div style={{ fontSize: 22, fontWeight: 700 }}>{v}</div><div className="muted small">{l}</div></div></div>
         ))}

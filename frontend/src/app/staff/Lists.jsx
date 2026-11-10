@@ -14,7 +14,7 @@ export function Leads() {
       <div className="card" style={{ overflowX: "auto" }}>
         {list.length ? (
           <table className="heat"><tbody>{list.map((l) => (
-            <tr key={l.id}><td className="small">{new Date(l.created_at).toLocaleString()}</td><td><b>{l.name}</b><div className="muted small">{l.role} · {l.school}</div></td>
+            <tr key={l.id}><td className="small">{new Date(l.created_at).toLocaleString("ru-RU")}</td><td><b>{l.name}</b><div className="muted small">{l.role} · {l.school}</div></td>
               <td className="small"><a href={`mailto:${l.email}`}>{l.email}</a><div>{l.phone}</div></td><td className="small" style={{ maxWidth: 360 }}>{l.message}</td></tr>
           ))}</tbody></table>
         ) : <p className="muted">{t.admin.noLeads}</p>}
@@ -76,14 +76,14 @@ export function Support() {
         {d.items.length ? (
           <table className="heat"><tbody>{d.items.map((m) => (
             <tr key={m.id} style={m.status === "done" ? { opacity: 0.6 } : undefined}>
-              <td className="small">{new Date(m.created_at).toLocaleString()}</td>
+              <td className="small">{new Date(m.created_at).toLocaleString("ru-RU")}</td>
               <td><b>{m.user.name}</b><div className="muted small">{t.roles[m.user.role] || m.user.role}</div><div className="small"><a href={`mailto:${m.user.email}`}>{m.user.email}</a></div></td>
               <td className="small"><select value={m.topic} onChange={(e) => patch(m.id, { topic: e.target.value }, t.saved)} aria-label={t.help.topic}>
                 {Object.entries(topics).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></td>
               <td className="small" style={{ maxWidth: 480, whiteSpace: "pre-wrap" }}>{m.text}</td>
               <td className="small" style={{ whiteSpace: "nowrap" }}>
                 {m.status === "new" ? <button className="btn sm" onClick={() => patch(m.id, { status: "done" }, s.marked)}>{s.markDone}</button> : (
-                  <><div className="muted">{s.doneBy(m.resolved_by, new Date(m.resolved_at).toLocaleString())}</div>
+                  <><div className="muted">{s.doneBy(m.resolved_by, new Date(m.resolved_at).toLocaleString("ru-RU"))}</div>
                     <button className="link small" onClick={() => patch(m.id, { status: "new" }, s.reopened)}>{s.reopen}</button></>
                 )}
               </td></tr>
@@ -105,7 +105,7 @@ export function Audit() {
       <h1>{t.admin.audit}</h1>
       <div className="card" style={{ overflowX: "auto" }}>
         <table className="heat"><tbody>{list.map((a) => (
-          <tr key={a.id}><td className="small">{new Date(a.created_at).toLocaleString()}</td><td>{a.actor}</td><td><code>{a.action}</code></td>
+          <tr key={a.id}><td className="small">{new Date(a.created_at).toLocaleString("ru-RU")}</td><td>{a.actor}</td><td><code>{a.action}</code></td>
             <td className="muted small">{a.entity} #{a.entity_id} {Object.entries(a.data || {}).filter(([, v]) => v != null && v !== "").map(([k, v]) => `${k}=${v}`).join(", ")}</td></tr>
         ))}</tbody></table>
       </div>

@@ -133,7 +133,7 @@ function Feedback({ fb }) {
         <p className="card-title" style={{ marginTop: 8 }}>{f.comments}</p>
         {sv.comments.length ? sv.comments.map((c, i) => (
           <div key={i} className="small" style={{ padding: "8px 0", borderTop: "1px solid var(--line)" }}>
-            <div className="muted">{f.roles[c.role]}{c.arm ? ` · ${f.arm[c.arm] ?? c.arm}` : ""} · {new Date(c.at).toLocaleDateString()}</div>
+            <div className="muted">{f.roles[c.role]}{c.arm ? ` · ${f.arm[c.arm] ?? c.arm}` : ""} · {new Date(c.at).toLocaleDateString("ru-RU")}</div>
             <div style={{ whiteSpace: "pre-wrap" }}>{c.text}</div>
           </div>
         )) : <p className="muted small">{f.noComments}</p>}

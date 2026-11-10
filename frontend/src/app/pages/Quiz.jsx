@@ -42,7 +42,7 @@ export default function Quiz() {
                 <div className="list-item" key={c.id}>
                   <Box icon="clock" c="orange" size={36} />
                   <div className="grow"><div className="t-strong">{L(c.lesson.title)}</div>
-                    <div className="muted small">{new Date(c.due_at).toLocaleDateString()}</div></div>
+                    <div className="muted small">{new Date(c.due_at).toLocaleDateString("ru-RU")}</div></div>
                   <button className="btn sm" disabled={!c.due} onClick={() => startTest({ kind: "verification", check_id: c.id })}>{t.me.checkBtn}</button>
                 </div>
               ))}
