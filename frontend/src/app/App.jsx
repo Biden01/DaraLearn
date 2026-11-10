@@ -356,6 +356,7 @@ function Header({ alerts, onMenu, collapsed }) {
   const [index, setIndex] = useState([]);
   const [sel, setSel] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false); // телефон: поиск открывается по иконке
+  const [focused, setFocused] = useState(false);
   const input = useRef();
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
@@ -375,10 +376,19 @@ function Header({ alerts, onMenu, collapsed }) {
 
   const navItems = [...(ROLES[user.role] || ROLES.student).nav, ...NAV_BOTTOM]
     .map(([k, label]) => ({ title: t.nav[label] ?? t.snav[label], href: `#/${k}`, hint: "" }));
+  // Пустое поле: 4 подсказки — уроки из разных курсов по очереди (если уроков нет — разделы меню)
+  const suggest = useMemo(() => {
+    const byCourse = {};
+    index.filter((x) => x.href.startsWith("#/lesson/")).forEach((x) => (byCourse[x.hint] ||= []).push(x));
+    const groups = Object.values(byCourse), out = [];
+    for (let i = 0; out.length < 4 && groups.some((g) => g[i]); i++)
+      groups.forEach((g) => { if (g[i] && out.length < 4) out.push(g[i]); });
+    return out.length ? out.map((x) => ({ ...x, title: L(x.title), hint: L(x.hint) })) : navItems.slice(1, 5);
+  }, [index, lang]);
   const hits = q.trim()
     ? [...navItems, ...index.map((x) => ({ ...x, title: L(x.title), hint: L(x.hint) }))]
       .filter((x) => x.title.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 7)
-    : [];
+    : focused ? suggest : [];
 
   const goTo = (h) => { window.location.hash = h.href; setQ(""); setSearchOpen(false); input.current?.blur(); };
   const openSearch = () => { setSearchOpen(true); setTimeout(() => input.current?.focus(), 0); };
@@ -394,12 +404,14 @@ function Header({ alerts, onMenu, collapsed }) {
             if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(s + 1, hits.length - 1)); }
             if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
             if (e.key === "Enter" && hits[sel]) goTo(hits[sel]);
-            if (e.key === "Escape") { setQ(""); setSearchOpen(false); }
+            if (e.key === "Escape") { setQ(""); setSearchOpen(false); input.current?.blur(); }
           }}
-          onBlur={() => { if (!q.trim()) setSearchOpen(false); }} />
+          onFocus={() => { setFocused(true); setSel(0); }}
+          onBlur={() => { setFocused(false); if (!q.trim()) setSearchOpen(false); }} />
         <span className="kbd" aria-hidden="true">{isMac ? "⌘K" : "Ctrl K"}</span>
-        {q.trim() && (
+        {(q.trim() || (focused && hits.length > 0)) && (
           <div className="search-pop" role="listbox">
+            {!q.trim() && <div className="search-pop-head">{t.searchTry}</div>}
             {hits.length ? hits.map((h, i) => (
               <a key={h.href + h.title} href={h.href} className={i === sel ? "on" : ""} onMouseDown={(e) => e.preventDefault()}
                 onClick={() => { setQ(""); setSearchOpen(false); }}>
