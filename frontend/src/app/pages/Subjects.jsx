@@ -19,7 +19,7 @@ export default function Subjects() {
       <h1>{t.nav.subjects}</h1>
       <p className="subtitle">{sp.sub}</p>
       <div className="grid g-main">
-        <div className="grid g-3" style={{ alignContent: "start" }}>
+        <div className="subj-grid" style={{ alignContent: "start" }}>
           {shown.map((x) => (
             <button key={x.slug} className={`subj-tile ${x.slug === s.slug ? "on" : ""}`} onClick={() => setSel(x.slug)} style={x.active ? undefined : { opacity: 0.7 }}>
               <div className="row between"><Box sym={x.sym} c={x.color} />

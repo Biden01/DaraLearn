@@ -7,14 +7,26 @@ export default function Gaps() {
   const { t, L } = useApp();
   const [d, setD] = useState(null);
   const [sort, setSort] = useState("priority");
+  const [pos, setPos] = useState({}); // slug урока → место в программе (курс за курсом)
   useEffect(() => { api("/decisions/me").then(setD).catch(() => setD(false)); }, []);
+  useEffect(() => {
+    api("/content/courses?subject=math").then((cs) => {
+      const m = {}; let i = 0;
+      cs.forEach((c) => c.lessons.forEach((l) => { m[l.slug] = i++; }));
+      setPos(m);
+    }).catch(() => {});
+  }, []);
   if (d === null) return <Loading />;
   if (d === false) return <p className="muted">{t.error}</p>;
 
   const g = t.gaps;
   const main = d.recommendations.filter((r) => r.priority >= 2);
   const verify = d.recommendations.filter((r) => r.priority < 2);
-  const list = main;
+  // «По приоритету» — только слабые темы, самые важные сверху.
+  // «По порядку тем» — все темы с рекомендациями в порядке программы: видно, где в курсе проблемы.
+  const byOrder = sort === "order";
+  const at = (r) => pos[r.lesson] ?? 1e6 + r.order;
+  const list = byOrder ? [...main, ...verify].sort((a, b) => at(a) - at(b)) : main;
   const causes = Object.entries(d.causes).filter(([c]) => c !== "not_enough");
   const badge = { 3: "red", 2: "orange", 1: "gray" };
   return (
@@ -38,13 +50,13 @@ export default function Gaps() {
           <div className="grid g-main">
             <div className="stack">
               <div className="card">
-                <div className="card-head"><p className="card-title">{g.weak}</p>
+                <div className="card-head"><p className="card-title">{byOrder ? g.allTopics : g.weak}</p>
                   <div className="tabs">
                     <button className={sort === "priority" ? "on" : ""} onClick={() => setSort("priority")}>{g.byPriority}</button>
                     <button className={sort === "order" ? "on" : ""} onClick={() => setSort("order")}>{g.bySubject}</button>
                   </div>
                 </div>
-                {list.length ? (sort === "order" ? [...list].sort((a, b) => a.order - b.order) : list).map((r, i) => (
+                {list.length ? list.map((r, i) => (
                   <div className="list-item wrap" key={r.lesson}>
                     <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#f1f3f6", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700, flex: "none" }}>{i + 1}</div>
                     <div className="grow" style={{ minWidth: 180 }}>
@@ -53,13 +65,13 @@ export default function Gaps() {
                       {["accepted", "changed"].includes(r.status) && <div className="small st-mastered">{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>}
                       <div style={{ marginTop: 8, maxWidth: 260 }}><Bar p={r.proof * 100} /></div>
                     </div>
-                    <b style={{ width: 44, textAlign: "right" }}>{Math.round(r.proof * 100)}%</b>
-                    <span className={`badge ${badge[r.priority]}`}>{g.priority[r.priority]}</span>
-                    <a href={actionHref(r)} className={`btn sm ${r.priority === 3 ? "" : "ghost"}`}>{t.actions[r.action][0]}</a>
+                    <b style={{ width: 52, flex: "none", textAlign: "right" }}>{Math.round(r.proof * 100)}%</b>
+                    <span className={`badge gap-badge ${r.priority >= 2 ? badge[r.priority] : "gray"}`}>{r.priority >= 2 ? g.priority[r.priority] : g.verifyTitle}</span>
+                    <a href={actionHref(r)} className={`btn sm gap-btn ${r.priority === 3 ? "" : "ghost"}`}>{t.actions[r.action][0]}</a>
                   </div>
                 )) : <p className="muted">{g.empty}</p>}
               </div>
-              {verify.length > 0 && (
+              {!byOrder && verify.length > 0 && (
                 <div className="card">
                   <div className="card-head"><p className="card-title">{g.verifyTitle}</p><span className="muted small">{verify.length}</span></div>
                   <p className="muted small" style={{ marginTop: -8 }}>{t.causeHelp.not_enough}</p>
