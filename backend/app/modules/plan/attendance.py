@@ -12,10 +12,12 @@ from sqlalchemy.orm import Session
 from app.modules.events.models import LearningEvent
 from app.modules.plan import rules
 from app.modules.plan.models import DailyPlan, PlanItem
-from app.modules.school.models import User
+from app.modules.school.models import StreakFreezeUse, User
 from app.modules.tutor.models import TutorSession
 
 LOCAL_TZ = timezone(timedelta(hours=5))  # Казахстан
+MAX_STREAK_FREEZES = 2
+FREEZE_MILESTONE_DAYS = 7  # каждые 7 дней серии — +1 заморозка, до MAX_STREAK_FREEZES
 
 
 def _start(d: date) -> datetime:
@@ -66,43 +68,79 @@ def is_day_off(d: date) -> bool:
     return d.weekday() in rules.ATTENDANCE_DAYS_OFF
 
 
-def summary(user: User, present: set[date], first: date, today: date) -> dict:
-    """Календарь и итоги. Выходной без занятий — не пропуск; сегодня без занятий — ещё не пропуск."""
+def summary(user: User, present: set[date], first: date, today: date, frozen: set[date], balance: int) -> dict:
+    """Календарь и итоги. Выходной без занятий — не пропуск; сегодня без занятий — ещё не пропуск.
+    Один пропущенный учебный день подряд может спасти заморозка серии (streak freeze), если она есть — но только
+    самый свежий одиночный пропуск, идущий подряд два дня она не спасает (как в большинстве приложений)."""
     joined = user.created_at.astimezone(LOCAL_TZ).date() if user.created_at else first
-    days, school_days, attended = [], 0, 0
+    days_list, school_days, attended = [], 0, 0
     d = first
     while d <= today:
         if d < joined:
             st = "none"
         elif d in present:
             st = "present"
+        elif d in frozen:
+            st = "frozen"
         elif is_day_off(d):
             st = "off"
         elif d == today:
             st = "today"
         else:
             st = "absent"
-        if st in ("present", "absent") and not (st == "present" and is_day_off(d)):
+        if st in ("present", "absent", "frozen") and not is_day_off(d):
             school_days += 1
-            attended += st == "present"
-        days.append({"day": d.isoformat(), "status": st})
+            attended += st in ("present", "frozen")
+        days_list.append({"day": d.isoformat(), "status": st})
         d += timedelta(days=1)
-    # серия: подряд учебные дни с занятием; выходные не рвут серию, незаконченное «сегодня» тоже
-    streak = 0
-    for x in reversed(days):
-        if x["status"] == "present":
+    # серия: подряд учебные дни с занятием (или спасённые заморозкой); выходные и «сегодня» без занятий не рвут её
+    streak, used_freeze, newly_frozen = 0, False, None
+    for x in reversed(days_list):
+        if x["status"] in ("present", "frozen"):
             streak += 1
         elif x["status"] in ("off", "today"):
             continue
+        elif x["status"] == "absent" and not used_freeze and balance > 0:
+            x["status"] = "frozen"
+            newly_frozen = x["day"]
+            used_freeze = True
+            streak += 1
         else:
             break
     last = max(present) if present else None
-    return {"days": days, "present": attended, "school_days": school_days,
+    return {"days": days_list, "present": attended, "school_days": school_days,
             "rate": round(attended / school_days, 2) if school_days else None,
-            "streak": streak, "today": today in present, "last_present": last.isoformat() if last else None}
+            "streak": streak, "today": today in present, "last_present": last.isoformat() if last else None,
+            "newly_frozen": date.fromisoformat(newly_frozen) if newly_frozen else None,
+            "freezes": balance - (1 if used_freeze else 0)}
 
 
 def attendance_for(db: Session, users: list[User], today: date, days: int) -> dict[int, dict]:
     first = today - timedelta(days=days - 1)
     present = present_days(db, [u.id for u in users], first, today)
-    return {u.id: summary(u, present[u.id], first, today) for u in users}
+    user_ids = [u.id for u in users]
+    frozen_by_user: dict[int, set[date]] = {uid: set() for uid in user_ids}
+    if user_ids:
+        for uid, d in db.execute(select(StreakFreezeUse.user_id, StreakFreezeUse.day).where(
+                StreakFreezeUse.user_id.in_(user_ids), StreakFreezeUse.day >= first, StreakFreezeUse.day <= today)):
+            frozen_by_user[uid].add(d)
+
+    out: dict[int, dict] = {}
+    dirty = False
+    for u in users:
+        s = summary(u, present[u.id], first, today, frozen_by_user[u.id], u.streak_freezes)
+        if s["newly_frozen"]:
+            db.add(StreakFreezeUse(user_id=u.id, day=s["newly_frozen"]))
+            dirty = True
+        milestone = s["streak"] // FREEZE_MILESTONE_DAYS
+        new_freezes = min(MAX_STREAK_FREEZES, s["freezes"] + max(0, milestone - u.freeze_milestone))
+        if new_freezes != u.streak_freezes or milestone > u.freeze_milestone:
+            u.streak_freezes = new_freezes
+            u.freeze_milestone = max(u.freeze_milestone, milestone)
+            dirty = True
+        s["freezes"] = u.streak_freezes
+        del s["newly_frozen"]
+        out[u.id] = s
+    if dirty:
+        db.commit()
+    return out

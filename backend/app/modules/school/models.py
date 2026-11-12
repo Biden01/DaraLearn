@@ -30,6 +30,19 @@ class User(Base):
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     weekly_goal: Mapped[int] = mapped_column(Integer, default=30)  # заданий в неделю
     family_code: Mapped[str | None] = mapped_column(String(8), unique=True, index=True, nullable=True)  # код ученика для привязки родителя
+    streak_freezes: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # запас заморозок серии, максимум 2
+    freeze_milestone: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # до какого рубежа (серия // 7) уже начислено
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class StreakFreezeUse(Base):
+    """День, когда заморозка серии спасла пропуск — чтобы не списывать повторно и красиво показать в календаре."""
+    __tablename__ = "streak_freeze_uses"
+    __table_args__ = (UniqueConstraint("user_id", "day"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

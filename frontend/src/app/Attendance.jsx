@@ -33,11 +33,12 @@ export function AttCalendar({ days }) {
   );
 }
 
-export function AttLegend() {
+export function AttLegend({ a }) {
   const { t } = useApp();
+  const ks = a?.days.some((d) => d.status === "frozen") ? ["present", "frozen", "absent", "off"] : ["present", "absent", "off"];
   return (
     <div className="att-legend muted small">
-      {["present", "absent", "off"].map((k) => <span key={k}><i className={`att-cell ${k}`} />{t.att.status[k]}</span>)}
+      {ks.map((k) => <span key={k}><i className={`att-cell ${k}`} />{t.att.status[k]}</span>)}
     </div>
   );
 }
@@ -49,6 +50,9 @@ export function AttStats({ a }) {
     <div className="att-stats">
       <div><b>{a.rate == null ? "—" : `${Math.round(a.rate * 100)}%`}</b><span className="muted small">{at.days(a.present, a.school_days)}</span></div>
       <div><b className="row" style={{ gap: 4 }}><Icon n="fire" s={16} />{a.streak}</b><span className="muted small">{at.streak}</span></div>
+      {a.freezes > 0 && (
+        <div><b className="att-freezes"><Icon n="snow" s={16} />{a.freezes}</b><span className="muted small" title={at.freezeHelp}>{at.freezes}</span></div>
+      )}
     </div>
   );
 }
@@ -75,7 +79,7 @@ export default function AttendanceCard({ a, self = false }) {
       <AttToday a={a} self={self} />
       <AttStats a={a} />
       <AttCalendar days={a.days} />
-      <AttLegend />
+      <AttLegend a={a} />
     </div>
   );
 }

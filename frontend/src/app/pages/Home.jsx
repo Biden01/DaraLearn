@@ -55,6 +55,8 @@ export default function Home() {
           <button className="tlink" onClick={() => startTest({ kind: "verification", check_id: checks[0].id })}>{h.checkGo}</button>
         </div>
       )}
+      <PlanReminder plan={plan} streak={att?.streak} />
+      <GoalCelebration goal={d.goal} userId={user.id} />
       <SurveyCard quiet />
 
       <div className="home-grid top">
@@ -169,10 +171,14 @@ function AttendanceCard({ att }) {
   const { t } = useApp();
   const h = t.home;
   const days = att.days.slice(-14);
+  const ks = days.some((d) => d.status === "frozen") ? ["present", "frozen", "absent", "today"] : ["present", "absent", "today"];
   return (
     <section className="hcard">
       <div className="hcard-head"><h2>{t.att.title}</h2><a href="#/profile" className="tlink">{h.attMore} <Icon n="chev" s={16} /></a></div>
-      <p className="att-big"><b>{att.rate == null ? "—" : `${Math.round(att.rate * 100)}%`}</b> <span>· {t.att.days(att.present, att.school_days)}</span></p>
+      <p className="att-big">
+        <b>{att.rate == null ? "—" : `${Math.round(att.rate * 100)}%`}</b> <span>· {t.att.days(att.present, att.school_days)}</span>
+        {att.freezes > 0 && <span className="att-freezes" style={{ marginLeft: 10 }} title={t.att.freezeHelp}><Icon n="snow" s={15} /> {att.freezes}</span>}
+      </p>
       <div className="att-row-big">
         {days.map((x) => {
           const label = `${x.day.slice(8)}.${x.day.slice(5, 7)} · ${t.att.status[x.status]}`;
@@ -180,7 +186,7 @@ function AttendanceCard({ att }) {
         })}
       </div>
       <div className="att-legend2">
-        {["present", "absent", "today"].map((k) => <span key={k}><i className={`lg ${k}`} />{h.legend[k]}</span>)}
+        {ks.map((k) => <span key={k}><i className={`lg ${k}`} />{h.legend[k]}</span>)}
       </div>
       <AttToday a={att} self />
     </section>
@@ -226,5 +232,58 @@ function Quick({ href, icon, c, title, sub }) {
       <span className="grow"><b>{title}</b><span className="muted">{sub}</span></span>
       <Icon n="chev" s={18} />
     </a>
+  );
+}
+
+// Кешке қарай жоспар әлі аяқталмаса — бір рет еске салу (push/email жоқ, infra қажет емес).
+function PlanReminder({ plan, streak }) {
+  const { t } = useApp();
+  const m = t.me;
+  const key = `dl_plan_rem_${new Date().toISOString().slice(0, 10)}`;
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(key) === "1"; } catch { return false; }
+  });
+  const hour = new Date().getHours();
+  if (dismissed || !plan || !plan.items.length || plan.rate >= 1 || hour < 18) return null;
+  const close = () => {
+    try { localStorage.setItem(key, "1"); } catch { /* */ }
+    setDismissed(true);
+  };
+  return (
+    <div className="quiet-row amber">
+      <Box icon="clock" c="orange" size={36} />
+      <p className="grow"><b>{m.remindTitle}</b> · {streak > 0 ? m.remindStreak(streak) : m.remindText}</p>
+      <a href="#/plan" className="tlink">{t.home.planOpen}</a>
+      <button className="tlink" onClick={close} aria-label={t.home.celebrate.close}><Icon n="x" s={16} /></button>
+    </div>
+  );
+}
+
+function weekStartKey(userId) {
+  const d = new Date();
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return `dl_goal_cel_${userId}_${monday.toISOString().slice(0, 10)}`;
+}
+
+// Апта мақсаты орындалғанда бір рет көрсетілетін мереке баннері — аптасына бір рет, осы құрылғыда.
+function GoalCelebration({ goal, userId }) {
+  const { t } = useApp();
+  const h = t.home.celebrate;
+  const key = weekStartKey(userId);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(key) === "1"; } catch { return false; }
+  });
+  if (dismissed || !goal?.target || goal.done < goal.target) return null;
+  const close = () => {
+    try { localStorage.setItem(key, "1"); } catch { /* */ }
+    setDismissed(true);
+  };
+  return (
+    <div className="quiet-row green">
+      <Box icon="star" c="orange" size={36} />
+      <p className="grow"><b>{h.title}</b> · {h.text(goal.done)}</p>
+      <button className="tlink" onClick={close} aria-label={h.close}><Icon n="x" s={18} /></button>
+    </div>
   );
 }
