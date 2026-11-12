@@ -16,6 +16,33 @@ def test_auth_and_roles(admin):
     assert s.post("/api/auth/password", json={"old": "wrong", "new": "newsecret2"}).status_code == 400
 
 
+def test_parent_role():
+    s = register()
+    code = s.ok("GET", "/api/auth/family-code")["code"]
+    assert s.ok("GET", "/api/auth/family-code")["code"] == code  # код не меняется при повторном запросе
+
+    parent = client()
+    parent.ok("POST", "/api/auth/register-parent", 201,
+              json={"email": f"p{uid()}@test.kz", "password": "secret123", "name": "Родитель", "lang": "kk", "family_code": code})
+    assert parent.ok("GET", "/api/auth/me")["role"] == "parent"
+    kids = parent.ok("GET", "/api/auth/me/children")
+    assert len(kids) == 1 and kids[0]["id"] == s.ok("GET", "/api/auth/me")["id"]
+
+    d = parent.ok("GET", f"/api/state/students/{kids[0]['id']}")
+    assert d["student"]["name"] == "Ученик"
+    assert parent.get(f"/api/plan/students/{kids[0]['id']}/month").status_code == 200
+
+    other = register()
+    assert parent.get(f"/api/state/students/{other.ok('GET', '/api/auth/me')['id']}").status_code == 404
+    # другой родитель с неверным кодом
+    bad = client()
+    assert bad.post("/api/auth/register-parent",
+                     json={"email": f"p{uid()}@test.kz", "password": "secret123", "name": "Р", "lang": "kk",
+                           "family_code": "ZZZZZZ"}).status_code == 400
+    # рейтинги/сравнение с другими ученикам недоступны родителю
+    assert parent.get("/api/state/classes/1").status_code == 403
+
+
 def test_diagnostic_persists_root_cause():
     s = register()
     r = diagnostic(s, wrong={"linear-eq", "qe-def", "discriminant"})

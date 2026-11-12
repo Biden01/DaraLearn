@@ -114,7 +114,7 @@ def my_attendance(user: User = Depends(require_role("student")), db: Session = D
 
 
 @router.get("/students/{student_id}/attendance")
-def student_attendance(student_id: int, user: User = Depends(require_role("teacher", "curator")),
+def student_attendance(student_id: int, user: User = Depends(require_role("teacher", "curator", "parent")),
                        db: Session = Depends(get_db)) -> dict:
     s = get_student(db, user, student_id)
     return attendance_for(db, [s], today_local(), rules.ATTENDANCE_STUDENT_DAYS)[s.id]
@@ -148,7 +148,7 @@ def attendance_overview(user: User = Depends(require_role("teacher", "curator"))
 
 
 @router.get("/students/{student_id}/month")
-def student_month(student_id: int, user: User = Depends(require_role("teacher", "curator")),
+def student_month(student_id: int, user: User = Depends(require_role("teacher", "curator", "parent")),
                   db: Session = Depends(get_db)) -> dict:
     """Цель месяца ученика с разбивкой по неделям. Пока ученик не открыл план в этом месяце, цели нет."""
     s = get_student(db, user, student_id)

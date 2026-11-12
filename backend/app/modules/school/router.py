@@ -92,7 +92,7 @@ class ClassIn(BaseModel):
 
 
 class UserPatch(BaseModel):
-    role: Literal["student", "teacher", "curator", "admin"] | None = None
+    role: Literal["student", "teacher", "curator", "admin", "parent"] | None = None
     school_id: int | None = None
     reset_password: bool = False
 

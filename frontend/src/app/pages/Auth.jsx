@@ -15,9 +15,11 @@ export default function Auth() {
     setErr("");
     const f = Object.fromEntries(new FormData(e.target));
     const body = mode === "login" ? { login: f.email, password: f.password }
+      : mode === "parent" ? { email: f.email, password: f.password, name: f.name, lang, family_code: f.family_code }
       : { email: f.email, password: f.password, name: f.name, grade: Number(f.grade), lang, code: f.code || "" };
+    const endpoint = mode === "parent" ? "register-parent" : mode;
     try {
-      const u = await api(`/auth/${mode}`, { method: "POST", body });
+      const u = await api(`/auth/${endpoint}`, { method: "POST", body });
       setUser(u);
       setLang(u.lang);
       window.location.hash = mode === "register" && u.role === "student" ? "#/diagnostics" : "#/";
@@ -41,7 +43,7 @@ export default function Auth() {
       <div className="auth-form">
         <form onSubmit={submit}>
           <div className="row between">
-            <h1 style={{ margin: 0 }}>{mode === "login" ? a.login : a.register}</h1>
+            <h1 style={{ margin: 0 }}>{mode === "login" ? a.login : mode === "parent" ? a.parentTitle : a.register}</h1>
             <div className="lang" role="group" style={{ display: "inline-flex", border: "1px solid var(--line)", borderRadius: 9, padding: 3 }}>
               {["kk", "ru"].map((l) => <button type="button" key={l} aria-pressed={lang === l} onClick={() => setLang(l)}>{l === "kk" ? "ҚАЗ" : "РУС"}</button>)}
             </div>
@@ -54,26 +56,45 @@ export default function Auth() {
               </label>
             </div>
           )}
+          {mode === "parent" && (
+            <label className="field">{a.name}<input name="name" required maxLength={200} autoComplete="given-name" /></label>
+          )}
           <label className="field">{mode === "login" ? t.me.loginOrEmail : a.email}
             <input name="email" type={mode === "login" ? "text" : "email"} required autoComplete={mode === "login" ? "username" : "email"} /></label>
           <label className="field">{a.password}
-            <input name="password" type="password" required minLength={mode === "register" ? 8 : undefined}
+            <input name="password" type="password" required minLength={mode === "login" ? undefined : 8}
               autoComplete={mode === "login" ? "current-password" : "new-password"} />
-            {mode === "register" && <span className="small">{a.min8}</span>}
+            {mode !== "login" && <span className="small">{a.min8}</span>}
           </label>
           {mode === "register" && (
             <label className="field">{t.me.codeOpt}
               <input name="code" maxLength={12} defaultValue={new URLSearchParams(window.location.hash.split("?")[1] || "").get("code") || ""}
                 style={{ textTransform: "uppercase", letterSpacing: 2 }} /></label>
           )}
+          {mode === "parent" && (
+            <label className="field">{a.familyCode}
+              <input name="family_code" required minLength={4} maxLength={8}
+                style={{ textTransform: "uppercase", letterSpacing: 2 }} />
+              <span className="small">{a.familyCodeHelp}</span></label>
+          )}
           {err && <p className="form-error" role="alert">{err}</p>}
-          <button className="btn block" disabled={busy}>{mode === "login" ? a.login : a.register}</button>
+          <button className="btn block" disabled={busy}>{mode === "login" ? a.login : mode === "parent" ? a.parentTitle : a.register}</button>
           <p className="muted" style={{ textAlign: "center" }}>
             {mode === "login" ? a.noAccount : a.haveAccount}{" "}
             <button type="button" className="link" onClick={() => { setMode(mode === "login" ? "register" : "login"); setErr(""); }}>
               {mode === "login" ? a.register : a.login}
             </button>
           </p>
+          {mode !== "parent" && (
+            <p className="muted small" style={{ textAlign: "center" }}>
+              <button type="button" className="link" onClick={() => { setMode("parent"); setErr(""); }}>{a.parentRegister}</button>
+            </p>
+          )}
+          {mode === "parent" && (
+            <p className="muted small" style={{ textAlign: "center" }}>
+              <button type="button" className="link" onClick={() => { setMode("login"); setErr(""); }}>{a.toParentLogin}</button>
+            </p>
+          )}
         </form>
       </div>
     </div>

@@ -10,10 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.db import get_db
-from app.core.security import clear_session, current_user, hash_password, set_session, verify_password
+from app.core.security import clear_session, current_user, hash_password, require_role, set_session, verify_password
 from app.modules.leads.router import client_ip
+from app.modules.school.access import new_code
 from app.modules.school.invites import apply_invite, find_invite
-from app.modules.school.models import ClassMember, SchoolClass, User
+from app.modules.school.models import ClassMember, ParentLink, SchoolClass, User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -55,6 +56,18 @@ class PasswordIn(BaseModel):
 
 class CodeIn(BaseModel):
     code: str = Field(min_length=4, max_length=12)
+
+
+class RegisterParentIn(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    name: str = Field(min_length=1, max_length=200)
+    lang: Literal["kk", "ru"] = "kk"
+    family_code: str = Field(min_length=4, max_length=8)
+
+
+class FamilyCodeIn(BaseModel):
+    family_code: str = Field(min_length=4, max_length=8)
 
 
 class ProfileIn(BaseModel):
@@ -151,3 +164,55 @@ def my_classes(user: User = Depends(current_user), db: Session = Depends(get_db)
                       .outerjoin(User, User.id == SchoolClass.teacher_id)
                       .where(ClassMember.user_id == user.id)).all()
     return [{"id": c.id, "name": c.name, "grade": c.grade, "subject": c.subject, "teacher": t} for c, t in rows]
+
+
+def _link_child(db: Session, parent: User, code: str) -> None:
+    student = db.scalar(select(User).where(User.family_code == code.strip().upper(), User.role == "student"))
+    if not student:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "bad_family_code")
+    exists = db.scalar(select(ParentLink).where(ParentLink.parent_id == parent.id, ParentLink.student_id == student.id))
+    if not exists:
+        db.add(ParentLink(parent_id=parent.id, student_id=student.id))
+
+
+@router.post("/register-parent", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+def register_parent(payload: RegisterParentIn, request: Request, response: Response, db: Session = Depends(get_db)) -> User:
+    """Регистрация родителя: сразу привязывается к ученику по его коду (см. /auth/family-code)."""
+    check_login_rate(client_ip(request))
+    email = payload.email.lower()
+    if db.scalar(select(func.count()).select_from(User).where(User.email == email)):
+        raise HTTPException(status.HTTP_409_CONFLICT, "email_taken")
+    user = User(email=email, password_hash=hash_password(payload.password), name=payload.name.strip(),
+                lang=payload.lang, role="parent")
+    db.add(user)
+    db.flush()
+    _link_child(db, user, payload.family_code)
+    db.commit()
+    set_session(response, user.id)
+    return user
+
+
+@router.get("/family-code")
+def family_code(user: User = Depends(require_role("student")), db: Session = Depends(get_db)) -> dict:
+    """Код ученика, чтобы родитель привязался к нему. Создаётся при первом запросе и больше не меняется."""
+    if not user.family_code:
+        code = new_code(6)
+        while db.scalar(select(User).where(User.family_code == code)):
+            code = new_code(6)
+        user.family_code = code
+        db.commit()
+    return {"code": user.family_code}
+
+
+@router.post("/parent/link", status_code=status.HTTP_204_NO_CONTENT)
+def parent_link(payload: FamilyCodeIn, user: User = Depends(require_role("parent")), db: Session = Depends(get_db)) -> None:
+    """Привязать ещё одного ребёнка к уже существующему родительскому аккаунту."""
+    _link_child(db, user, payload.family_code)
+    db.commit()
+
+
+@router.get("/me/children")
+def my_children(user: User = Depends(require_role("parent")), db: Session = Depends(get_db)) -> list[dict]:
+    rows = db.execute(select(User.id, User.name, User.grade).join(ParentLink, ParentLink.student_id == User.id)
+                      .where(ParentLink.parent_id == user.id).order_by(User.name)).all()
+    return [{"id": r.id, "name": r.name, "grade": r.grade} for r in rows]

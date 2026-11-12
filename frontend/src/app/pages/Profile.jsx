@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { Bar, Box, Icon, Ring, useApp } from "../ui.jsx";
 import { monthName } from "./Plan.jsx";
 import AttendanceCard from "../Attendance.jsx";
+import FamilyCode from "./FamilyCode.jsx";
 
 const ACH_ICONS = { first_step: "star", diagnostic: "doc", perfect_test: "target", streak5: "fire", five_mastered: "book", all_mastered: "check" };
 
@@ -78,6 +79,7 @@ function StudentPart({ d, goal, classes, att }) {
             ) : <p className="muted small" style={{ margin: 0 }}>{pr.goalNone}</p>}
           </div>
           <AttendanceCard a={att} self />
+          <FamilyCode />
           <div className="card">
             <p className="card-title" style={{ marginBottom: 8 }}>{t.me.classes}</p>
             {classes.length ? classes.map((c) => (

@@ -36,6 +36,8 @@ import { Leads, Support, Audit } from "./staff/Lists.jsx";
 import DevBoard from "./staff/DevBoard.jsx";
 import TeacherTime from "./staff/TeacherTime.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
+import ParentHome from "./parent/ParentHome.jsx";
+import ParentChild from "./parent/ParentChild.jsx";
 import "@fontsource-variable/onest";
 import "./app.css";
 
@@ -66,8 +68,12 @@ const ROLES = {
     pages: { "": Metrics, schools: Schools, users: Users, classes: Classes, content: Content, edit: LessonEdit, leads: Leads,
       support: Support, audit: Audit, dev: DevBoard, feed: Feed, import: ImportResults, ...STAFF_VIEW },
   },
+  parent: {
+    nav: [["", "children", "home"]],
+    pages: { "": ParentHome, child: ParentChild },
+  },
 };
-const ACTIVE = { lesson: "courses", result: "quiz", class: "classes", student: "classes", edit: "content" };
+const ACTIVE = { lesson: "courses", result: "quiz", class: "classes", student: "classes", edit: "content", child: "" };
 
 function parseHash() {
   const h = window.location.hash.replace(/^#\/?/, "");

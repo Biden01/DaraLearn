@@ -127,8 +127,11 @@ const kk = {
     login: "Кіру", register: "Тіркелу", email: "Email", password: "Құпиясөз", name: "Атың", gradeL: "Сынып",
     noAccount: "Аккаунтың жоқ па?", haveAccount: "Аккаунтың бар ма?", min8: "Кемінде 8 таңба",
     errors: { bad_credentials: "Email немесе құпиясөз қате.", email_taken: "Бұл email бұрын тіркелген. Кіріп көріңіз.",
-      too_many_attempts: "Әрекет тым көп. 10 минуттан кейін қайталаңыз.", invalid: "Деректерді тексеріңіз: email дұрыс па және құпиясөз кемінде 8 таңба ма?" },
-    toSite: "Басты сайтқа" },
+      too_many_attempts: "Әрекет тым көп. 10 минуттан кейін қайталаңыз.", invalid: "Деректерді тексеріңіз: email дұрыс па және құпиясөз кемінде 8 таңба ма?",
+      bad_family_code: "Код қате немесе бала табылмады." },
+    toSite: "Басты сайтқа",
+    parentRegister: "Ата-ана ретінде тіркелу", parentTitle: "Ата-ана тіркелуі", familyCode: "Балаңның коды",
+    familyCodeHelp: "Балаңның «Баптаулар» бөлімінде көрсетілген кодын енгіз.", toParentLogin: "Кіру" },
 };
 
 const ru = {
@@ -253,8 +256,11 @@ const ru = {
     login: "Войти", register: "Регистрация", email: "Email", password: "Пароль", name: "Имя", gradeL: "Класс",
     noAccount: "Нет аккаунта?", haveAccount: "Уже есть аккаунт?", min8: "Минимум 8 символов",
     errors: { bad_credentials: "Неверный email или пароль.", email_taken: "Этот email уже зарегистрирован. Попробуйте войти.",
-      too_many_attempts: "Слишком много попыток. Повторите через 10 минут.", invalid: "Проверьте данные: корректный ли email и не короче ли 8 символов пароль?" },
-    toSite: "На главный сайт" },
+      too_many_attempts: "Слишком много попыток. Повторите через 10 минут.", invalid: "Проверьте данные: корректный ли email и не короче ли 8 символов пароль?",
+      bad_family_code: "Код неверный или ребёнок не найден." },
+    toSite: "На главный сайт",
+    parentRegister: "Зарегистрироваться как родитель", parentTitle: "Регистрация родителя", familyCode: "Код ребёнка",
+    familyCodeHelp: "Введите код, который виден ребёнку в разделе «Настройки».", toParentLogin: "Войти" },
 };
 
 export const STRINGS = { kk: { ...kk, ...STAFF.kk, ...PLAN.kk, ...DEV.kk, ...PILOT.kk }, ru: { ...ru, ...STAFF.ru, ...PLAN.ru, ...DEV.ru, ...PILOT.ru } };

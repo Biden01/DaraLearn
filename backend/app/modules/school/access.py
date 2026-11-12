@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.modules.school.models import ClassMember, SchoolClass, User
+from app.modules.school.models import ClassMember, ParentLink, SchoolClass, User
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # без похожих 0/O, 1/I
 
@@ -44,6 +44,8 @@ def visible_student_ids(db: Session, user: User) -> set[int] | None:
         return None
     if user.role == "student":
         return {user.id}
+    if user.role == "parent":
+        return set(db.scalars(select(ParentLink.student_id).where(ParentLink.parent_id == user.id)))
     ids = [c.id for c in visible_classes(db, user)]
     if not ids:
         return set()

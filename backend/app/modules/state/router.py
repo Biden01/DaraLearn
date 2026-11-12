@@ -35,7 +35,7 @@ def dashboard(user: User = Depends(current_user), db: Session = Depends(get_db))
 
 
 @router.get("/students/{student_id}")
-def student_dashboard(student_id: int, user: User = Depends(require_role("teacher", "curator")),
+def student_dashboard(student_id: int, user: User = Depends(require_role("teacher", "curator", "parent")),
                       db: Session = Depends(get_db)) -> dict:
     s = get_student(db, user, student_id)
     out = build_dashboard(db, s)
