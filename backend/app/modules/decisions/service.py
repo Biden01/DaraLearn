@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.modules.content.models import Lesson
+from app.modules.content.models import ERROR_KINDS, Lesson, Task
 from app.modules.content.service import lessons_of, subject_by_slug
 from app.modules.decisions.engine import decide, tutor_sessions_by_lesson
 from app.modules.decisions.models import Hypothesis, Recommendation
@@ -115,6 +115,24 @@ def sync_class_group(db: Session, class_id: int, lessons: list[Lesson] | None = 
             rec.status = "done" if rec.status in ("accepted", "changed") else "obsolete"
             rec.done_at = datetime.now(timezone.utc)
     db.flush()
+
+
+def misconceptions(db: Session, user_ids: set[int]) -> dict[tuple[int, int], dict[str, int]]:
+    """Какие ошибки ученик делал по навыку: (user_id, lesson_id) → {тип: сколько раз}, по выбранным неверным вариантам."""
+    from app.modules.events.models import LearningEvent
+    if not user_ids:
+        return {}
+    rows = db.execute(select(LearningEvent.user_id, LearningEvent.lesson_id, LearningEvent.choice, Task.option_errors)
+                      .join(Task, Task.id == LearningEvent.task_id)
+                      .where(LearningEvent.user_id.in_(user_ids), LearningEvent.correct.is_(False),
+                             LearningEvent.choice.is_not(None))).all()
+    out: dict[tuple[int, int], dict[str, int]] = {}
+    for uid, lid, choice, errs in rows:
+        kind = errs[choice] if errs and 0 <= choice < len(errs) else ""
+        if kind in ERROR_KINDS:
+            d = out.setdefault((uid, lid), {})
+            d[kind] = d.get(kind, 0) + 1
+    return out
 
 
 def rec_out(r: Recommendation, lessons_by_id: dict[int, Lesson], states: dict[int, SkillState] | None = None) -> dict:

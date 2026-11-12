@@ -9,6 +9,8 @@ export const DEV = {
       add: "Карточка қосу", newTitle: "Тапсырма атауы", cancel: "Болдырмау", name: "Атауы", description: "Сипаттама",
       column: "Баған", assignee: "Орындаушы", points: "Story points", label: "Белгі", save: "Сақтау", delete: "Жою",
       confirmDelete: "Карточканы жою керек пе?" },
+    docs: { title: "Өнім жоспары", tabs: { plan: "V0 жоспары", competitors: "Бәсекелестер", architecture: "Архитектура" },
+      source: "docs/ ішіндегі файлдардан — git-тегі өзгеріс деплойдан кейін осында шығады" },
   },
   ru: {
     dev: { title: "Scrum", sprint: (n) => `Спринт ${n}`, progress: (a, b) => `Готово: ${a} из ${b} очков`, all: "Все",
@@ -19,5 +21,7 @@ export const DEV = {
       add: "Добавить карточку", newTitle: "Название задачи", cancel: "Отмена", name: "Название", description: "Описание",
       column: "Колонка", assignee: "Исполнитель", points: "Story points", label: "Метка", save: "Сохранить", delete: "Удалить",
       confirmDelete: "Удалить карточку?" },
+    docs: { title: "План продукта", tabs: { plan: "План V0", competitors: "Конкуренты", architecture: "Архитектура" },
+      source: "Из файлов docs/ — правка в git появится здесь после деплоя" },
   },
 };

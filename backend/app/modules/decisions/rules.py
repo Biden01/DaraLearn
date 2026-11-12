@@ -11,7 +11,7 @@ class Rules:
     group_min: int = 2
     # None — эскалации по числу попыток нет (Tutor): учитель подключается по low confidence или кнопке.
     teacher_after_failed_sessions: int | None = None
-    plan_completion_min: float = 0.3  # ниже — очередь куратора (см. plan.rules)
+    plan_completion_min: float = 0.3  # ниже — очередь куратора; plan.rules.ADHERENCE_LIMIT берёт это значение
     mastery_needs_verified: bool = True   # «освоено» только при независимо подтверждённом результате
 
 

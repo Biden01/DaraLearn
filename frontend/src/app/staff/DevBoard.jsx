@@ -6,6 +6,21 @@ const LABELS = ["", "feature", "bug", "design", "content", "infra"];
 const POINTS = [0, 1, 2, 3, 5, 8, 13];
 const byPos = (a, b) => a.position - b.position || a.id - b.id;
 const DRAG_THRESHOLD = 6; // px до начала переноса — отличает перенос от тапа/клика
+const LIVE_MS = 2000; // как часто спрашивать сервер, не поменялась ли доска
+
+const CardBody = ({ x, d }) => (
+  <>
+    {x.label && <span className={`dev-label l-${x.label}`}>{d.labels[x.label]}</span>}
+    <div className="dev-card-title">{x.title}</div>
+    <div className="row between" style={{ marginTop: 8 }}>
+      <span className="muted small">#{x.id}{x.description ? " · ≡" : ""}</span>
+      <span className="row" style={{ gap: 6 }}>
+        {x.points > 0 && <span className="badge gray">{x.points}</span>}
+        {x.assignee && <span className={`dev-ava m-${x.assignee}`} title={x.assignee}>{x.assignee[0].toUpperCase()}</span>}
+      </span>
+    </div>
+  </>
+);
 
 // Scrum-доска команды как в Trello: колонки, перетаскивание карточек, исполнители, story points.
 export default function DevBoard() {
@@ -15,18 +30,52 @@ export default function DevBoard() {
   const [who, setWho] = useState("");
   const [drag, setDrag] = useState(null);
   const [over, setOver] = useState(null); // {column, before} — куда упадёт карточка
+  // «призрак» карточки под курсором/пальцем: с Pointer Events браузер сам его не рисует
+  const [ghost, setGhost] = useState(null); // {task, x, y, offX, offY, w}
   const [edit, setEdit] = useState(null);
   const [adding, setAdding] = useState(null);
   const [sprints, setSprints] = useState([]);
   // перенос через Pointer Events — одна логика для мыши, тача и пера
   const pointerRef = useRef(null); // {id, column, pointerId, startX, startY, dragging}
   const justDraggedRef = useRef(false); // гасит click сразу после переноса
+  const stampRef = useRef(null); // версия доски, которую мы сейчас показываем
+  const pendingRef = useRef(0); // свои запросы в полёте — пока они идут, чужие обновления не применяем
+  const seqRef = useRef(0); // счётчик своих действий — отбрасывает ответ, устаревший из-за них
 
   const load = () => {
-    api("/dev/board").then(setBoard).catch(() => toast(t.error));
+    api("/dev/board").then((b) => { stampRef.current = b.stamp; setBoard(b); }).catch(() => toast(t.error));
     api("/dev/sprints").then(setSprints).catch(() => {});
   };
+  // свой запрос: оптимистичное обновление уже на экране, обновления с сервера ждут его окончания
+  const mutate = async (fn) => {
+    pendingRef.current += 1; seqRef.current += 1;
+    try { return await fn(); } finally { pendingRef.current -= 1; }
+  };
   useEffect(load, []);
+
+  // Реальное время: раз в LIVE_MS спрашиваем stamp и перезагружаем доску, только если её кто-то поменял.
+  // Не трогаем доску во время переноса и своих запросов; в фоновой вкладке не опрашиваем.
+  useEffect(() => {
+    let busy = false;
+    const tick = async () => {
+      if (busy || document.hidden || pointerRef.current?.dragging || pendingRef.current) return;
+      busy = true;
+      const seq = seqRef.current;
+      try {
+        const { stamp } = await api("/dev/board/stamp");
+        if (stamp === stampRef.current) return;
+        const [b, sp] = await Promise.all([api("/dev/board"), api("/dev/sprints")]);
+        // пока грузили, начали перенос или своё действие — ответ мог устареть, возьмём на следующем тике
+        if (pointerRef.current?.dragging || pendingRef.current || seq !== seqRef.current) return;
+        stampRef.current = b.stamp;
+        setBoard(b);
+        setSprints(sp);
+      } catch { /* сеть моргнула — попробуем на следующем тике */ } finally { busy = false; }
+    };
+    const id = setInterval(tick, LIVE_MS);
+    document.addEventListener("visibilitychange", tick);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", tick); };
+  }, []);
   if (!board) return <Loading />;
 
   const tasks = board.tasks;
@@ -35,13 +84,13 @@ export default function DevBoard() {
 
   const save = async (id, patch) => {
     setTasks((ts) => ts.map((x) => (x.id === id ? { ...x, ...patch } : x)));
-    try { await api(`/dev/tasks/${id}`, { method: "PATCH", body: patch }); } catch { toast(t.error); load(); }
+    try { await mutate(() => api(`/dev/tasks/${id}`, { method: "PATCH", body: patch })); } catch { toast(t.error); load(); }
   };
 
   // новая позиция — середина между соседями, остальные карточки не трогаем
   const drop = (column, beforeId) => {
     const task = tasks.find((x) => x.id === drag);
-    setDrag(null); setOver(null);
+    setDrag(null); setOver(null); setGhost(null);
     if (!task || (task.column === column && task.id === beforeId)) return;
     const col = inCol(column).filter((x) => x.id !== task.id);
     const i = beforeId == null ? col.length : col.findIndex((x) => x.id === beforeId);
@@ -65,9 +114,12 @@ export default function DevBoard() {
       if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) < DRAG_THRESHOLD) return;
       p.dragging = true;
       setDrag(p.id);
+      const r = e.currentTarget.getBoundingClientRect();
+      p.ghost = { task: tasks.find((x) => x.id === p.id), offX: p.startX - r.left, offY: p.startY - r.top, w: r.width };
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* перенос продолжится и без захвата */ }
     }
     e.preventDefault();
+    setGhost({ ...p.ghost, x: e.clientX, y: e.clientY });
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const cardEl = el?.closest("[data-task-id]");
     const colEl = el?.closest("[data-column]");
@@ -92,7 +144,7 @@ export default function DevBoard() {
     const p = pointerRef.current;
     if (!p || p.pointerId !== e.pointerId) return;
     pointerRef.current = null;
-    if (p.dragging) { justDraggedRef.current = true; setDrag(null); setOver(null); }
+    if (p.dragging) { justDraggedRef.current = true; setDrag(null); setOver(null); setGhost(null); }
   };
 
   const onCardClick = (task) => {
@@ -102,7 +154,7 @@ export default function DevBoard() {
 
   const create = async (column, title) => {
     try {
-      const x = await api("/dev/tasks", { method: "POST", body: { title, column, assignee: who } });
+      const x = await mutate(() => api("/dev/tasks", { method: "POST", body: { title, column, assignee: who } }));
       setTasks((ts) => [...ts, x]);
     } catch { toast(t.error); }
   };
@@ -111,13 +163,13 @@ export default function DevBoard() {
     if (!window.confirm(d.confirmDelete)) return;
     setEdit(null);
     setTasks((ts) => ts.filter((x) => x.id !== id));
-    try { await api(`/dev/tasks/${id}`, { method: "DELETE" }); } catch { toast(t.error); load(); }
+    try { await mutate(() => api(`/dev/tasks/${id}`, { method: "DELETE" })); } catch { toast(t.error); load(); }
   };
 
   const closeSprint = async () => {
     if (!window.confirm(d.confirmClose(inCol("done").length))) return;
     try {
-      const r = await api("/dev/sprint/close", { method: "POST" });
+      const r = await mutate(() => api("/dev/sprint/close", { method: "POST" }));
       toast(d.closed(r.sprint, r.closed, r.points));
       load();
     } catch { toast(t.error); }
@@ -166,15 +218,7 @@ export default function DevBoard() {
                     onPointerDown={(e) => onCardPointerDown(e, x, c)} onPointerMove={onCardPointerMove}
                     onPointerUp={onCardPointerUp} onPointerCancel={onCardPointerCancel}
                     onClick={() => onCardClick(x)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setEdit(x)}>
-                    {x.label && <span className={`dev-label l-${x.label}`}>{d.labels[x.label]}</span>}
-                    <div className="dev-card-title">{x.title}</div>
-                    <div className="row between" style={{ marginTop: 8 }}>
-                      <span className="muted small">#{x.id}{x.description ? " · ≡" : ""}</span>
-                      <span className="row" style={{ gap: 6 }}>
-                        {x.points > 0 && <span className="badge gray">{x.points}</span>}
-                        {x.assignee && <span className={`dev-ava m-${x.assignee}`} title={x.assignee}>{x.assignee[0].toUpperCase()}</span>}
-                      </span>
-                    </div>
+                    <CardBody x={x} d={d} />
                   </article>
                 ))}
                 {over?.column === c && over.before == null && drag && <div className="dev-drop" />}
@@ -188,6 +232,13 @@ export default function DevBoard() {
           );
         })}
       </div>
+
+      {ghost && (
+        <article className="dev-card dev-ghost" aria-hidden="true"
+          style={{ left: ghost.x - ghost.offX, top: ghost.y - ghost.offY, width: ghost.w }}>
+          <CardBody x={ghost.task} d={d} />
+        </article>
+      )}
 
       {sprints.length > 0 && (
         <div className="card" style={{ marginTop: 18 }}>

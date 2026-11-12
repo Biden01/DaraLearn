@@ -110,3 +110,41 @@ def test_teacher_review_of_theory(admin):
     exported = load_workbook(io.BytesIO(admin.ok("GET", "/api/content/admin/skills.xlsx").content)).active
     r = next(x for x in exported.iter_rows(min_row=2, values_only=True) if x[1] == slug)
     assert r[8] in ("", None) and r[9] == "Қате формула"
+
+
+def test_generate_task_drafts(admin, monkeypatch):
+    from app.modules.tutor import gateway
+
+    assert admin.post("/api/content/admin/lessons/sqrt/generate", json={}).status_code in (503,)  # без ключа — честный отказ
+    monkeypatch.setattr(gateway, "enabled", lambda: True)
+    seen = {}
+
+    def complete(system, msgs):
+        seen["prompt"] = msgs[0]["content"]
+        return ('```json\n{"tasks": ['
+                '{"question": {"kk": "√49 = ?", "ru": "√49 = ?"}, "options": ["7", "-7", "49", {"kk": "жоқ", "ru": "нет"}],'
+                ' "answer": 0, "errors": ["", "base", "calc", "condition"], "explanation": {"kk": "7² = 49", "ru": "7² = 49"}},'
+                '{"question": {"kk": "x", "ru": "x"}, "options": ["1", "1", "2", "3"], "answer": 0,'
+                ' "explanation": {"kk": "-", "ru": "-"}},'
+                '{"question": {"kk": "", "ru": "пусто"}, "options": ["1", "2", "3", "4"], "answer": 9,'
+                ' "explanation": {"kk": "-", "ru": "-"}}]}\n```', 100, 200)
+    monkeypatch.setattr(gateway, "complete", complete)
+    before = len(admin.ok("GET", "/api/content/admin/lessons/sqrt")["tasks"])
+    out = admin.ok("POST", "/api/content/admin/lessons/sqrt/generate", json={"purpose": "verification", "count": 3})
+    assert "verification" in seen["prompt"] and "Теория" in seen["prompt"]
+    assert len(out["drafts"]) == 1  # дубли вариантов и пустой вопрос / неверный индекс отброшены
+    d = out["drafts"][0]
+    assert d["purpose"] == "verification" and d["options"][d["answer"]] == "7"  # верный ответ сохранился после перемешивания
+    assert d["option_errors"][d["answer"]] == "" and d["option_errors"][d["options"].index("49")] == "calc"  # разметка едет с вариантом
+    assert len(admin.ok("GET", "/api/content/admin/lessons/sqrt")["tasks"]) == before  # черновик в банк не попал
+
+    t = admin.ok("POST", "/api/content/admin/tasks", 201, json={"lesson": "sqrt", **d, "ai": True})
+    assert t["source"] == "ai" and t["option_errors"] == d["option_errors"]
+    bad = {**d, "option_errors": ["calc"] * 4}
+    assert admin.post("/api/content/admin/tasks", json={"lesson": "sqrt", **bad}).status_code == 400  # у верного — нельзя
+    admin.ok("DELETE", f"/api/content/admin/tasks/{t['id']}", 204)
+
+    monkeypatch.setattr(gateway, "complete", lambda s, m: ("не JSON", 1, 1))
+    assert admin.post("/api/content/admin/lessons/sqrt/generate", json={}).status_code == 422
+    assert admin.post("/api/content/admin/lessons/sqrt/generate", json={"count": 9}).status_code == 422
+    assert admin.post("/api/content/admin/lessons/nope-xx/generate", json={}).status_code == 404

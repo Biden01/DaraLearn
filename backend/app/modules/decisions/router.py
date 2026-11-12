@@ -12,7 +12,7 @@ from app.core.db import get_db
 from app.core.security import current_user, require_role
 from app.modules.decisions import rules
 from app.modules.decisions.models import Recommendation
-from app.modules.decisions.service import OPEN, rec_out, subject_lessons, sync_class_group, sync_student
+from app.modules.decisions.service import OPEN, misconceptions, rec_out, subject_lessons, sync_class_group, sync_student
 from app.modules.school.access import class_students, get_class, visible_classes, visible_student_ids
 from app.modules.school.models import User
 from app.modules.school.router import audit
@@ -41,7 +41,8 @@ def student_view(db: Session, student: User) -> dict:
     states = compute_states(db, student.id)
     known = [states[l.id] for l in lessons if l.id in states and states[l.id].n_indep]
     understanding = round(100 * sum(s.indep for s in known) / len(known)) if known else None
-    out = [rec_out(r, by_id, states) for r in recs]
+    errs = misconceptions(db, {student.id})
+    out = [{**rec_out(r, by_id, states), "errors": errs.get((student.id, r.lesson_id), {})} for r in recs]
 
     # цепочка базовых тем для самого важного пробела
     chain = []
@@ -88,8 +89,10 @@ def feed(class_id: int | None = None, include_closed: bool = False,
         Recommendation.status.in_(statuses),
         (Recommendation.user_id.in_(students.keys())) | (Recommendation.class_id.in_([c.id for c in classes])))))
     items = []
+    errs = misconceptions(db, set(students))
     for r in rows:
         o = rec_out(r, by_id)
+        o["errors"] = errs.get((r.user_id, r.lesson_id), {}) if r.user_id else {}
         if r.user_id:
             o["student"] = {"id": r.user_id, "name": students[r.user_id].name, "class": class_of[r.user_id]}
         else:

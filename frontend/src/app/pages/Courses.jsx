@@ -34,12 +34,12 @@ export default function Courses() {
       {rec && (
         <div className="card soft" style={{ marginBottom: 28 }}>
           <div className="muted small" style={{ marginBottom: 14 }}>{c.recommended} · {L(rec.subject_title)} · {t.grade(rec.grade)}</div>
-          <div className="row" style={{ gap: 18, alignItems: "flex-start" }}>
+          <div className="row rec-hero" style={{ gap: 18, alignItems: "flex-start" }}>
             <Box sym={rec.sym} size={56} />
             <div className="grow">
               <h2 style={{ margin: "0 0 8px", fontSize: 24 }}>{L(rec.title)}</h2>
               <p className="muted" style={{ margin: "0 0 18px", lineHeight: 1.5 }}>{L(rec.description)}</p>
-              <div className="grid g-3" style={{ gap: 12, marginBottom: 20 }}>
+              <div className="grid g-3 stats" style={{ gap: 12, marginBottom: 20 }}>
                 <div><b>{t.min(rec.minutes)}</b><div className="muted small">{c.duration}</div></div>
                 <div><b>{rec.lessons.length}</b><div className="muted small">{c.count}</div></div>
                 <div><b>{t.level[rec.level]}</b><div className="muted small">{c.level}</div></div>

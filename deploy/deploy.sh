@@ -13,7 +13,8 @@ echo "==> Сборка фронтенда"
 # Сборка от владельца каталога (а не root внутри контейнера), иначе в dist/ и
 # node_modules/ появляются root-файлы и rsync/npm от era потом падают.
 OWNER="$(stat -c %u:%g "$ROOT/frontend")"
-docker run --rm --user "$OWNER" -e HOME=/tmp -v "$ROOT/frontend:/app" -w /app node:20-alpine \
+# Монтируем весь репозиторий: фронтенд импортирует docs/*.md (страница «План» в админке).
+docker run --rm --user "$OWNER" -e HOME=/tmp -v "$ROOT:/repo" -w /repo/frontend node:20-alpine \
   sh -c "npm ci --no-audit --no-fund || npm install --no-audit --no-fund; npm run build"
 
 echo "==> Бэкенд"

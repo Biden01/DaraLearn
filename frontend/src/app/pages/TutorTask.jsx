@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Icon, Rich, useApp } from "../ui.jsx";
+import { Dara, Icon, Rich, useApp } from "../ui.jsx";
 
 // Шаг 3 занятия: задача без подсказок — карточка от Dara прямо в ленте чата.
 // Помощь открывается после ошибки: лестница из 4 подсказок и кнопка «позвать учителя».
@@ -48,7 +48,7 @@ const TutorTask = forwardRef(function TutorTask({ session, setSession, onCheck, 
   const wrong = answered && !session.first_attempt_correct;
   return (
     <div className="msg bot task-msg" ref={ref}>
-      <div className="avatar bot-ava"><Icon n="bot" s={18} /></div>
+      <div className="avatar bot-ava"><Dara s={26} /></div>
       <div className="task-card">
         <div className="task-card-head">
           <Icon n="target" s={16} /><b>{h.first}</b>

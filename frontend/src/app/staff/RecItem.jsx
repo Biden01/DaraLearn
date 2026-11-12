@@ -31,6 +31,10 @@ export default function RecItem({ r, onChange, showStudent = true, covered = 0 }
         <div className={showStudent ? "small" : "t-strong"} style={{ marginTop: 2 }}>{title}</div>
         <div className="muted small">{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
           {r.target_title ? ` → ${L(r.target_title)}` : ""}</div>
+        {r.errors && Object.keys(r.errors).length > 0 && (
+          <div className="small" style={{ marginTop: 4 }}>{t.errLine}: {Object.entries(r.errors).sort((a, b) => b[1] - a[1])
+            .map(([k, n]) => `${t.errKinds[k] || k} ×${n}`).join(", ")}</div>
+        )}
         {r.action !== "group" && <div style={{ maxWidth: 220, marginTop: 6 }}><Bar p={r.proof * 100} /></div>}
         {r.comment && r.action !== "group" && <div className="small" style={{ marginTop: 6 }}><b>{t.rec.teacherNote}</b> {r.comment}</div>}
         {covered > 0 && <div className="small muted" style={{ marginTop: 4 }}>{t.rec.covered(covered)}</div>}
@@ -49,7 +53,7 @@ export default function RecItem({ r, onChange, showStudent = true, covered = 0 }
           </div>
         )}
       </div>
-      <div className="stack" style={{ gap: 6, alignItems: "flex-end" }}>
+      <div className="stack rec-side" style={{ gap: 6, alignItems: "flex-end" }}>
         <span className={`badge ${BADGE[r.status]}`}>{t.rec[r.status]}</span>
         {r.needs_teacher && r.status === "new" && <span className="badge orange">{t.rec.needsTeacher}</span>}
         {!mode && ["new", "accepted", "changed"].includes(r.status) && (

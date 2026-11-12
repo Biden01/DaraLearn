@@ -56,10 +56,24 @@ def current_sprint(db: Session) -> int:
     return (db.scalar(select(func.max(DevTask.sprint))) or 0) + 1
 
 
+def board_stamp(db: Session) -> str:
+    """Версия доски: меняется при любом создании, правке, удалении карточки и закрытии спринта
+    (count ловит удаление, max(updated_at) — правки, включая уход карточек в архив спринта)."""
+    n, last = db.execute(select(func.count(), func.max(DevTask.updated_at))).one()
+    return f"{n}:{last.isoformat() if last else '-'}"
+
+
 @router.get("/board")
 def board(user: User = Depends(require_role("admin")), db: Session = Depends(get_db)) -> dict:
     tasks = db.scalars(select(DevTask).where(DevTask.sprint.is_(None)).order_by(DevTask.position, DevTask.id))
-    return {"sprint": current_sprint(db), "columns": list(COLUMNS), "team": list(TEAM), "tasks": [out(t) for t in tasks]}
+    return {"sprint": current_sprint(db), "columns": list(COLUMNS), "team": list(TEAM), "tasks": [out(t) for t in tasks],
+            "stamp": board_stamp(db)}
+
+
+@router.get("/board/stamp")
+def stamp(user: User = Depends(require_role("admin")), db: Session = Depends(get_db)) -> dict:
+    """Дешёвый опрос для обновления доски в реальном времени: клиент перезагружает доску, только если stamp сменился."""
+    return {"stamp": board_stamp(db)}
 
 
 @router.post("/tasks", status_code=status.HTTP_201_CREATED)

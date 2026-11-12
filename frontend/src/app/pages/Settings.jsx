@@ -89,7 +89,7 @@ export default function Settings() {
           <Section title={student ? t.me.join : t.me.joinTeacher} help={student ? s.joinHelp : t.me.joinTeacherHelp}>
             <form className="row" onSubmit={join}>
               <input name="code" required minLength={4} maxLength={12} placeholder={t.me.joinCode} aria-label={t.me.joinCode}
-                style={{ flex: 1, border: "1px solid var(--line)", borderRadius: 9, padding: 11, textTransform: "uppercase", letterSpacing: 2 }} />
+                style={{ flex: 1, minWidth: 0, border: "1px solid var(--line)", borderRadius: 9, padding: 11, textTransform: "uppercase", letterSpacing: 2 }} />
               <button className="btn">{t.save}</button>
             </form>
           </Section>

@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { STRINGS } from "./i18n.js";
 import { Ctx, Icon, pick, useApp } from "./ui.jsx";
 import { actionHref } from "./pages/actions.js";
+import { dayLabel } from "./pages/Plan.jsx";
 import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
 import Plan from "./pages/Plan.jsx";
@@ -34,11 +35,13 @@ import Content from "./staff/Content.jsx";
 import LessonEdit from "./staff/LessonEdit.jsx";
 import { Leads, Support, Audit } from "./staff/Lists.jsx";
 import DevBoard from "./staff/DevBoard.jsx";
+import Docs from "./staff/Docs.jsx";
 import TeacherTime from "./staff/TeacherTime.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
 import ParentHome from "./parent/ParentHome.jsx";
 import ParentChild from "./parent/ParentChild.jsx";
 import "@fontsource-variable/onest";
+import "@fontsource-variable/inter";
 import "./app.css";
 
 const NAV_BOTTOM = [["profile", "profile", "user"], ["settings", "settings", "gear"], ["help", "help", "help"]];
@@ -47,26 +50,35 @@ const STAFF_VIEW = { class: ClassMap, student: StudentCard };
 // меню и страницы по ролям
 const ROLES = {
   student: {
-    nav: [["", "home", "home"], ["plan", "plan", "clip"], ["subjects", "subjects", "book"], ["courses", "courses", "case"],
-      ["diagnostics", "diagnostics", "doc"], ["gaps", "gaps", "target"], ["tutor", "tutor", "bot"],
-      ["quiz", "quiz", "clip"], ["progress", "progress", "chart"], ["calendar", "calendar", "cal"]],
+    nav: [["", "home", "home"], ["plan", "plan", "doc"], ["calendar", "calendar", "cal"],
+      ["subjects", "subjects", "book"], ["courses", "courses", "case"], ["tutor", "tutor", "dara"],
+      ["diagnostics", "diagnostics", "docchk"], ["quiz", "quiz", "checkc"], ["gaps", "gaps", "target"],
+      ["progress", "progress", "chart"]],
+    // меню группами (заголовок группы — t.navGroups) и нижний таб-бар на телефоне
+    groups: [[null, ["", "plan", "calendar"]], ["learn", ["subjects", "courses", "tutor"]],
+      ["check", ["diagnostics", "quiz", "gaps"]], ["analyze", ["progress"]]],
+    tabs: ["", "plan", "subjects", "tutor"],
     pages: { "": Home, plan: Plan, subjects: Subjects, courses: Courses, diagnostics: Diagnostics, gaps: Gaps, tutor: Tutor,
       quiz: Quiz, result: Result, progress: Progress, calendar: Calendar },
   },
   teacher: {
     nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["pilot", "pilot", "chart"]],
+    groups: [[null, ["", "feed"]], ["learn", ["courses", "calendar"]], ["data", ["import", "time"]], ["analyze", ["pilot"]]],
     pages: { "": Classes, feed: Feed, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar, pilot: Pilot, ...STAFF_VIEW },
   },
   curator: {
     nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"], ["pilot", "pilot", "chart"]],
+    groups: [[null, ["", "classes"]], ["monitor", ["feed", "pilot"]]],
     pages: { "": Cases, classes: Classes, feed: Feed, pilot: Pilot, ...STAFF_VIEW },
   },
   admin: {
     nav: [["", "metrics", "chart"], ["schools", "schools", "home"], ["users", "users", "user"], ["classes", "classes", "case"],
       ["content", "content", "book"], ["leads", "leads", "doc"], ["support", "support", "help"],
-      ["audit", "audit", "clip"], ["dev", "dev", "board"]],
+      ["audit", "audit", "clip"], ["dev", "dev", "board"], ["docs", "docs", "bulb"]],
+    groups: [[null, [""]], ["manage", ["schools", "users", "classes"]], ["learn", ["content"]], ["contact", ["leads", "support"]],
+      ["system", ["audit", "dev", "docs"]]],
     pages: { "": Metrics, schools: Schools, users: Users, classes: Classes, content: Content, edit: LessonEdit, leads: Leads,
-      support: Support, audit: Audit, dev: DevBoard, feed: Feed, import: ImportResults, ...STAFF_VIEW },
+      support: Support, audit: Audit, dev: DevBoard, docs: Docs, feed: Feed, import: ImportResults, ...STAFF_VIEW },
   },
   parent: {
     nav: [["", "children", "home"]],
@@ -74,6 +86,31 @@ const ROLES = {
   },
 };
 const ACTIVE = { lesson: "courses", result: "quiz", class: "classes", student: "classes", edit: "content", child: "" };
+
+// «Установить приложение» (PWA): видна, только когда браузер разрешил установку (Chrome/Edge/Android).
+function InstallLink({ collapsed, label }) {
+  const [ready, setReady] = useState(() => !!window.__dlInstall);
+  useEffect(() => {
+    const on = () => setReady(!!window.__dlInstall);
+    window.addEventListener("dl:installable", on);
+    return () => window.removeEventListener("dl:installable", on);
+  }, []);
+  if (!ready) return null;
+  const install = async (e) => {
+    e.preventDefault();
+    const p = window.__dlInstall;
+    if (!p) return;
+    p.prompt();
+    try { await p.userChoice; } catch { /* */ }
+    window.__dlInstall = null; // событие одноразовое
+    setReady(false);
+  };
+  return (
+    <a href="#" onClick={install} title={collapsed ? label : undefined}>
+      <Icon n="download" /><span>{label}</span>
+    </a>
+  );
+}
 
 function parseHash() {
   const h = window.location.hash.replace(/^#\/?/, "");
@@ -99,6 +136,8 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(storedCollapsed);
   const [alerts, setAlerts] = useState([]);
+  const [planLeft, setPlanLeft] = useState(0); // сколько минут плана на сегодня осталось — бейдж в меню
+  const [moreOpen, setMoreOpen] = useState(false);
   const toastTimer = useRef();
   const t = STRINGS[lang];
 
@@ -119,7 +158,7 @@ export default function App() {
 
   useEffect(() => {
     api("/auth/me").then((u) => { setUser(u); setLangState(u.lang); }).catch(() => setUser(null));
-    const onHash = () => { setRoute(parseHash()); setMenuOpen(false); window.scrollTo(0, 0); };
+    const onHash = () => { setRoute(parseHash()); setMenuOpen(false); setMoreOpen(false); window.scrollTo(0, 0); };
     const onUnauth = () => setUser(null);
     window.addEventListener("hashchange", onHash);
     window.addEventListener("dl:unauthorized", onUnauth);
@@ -128,14 +167,29 @@ export default function App() {
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
-  // важные рекомендации — уведомления колокольчика
+  // кабинет ученика — своё оформление (шрифт, фон, меню группами, таб-бар)
+  const isStudent = !!user && !user.must_change_password && user.role === "student";
+  useEffect(() => {
+    document.body.classList.toggle("stu", isStudent);
+    return () => document.body.classList.remove("stu");
+  }, [isStudent]);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") setMoreOpen(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
+
+  // важные рекомендации — уведомления колокольчика и счётчик «Олқылықтарым»; остаток плана — бейдж «Бүгінгі жоспар»
   useEffect(() => {
     if (user?.role !== "student") return;
     api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2))).catch(() => {});
+    api("/plan/today").then((p) => setPlanLeft(p.items.length ? Math.max(0, p.total_minutes - p.done_minutes) : 0)).catch(() => {});
   }, [user, route.page]);
 
   const ctx = useMemo(() => ({
-    t, lang, setLang, user, setUser, toast, route,
+    t, lang, setLang, user, setUser, toast, route, alerts,
     L: (v) => pick(v, lang),
     go: (hash) => { window.location.hash = hash; },
     startTest: async (body) => {
@@ -144,11 +198,11 @@ export default function App() {
         window.location.hash = `#/test/${a.id}`;
       } catch { toast(t.error); }
     },
-  }), [t, lang, setLang, user, toast, route]);
+  }), [t, lang, setLang, user, toast, route, alerts]);
 
   // на телефоне бургер открывает выезжающее меню, на компьютере сворачивает его до иконок
   const onMenu = () => {
-    if (window.matchMedia("(max-width: 820px)").matches) return setMenuOpen(true);
+    if (window.matchMedia("(max-width: 900px)").matches) return setMenuOpen(true);
     setCollapsed((c) => {
       try { localStorage.setItem("dl_nav", c ? "full" : "min"); } catch { /* */ }
       return !c;
@@ -169,22 +223,72 @@ export default function App() {
     const mapped = ACTIVE[route.page] ?? route.page;
     const active = [...role.nav, ...NAV_BOTTOM].some(([k]) => k === mapped) ? mapped : "";
     const NAV = role.nav;
+    const byKey = Object.fromEntries(NAV.map((x) => [x[0], x]));
+    const badges = { plan: planLeft > 0 ? t.min(planLeft) : null, gaps: alerts.length || null };
+    const name = (label) => t.nav[label] ?? t.snav[label];
     const link = ([k, label, icon]) => (
       <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
-        title={collapsed ? t.nav[label] ?? t.snav[label] : undefined}>
-        <Icon n={icon} /><span>{t.nav[label] ?? t.snav[label]}</span>
+        title={collapsed ? name(label) : undefined}>
+        <Icon n={icon} /><span>{name(label)}</span>
+        {badges[k] && <em className="nav-badge">{badges[k]}</em>}
       </a>
     );
+    // меню группами (у всех ролей); роль без groups — списком
+    const navMain = role.groups
+      ? role.groups.map(([g, keys]) => (
+        <div className="nav-group" key={g || "top"} role="group" aria-label={g ? t.navGroups[g] : undefined}>
+          {g && <div className="nav-group-title" aria-hidden="true">{t.navGroups[g]}</div>}
+          {keys.map((k) => link(byKey[k]))}
+        </div>
+      ))
+      : NAV.map(link);
+    const tabs = role.tabs;
+    const moreActive = tabs && !tabs.includes(active);
     body = (
       <div className={`${menuOpen ? "menu-open" : ""} ${collapsed ? "nav-min" : ""}`}>
         <aside className="sidebar" style={menuOpen ? { transform: "none" } : undefined}>
           <a href="#/" className="brand"><img src="/logo.png" alt="" /> <span>DaraLearn</span></a>
-          <nav className="nav" aria-label="Main">{NAV.map(link)}</nav>
-          <nav className="nav nav-bottom">{NAV_BOTTOM.map(link)}</nav>
+          <nav className="nav" aria-label="Main">{navMain}</nav>
+          <nav className="nav nav-bottom">
+            {NAV_BOTTOM.map(link)}
+            <InstallLink collapsed={collapsed} label={t.install} />
+          </nav>
         </aside>
         {menuOpen && <div className="overlay" style={{ display: "block", position: "fixed", inset: 0, background: "rgba(17,19,41,.3)", zIndex: 25 }} onClick={() => setMenuOpen(false)} />}
         <Header alerts={alerts} onMenu={onMenu} collapsed={collapsed} />
         <main className="main" id="app"><Page key={route.page + route.param} /></main>
+        {tabs && (
+          <nav className="tabbar" aria-label={t.menu}>
+            {tabs.map((k) => (
+              <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}>
+                <Icon n={byKey[k][2]} s={22} /><span>{t.tabs[k]}</span>
+              </a>
+            ))}
+            <button className={moreActive || moreOpen ? "active" : ""} aria-expanded={moreOpen} aria-haspopup="dialog"
+              onClick={() => setMoreOpen((o) => !o)}>
+              <Icon n="menu" s={22} /><span>{t.tabs.more}</span>
+            </button>
+          </nav>
+        )}
+        {tabs && moreOpen && (
+          <div className="sheet-wrap" onClick={() => setMoreOpen(false)}>
+            <div className="sheet nav" role="dialog" aria-label={t.tabs.more} onClick={(e) => e.stopPropagation()}>
+              {role.groups.map(([g, keys]) => {
+                const rest = keys.filter((k) => !tabs.includes(k));
+                return rest.length ? (
+                  <div className="nav-group" key={g || "top"}>
+                    {g && <div className="nav-group-title">{t.navGroups[g]}</div>}
+                    {rest.map((k) => link(byKey[k]))}
+                  </div>
+                ) : null;
+              })}
+              <div className="nav-group sheet-bottom">
+                {NAV_BOTTOM.map(link)}
+                <InstallLink label={t.install} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -199,11 +303,14 @@ export default function App() {
 
 // Колокольчик: по нажатию — панель с полным текстом уведомлений платформы.
 function Bell({ alerts }) {
-  const { t, L } = useApp();
+  const { t, L, lang } = useApp();
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [showAll, setShowAll] = useState(false);
+  const [openId, setOpenId] = useState(null);
   const box = useRef();
   useEffect(() => {
-    if (!open) return;
+    if (!open) { setShowAll(false); setOpenId(null); return; }
     const onDown = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
     const onHash = () => setOpen(false);
@@ -217,34 +324,62 @@ function Bell({ alerts }) {
     };
   }, [open]);
   const n = alerts.length;
-  const badge = { 3: "red", 2: "orange", 1: "gray" };
+  // Сначала важные (высокий приоритет), внутри одного приоритета — самые свежие
+  const sorted = useMemo(() => [...alerts].sort((a, b) =>
+    (b.priority - a.priority) || (Date.parse(b.created_at || 0) || 0) - (Date.parse(a.created_at || 0) || 0)), [alerts]);
+  const n3 = alerts.filter((r) => r.priority === 3).length, n2 = alerts.filter((r) => r.priority === 2).length;
+  const f = n3 > 0 && n2 > 0 ? filter : "all"; // вкладки видны только когда есть оба приоритета
+  const filtered = f === "all" ? sorted : sorted.filter((r) => r.priority === f);
+  const LIMIT = 5;
+  const shown = showAll ? filtered : filtered.slice(0, LIMIT);
+  const hidden = filtered.length - shown.length;
   return (
     <div className="bell-wrap" ref={box}>
-      <button className="bell" aria-label={t.notif.title} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <Icon n="bell" s={22} />{n > 0 && <span className="bell-count">{n > 9 ? "9+" : n}</span>}
+      <button className="bell" aria-label={n ? `${t.notif.title}: ${n}` : t.notif.title} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <Icon n="bell" s={22} />{n > 0 && <span className="bell-dot" aria-hidden="true" />}
       </button>
       {open && (
         <div className="bell-pop" role="dialog" aria-label={t.notif.title}>
-          <div className="bell-head"><b>{t.notif.title}</b><span className="muted small">{t.notif.from}</span></div>
+          <div className="bell-head">
+            <b>{t.notif.title}{n > 0 && <span className="bell-total">{n}</span>}</b>
+            <span className="muted small">{t.notif.from}</span>
+          </div>
+          {n3 > 0 && n2 > 0 && (
+            <div className="bell-tabs" role="tablist">
+              {[["all", t.notif.tabAll, n], [3, t.notif.tabHigh, n3], [2, t.notif.tabMid, n2]].map(([k, label, c]) => (
+                <button key={k} role="tab" aria-selected={f === k} className={f === k ? "on" : ""}
+                  onClick={() => { setFilter(k); setShowAll(false); setOpenId(null); }}>{label} <span>{c}</span></button>
+              ))}
+            </div>
+          )}
           <div className="bell-list">
-            {n ? alerts.map((r) => (
-              <div className="bell-item" key={r.id ?? r.lesson + r.action}>
-                <div className="row between" style={{ gap: 8, alignItems: "flex-start" }}>
-                  <div className="t-strong">{L(r.title)}</div>
-                  <span className={`badge ${badge[r.priority]}`}>{t.gaps.priority[r.priority]}</span>
+            {shown.length ? shown.map((r) => {
+              const id = r.id ?? r.lesson + r.action, isOpen = openId === id;
+              return (
+                <div className={`bell-item p${r.priority} ${isOpen ? "open" : ""}`} key={id}>
+                  <button className="bell-row" aria-expanded={isOpen} onClick={() => setOpenId(isOpen ? null : id)}>
+                    <span className={`bell-mark p${r.priority}`} role="img" title={t.gaps.priority[r.priority]} aria-label={t.gaps.priority[r.priority]} />
+                    <span className="bell-main">
+                      <span className="bell-title">{L(r.title)}</span>
+                      <span className="bell-sub">{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
+                        {r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}</span>
+                    </span>
+                    <span className="bell-date">{r.created_at ? dayLabel(r.created_at.slice(0, 10), lang, { day: "numeric", month: "short" }) : ""}</span>
+                    <span className="bell-chev"><Icon n="chev" s={16} /></span>
+                  </button>
+                  {isOpen && (
+                    <div className="bell-more">
+                      {t.causeHelp[r.cause] && <p className="small" style={{ margin: 0, lineHeight: 1.45 }}>{t.causeHelp[r.cause]}</p>}
+                      {["accepted", "changed"].includes(r.status) && (
+                        <div className="small st-mastered" style={{ marginTop: 6 }}>{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>
+                      )}
+                      <a href={actionHref(r)} className="btn sm" style={{ marginTop: 10 }}>{t.actions[r.action]?.[0] || t.open}</a>
+                    </div>
+                  )}
                 </div>
-                <div className="muted small" style={{ marginTop: 4 }}>{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
-                  {r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}</div>
-                {t.causeHelp[r.cause] && <p className="small" style={{ margin: "8px 0 0", lineHeight: 1.45 }}>{t.causeHelp[r.cause]}</p>}
-                {["accepted", "changed"].includes(r.status) && (
-                  <div className="small st-mastered" style={{ marginTop: 6 }}>{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>
-                )}
-                <div className="row between" style={{ marginTop: 10, gap: 8 }}>
-                  <span className="muted small">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}</span>
-                  <a href={actionHref(r)} className="btn sm">{t.actions[r.action]?.[0] || t.open}</a>
-                </div>
-              </div>
-            )) : <p className="muted small" style={{ padding: 14, margin: 0 }}>{t.notif.empty}</p>}
+              );
+            }) : <p className="muted small" style={{ padding: 14, margin: 0 }}>{t.notif.empty}</p>}
+            {hidden > 0 && <button className="bell-showmore" onClick={() => setShowAll(true)}>{t.notif.more(hidden)}</button>}
           </div>
           <a href="#/gaps" className="bell-foot link">{t.notif.all}</a>
         </div>
@@ -258,7 +393,10 @@ function Header({ alerts, onMenu, collapsed }) {
   const [q, setQ] = useState("");
   const [index, setIndex] = useState([]);
   const [sel, setSel] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false); // телефон: поиск открывается по иконке
+  const [focused, setFocused] = useState(false);
   const input = useRef();
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
   useEffect(() => {
     api("/content/courses?subject=math").then((cs) => {
@@ -276,15 +414,26 @@ function Header({ alerts, onMenu, collapsed }) {
 
   const navItems = [...(ROLES[user.role] || ROLES.student).nav, ...NAV_BOTTOM]
     .map(([k, label]) => ({ title: t.nav[label] ?? t.snav[label], href: `#/${k}`, hint: "" }));
+  // Пустое поле: 4 подсказки — уроки из разных курсов по очереди (если уроков нет — разделы меню)
+  const suggest = useMemo(() => {
+    const byCourse = {};
+    index.filter((x) => x.href.startsWith("#/lesson/")).forEach((x) => (byCourse[x.hint] ||= []).push(x));
+    const groups = Object.values(byCourse), out = [];
+    for (let i = 0; out.length < 4 && groups.some((g) => g[i]); i++)
+      groups.forEach((g) => { if (g[i] && out.length < 4) out.push(g[i]); });
+    return out.length ? out.map((x) => ({ ...x, title: L(x.title), hint: L(x.hint) })) : navItems.slice(1, 5);
+  }, [index, lang]);
   const hits = q.trim()
     ? [...navItems, ...index.map((x) => ({ ...x, title: L(x.title), hint: L(x.hint) }))]
       .filter((x) => x.title.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 7)
-    : [];
+    : focused ? suggest : [];
 
-  const goTo = (h) => { window.location.hash = h.href; setQ(""); input.current?.blur(); };
+  const goTo = (h) => { window.location.hash = h.href; setQ(""); setSearchOpen(false); input.current?.blur(); };
+  const openSearch = () => { setSearchOpen(true); setTimeout(() => input.current?.focus(), 0); };
   return (
-    <header className="header">
+    <header className={`header ${searchOpen ? "search-open" : ""}`}>
       <button className="burger" aria-label={t.menu} aria-expanded={!collapsed} onClick={onMenu}><Icon n="menu" s={22} /></button>
+      <a href="#/" className="m-brand" aria-label="DaraLearn"><img src="/logo.png" alt="" /></a>
       <label className="search">
         <Icon n="search" s={18} />
         <input ref={input} value={q} placeholder={t.search} aria-label={t.search}
@@ -293,13 +442,17 @@ function Header({ alerts, onMenu, collapsed }) {
             if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(s + 1, hits.length - 1)); }
             if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
             if (e.key === "Enter" && hits[sel]) goTo(hits[sel]);
-            if (e.key === "Escape") setQ("");
-          }} />
-        <span className="kbd">Ctrl K</span>
-        {q.trim() && (
+            if (e.key === "Escape") { setQ(""); setSearchOpen(false); input.current?.blur(); }
+          }}
+          onFocus={() => { setFocused(true); setSel(0); }}
+          onBlur={() => { setFocused(false); if (!q.trim()) setSearchOpen(false); }} />
+        <span className="kbd" aria-hidden="true">{isMac ? "⌘K" : "Ctrl K"}</span>
+        {(q.trim() || (focused && hits.length > 0)) && (
           <div className="search-pop" role="listbox">
+            {!q.trim() && <div className="search-pop-head">{t.searchTry}</div>}
             {hits.length ? hits.map((h, i) => (
-              <a key={h.href + h.title} href={h.href} className={i === sel ? "on" : ""} onClick={() => setQ("")}>
+              <a key={h.href + h.title} href={h.href} className={i === sel ? "on" : ""} onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { setQ(""); setSearchOpen(false); }}>
                 <span>{h.title}</span><span className="muted small">{h.hint}</span>
               </a>
             )) : <div className="muted small" style={{ padding: 10 }}>{t.nothing}</div>}
@@ -307,6 +460,7 @@ function Header({ alerts, onMenu, collapsed }) {
         )}
       </label>
       <div className="header-right">
+        <button className="search-btn" aria-label={t.search} onClick={openSearch}><Icon n="search" s={22} /></button>
         <div className="lang" role="group" aria-label="Тіл / Язык">
           {["kk", "ru"].map((l) => (
             <button key={l} aria-pressed={lang === l} onClick={() => setLang(l)}>{l === "kk" ? "ҚАЗ" : "РУС"}</button>

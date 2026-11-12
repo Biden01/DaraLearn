@@ -39,3 +39,7 @@ export function dateKk(d, opts) {
   const s = parts.join(" ");
   return opts.weekday ? `${WEEKDAYS[d.getDay()]}, ${s}` : s;
 }
+
+// «Жұма, 6 қараша» — дата над приветствием на главной.
+const WEEKDAYS_LONG = ["Жексенбі", "Дүйсенбі", "Сейсенбі", "Сәрсенбі", "Бейсенбі", "Жұма", "Сенбі"];
+export const dateLongKk = (d) => `${WEEKDAYS_LONG[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;

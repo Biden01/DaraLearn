@@ -1,0 +1,222 @@
+/* Тема «синий + лайм»: насыщенный синий фон с сеткой, лаймовые акценты,
+   жирная типографика с объёмной тенью, белая «простыня» со скруглением.
+   Слой поверх landing.css — разметка и прежние блоки не меняются. */
+
+:root {
+  --blue: #0038ff;
+  --blue-dark: #002bd1;
+  --blue-light: #8aa4ff;
+  --navy: #001a99;
+  --lime: #ccff00;
+  --lime-dark: #b8e600;
+  --yellow: var(--lime);
+  --sky: #e8eeff;
+  --ink: #0a0a0f;
+  --ink-deep: #07070c;
+  --ink-soft: #55586a;
+  --line: #e9eaf0;
+  --mist: #f8f9fa;
+  --grid: linear-gradient(to right, rgba(255, 255, 255, .09) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, .09) 1px, transparent 1px);
+}
+
+body { background: #fff; }
+::selection { background: var(--lime); color: #000; }
+h1, h2 { font-weight: 900; letter-spacing: -.04em; }
+h3 { font-weight: 800; }
+.stage :focus-visible, .pilot :focus-visible, .cta-band :focus-visible, .foot :focus-visible { outline-color: var(--lime); }
+.cta-band :focus-visible { outline-color: #000; }
+
+/* кнопки — пилюли */
+.btn, .btn.lg, .btn.sm { border-radius: 999px; }
+.btn { box-shadow: 0 10px 24px -12px rgba(0, 56, 255, .8); }
+
+/* шапка — белая */
+.top .wrap { max-width: 1440px; padding-inline: 40px; }
+.top-in { min-height: 96px; transition: min-height .25s; }
+.top.scrolled .top-in { min-height: 70px; }
+.top-nav { gap: 8px; margin-inline: auto; }
+.top-nav a { color: var(--ink); font-size: .8rem; font-weight: 600; padding: 6px 16px; border-radius: 999px; border: 1px solid #d7dbe6; transition: background .15s, border-color .15s; }
+.top .btn.sm { min-height: 40px; padding: 0 24px; font-size: .9rem; border-width: 1px; }
+.top-act { margin-left: 0; }
+
+.top-nav a:hover { color: var(--ink); background: var(--mist); border-color: var(--ink); }
+.lang { border-radius: 999px; }
+.lang button { border-radius: 999px; }
+.lang button[aria-pressed="true"] { background: var(--blue); color: #fff; box-shadow: none; }
+.top .btn.ghost { background: transparent; color: var(--ink); border-color: var(--ink); box-shadow: none; }
+.top .btn.ghost:hover { background: var(--ink); color: #fff; }
+
+/* герой — белый, синий и лайм только акцентами */
+.hero { padding-bottom: 120px; }
+.hero-bg { background: linear-gradient(to right, rgba(0, 56, 255, .06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 56, 255, .06) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
+.hero-bg::before, .hero-bg::after { display: none; }
+.hero-title { position: relative; width: 100%; }
+.hero h1 { color: var(--ink); font-size: clamp(2.3rem, 5.6vw, 4.4rem); line-height: 1.02; }
+.hero .accent {
+  color: var(--blue);
+  text-shadow: 1px 1px 0 var(--lime), 2px 2px 0 var(--lime), 3px 3px 0 var(--lime), 4px 4px 0 var(--lime), 5px 5px 0 var(--lime), 6px 6px 0 var(--lime);
+}
+.hero .lead { color: var(--ink-soft); }
+.hero .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); box-shadow: none; }
+.hero .btn.ghost:hover { background: var(--ink); color: #fff; }
+.cta-pill { border-radius: 999px; }
+.stack-badge { background: var(--lime); color: #000; }
+
+/* рисованные стрелки */
+.doodle { position: absolute; width: 112px; height: 112px; color: var(--blue); overflow: visible; pointer-events: none; }
+.doodle-l { left: max(-20px, calc(50% - 600px)); bottom: -48px; }
+.doodle-r { right: max(-20px, calc(50% - 600px)); top: -64px; }
+
+/* круглый бейдж */
+.spin-badge {
+  position: absolute; z-index: 5; left: max(16px, calc(50% - 560px)); top: 380px;
+  width: 136px; height: 136px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--lime); color: #000; rotate: -12deg; border: 3px solid rgba(0, 0, 0, .06);
+  box-shadow: 0 20px 40px -16px rgba(0, 0, 0, .5); transition: transform .25s var(--ease);
+}
+.spin-badge:hover { transform: scale(1.06); }
+.spin-ring { position: absolute; inset: 4px; width: calc(100% - 8px); height: calc(100% - 8px); animation: spin 10s linear infinite; overflow: visible; }
+.spin-ring text { font-size: 10.5px; font-weight: 900; letter-spacing: .14em; fill: #000; }
+.spin-arrow { width: 40px; height: 40px; overflow: visible; }
+@keyframes spin { to { rotate: 360deg; } }
+
+/* белая «простыня» под героем */
+.sheet { position: relative; z-index: 1; background: #fff; }
+.sheet > section:last-child { padding-bottom: 120px; }
+.platform { padding-top: 64px; }
+.band { background: var(--mist); }
+
+/* заголовки секций */
+.kicker { padding: 6px 14px; border-radius: 999px; background: var(--lime); color: #000; letter-spacing: .1em; font-weight: 800; }
+.kicker::before { display: none; }
+
+/* сцена с ноутбуком — синий блок с сеткой */
+.stage { background-color: var(--blue); background-image: var(--grid); background-size: 4rem 4rem; border: 0; border-radius: 40px; box-shadow: 0 30px 60px -30px rgba(0, 56, 255, .7); }
+.stage::before { border-color: rgba(255, 255, 255, .07); }
+.stage h2 { color: #fff; }
+.stage .lead { color: rgba(255, 255, 255, .82); }
+.laptop-screen { background: #0b0d1a; }
+.chip { border-radius: 999px; border: 2px solid #000; box-shadow: 5px 5px 0 #000; }
+.chip .ico-sm { border-radius: 50%; }
+
+/* карточки */
+.card { background: var(--mist); border-color: #eef0f3; border-radius: 2rem; box-shadow: none; }
+.band .card { background: #fff; }
+.card.reveal.in:hover { box-shadow: 0 24px 50px -24px rgba(0, 56, 255, .35); border-color: #dfe5ff; }
+.ico-box { background: var(--lime); color: #000; border: 0; border-radius: 50%; }
+.ico-sm { background: var(--blue); color: #fff; }
+.loop-n { -webkit-text-stroke: 2px var(--blue); }
+
+/* плитки «Что внутри» */
+.feat { border-radius: 2rem; background: var(--mist); border-color: #eef0f3; box-shadow: none; }
+.feat-0 { background: var(--blue); }
+.feat-2 { background: #000; }
+.feat-4 { background: var(--lime); }
+.feat-4 p { color: rgba(0, 0, 0, .7); }
+.arrows button { border-radius: 50%; border: 2px solid #000; box-shadow: none; }
+.arrows button:hover { border-color: var(--blue); }
+
+/* лаймовая полоса */
+.cta-band { background: var(--lime); color: #000; }
+.cta-band h2 { color: #000; }
+.cta-band p { color: rgba(0, 0, 0, .7); }
+.cta-band::before, .cta-band::after { border-color: rgba(0, 0, 0, .1); box-shadow: none; }
+.cta-band .btn.yellow { background: #000; border-color: #000; color: var(--lime); box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .6); }
+.cta-band .btn.yellow:hover { background: var(--blue); border-color: var(--blue); color: #fff; }
+.doodle-band { color: #000; width: 90px; height: 90px; left: max(12px, calc(50% - 660px)); top: 18px; opacity: .85; }
+
+/* честная метрика */
+.meter-row i { border-radius: 999px; }
+.meter-row i::after { border-radius: 999px; background: var(--blue); }
+
+/* пилот — снова синий с сеткой */
+.pilot { background: var(--blue); }
+.pilot-bg::before { background-image: var(--grid); background-size: 4rem 4rem; mask-image: none; -webkit-mask-image: none; }
+.pilot-bg::after { background: radial-gradient(40% 50% at 90% 70%, rgba(204, 255, 0, .14), transparent 70%); }
+.pilot .kicker { color: #000; }
+.pilot .lead { color: rgba(255, 255, 255, .85); }
+.ticks { color: #fff; }
+.ticks li::before { background: var(--lime); border: 0; border-radius: 50%; }
+.ticks li::after { border-color: #000; }
+.pilot-form, .form-done { border-radius: 2rem; }
+
+/* вопросы */
+.faq details { border-radius: 1.5rem; }
+.faq summary::after { background: var(--lime); color: #000; }
+.faq .btn.ghost { border: 2px solid #000; box-shadow: none; }
+
+/* подвал */
+.foot { background: #000; border-top: 0; color: #fff; }
+.foot .brand { color: #fff; }
+.foot .brand img { background: #fff; border-radius: 9px; padding: 2px; }
+.foot .muted { color: rgba(255, 255, 255, .6); }
+.foot-nav a { color: rgba(255, 255, 255, .75); }
+.foot-nav a:hover { color: var(--lime); }
+.foot-copy { border-top-color: rgba(255, 255, 255, .15); }
+
+@media (max-width: 960px) {
+  .top .wrap { padding-inline: 24px; }
+  .top-in { min-height: 76px; }
+  .top-act { margin-left: auto; }
+  .doodle-l, .doodle-r, .doodle-band { display: none; }
+  .spin-badge { top: 300px; width: 112px; height: 112px; }
+  .spin-ring text { font-size: 10px; }
+}
+@media (max-width: 560px) {
+  .top .wrap { padding-inline: 16px; }
+  .top-in { min-height: 68px; }
+  .top .btn.sm { padding: 0 16px; }
+  .hero { padding-bottom: 80px; }
+  .hero .accent { text-shadow: 1px 1px 0 var(--lime), 2px 2px 0 var(--lime), 3px 3px 0 var(--lime), 4px 4px 0 var(--lime); }
+  /* бейдж — в верхний левый угол героя, чтобы не закрывать подпись центральной карточки */
+  .spin-badge { top: 6px; left: 8px; width: 76px; height: 76px; }
+  .spin-ring text { font-size: 9.5px; }
+  .spin-arrow { width: 24px; height: 24px; }
+  .cta-pill { border-radius: 28px; }
+  .stage { border-radius: 24px; }
+}
+
+/* совсем узкие телефоны (320–380px): шапка в одну строку без переполнения */
+@media (max-width: 380px) {
+  .lang button { padding: 6px 8px; font-size: .75rem; }
+  .top .btn.sm { padding: 0 12px; font-size: .88rem; }
+  .hero h1 { font-size: 2rem; }
+  .facts li { padding: 8px 14px; }
+}
+
+/* мокап MacBook Pro (components/ui/macbook-pro.jsx) с живым демо на экране.
+   Демо вёрстается на «виртуальном» экране 900px и масштабируется под ноутбук. */
+.mac { position: relative; color: #0b0d1a; }
+.mac-frame { display: block; width: 100%; height: auto; filter: drop-shadow(0 30px 40px rgba(0, 10, 60, .45)); }
+.mac-screen { position: absolute; overflow: hidden; border-radius: .8%/1.2%; background: #fff; }
+.mac-content { width: var(--mac-w); height: var(--mac-h); transform: scale(var(--mac-scale, 1)); transform-origin: 0 0; }
+.mac .window { height: 100%; border-radius: 0; }
+/* «чёлка» с камерой поверх экрана (в SVG она под HTML и не видна) */
+.mac-screen::after { content: ""; position: absolute; top: 0; left: 50%; width: 10.8%; height: 2.9%; transform: translateX(-50%); background: #000; border-radius: 0 0 6px 6px; }
+.mac .window-bar { padding-top: 22px; }
+/* внутри экрана — всегда «десктопная» раскладка демо, без мобильных правок */
+.mac .demo { padding: 22px 28px 18px; }
+.mac .demo-opts { grid-template-columns: repeat(4, 1fr); }
+.mac .graph { height: 200px; margin: 18px 0 14px; }
+.mac .node { width: 44%; padding: 8px 12px; }
+.mac .n-inc { width: 62%; }
+.mac .node-t { font-size: .9rem; }
+.mac .window-bar span { display: block; }
+.mac .demo-msg { min-height: 96px; }
+
+/* на телефоне экран ноутбука слишком мелкий для живого демо: рамку прячем,
+   демо показываем обычным окном во всю ширину */
+@media (max-width: 720px) {
+  .mac-frame { display: none; }
+  .mac-screen::after { display: none; }
+  .mac .window-bar { padding-top: 10px; }
+  .mac-screen { position: static; width: auto !important; height: auto !important; border-radius: 16px 16px 0 0; }
+  .mac-content { width: auto; height: auto; transform: none; }
+  .mac .demo { padding: 18px; }
+  .mac .demo-opts { grid-template-columns: 1fr 1fr; }
+  .mac .graph { height: 250px; }
+  .mac .node { width: 47%; padding: 7px 9px; }
+  .mac .n-inc { width: 70%; }
+  .mac .node-t { font-size: .82rem; }
+  .mac .window-bar span { display: none; }
+}

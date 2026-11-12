@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useId } from "react";
 
 export const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -35,9 +35,83 @@ const P = {
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
   board: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M15 3v18M3 9h6M15 14h6" /></>,
   trash: <path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3" />,
+  download: <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />,
+  spark: <><path d="M12 3c.5 4.5 2.5 6.5 7 7-4.5.5-6.5 2.5-7 7-.5-4.5-2.5-6.5-7-7 4.5-.5 6.5-2.5 7-7z" /><path d="M19 15c.2 1.6.9 2.3 2.5 2.5-1.6.2-2.3.9-2.5 2.5-.2-1.6-.9-2.3-2.5-2.5 1.6-.2 2.3-.9 2.5-2.5z" /></>,
+  info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></>,
+  chev: <path d="m9 6 6 6-6 6" />,
+  docchk: <><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M9 15l2 2 4-4" /></>,
+  checkc: <><circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" /></>,
 };
 
+// Dara — персонаж AI Tutor: крутой рыжий лисёнок в синей тюбетейке с жёлтым орнаментом.
+// Объёмный стиль (градиенты + блики); id градиентов уникальны на каждый экземпляр.
+const EYE_L = "M13.4 27.8Q17.3 26.4 21.2 27.8Q20.8 31.8 17.3 31.8Q13.8 31.8 13.4 27.8Z";
+const EYE_R = "M26.8 27.8Q30.7 26.4 34.6 27.8Q34.2 31.8 30.7 31.8Q27.2 31.8 26.8 27.8Z";
+export function Dara({ s = 24, title }) {
+  const u = useId().replace(/:/g, "");
+  const id = (k) => `${k}${u}`, url = (k) => `url(#${k}${u})`;
+  return (
+    <svg width={s} height={s} viewBox="0 0 48 48" role={title ? "img" : undefined} aria-label={title}
+      aria-hidden={title ? undefined : "true"} className="dara">
+      <defs>
+        <radialGradient id={id("fur")} cx="40%" cy="40%" r="70%">
+          <stop offset="0" stopColor="#FFB561" /><stop offset=".55" stopColor="#F97316" /><stop offset="1" stopColor="#C2410C" />
+        </radialGradient>
+        <radialGradient id={id("muz")} cx="50%" cy="30%" r="75%">
+          <stop offset="0" stopColor="#FFFFFF" /><stop offset="1" stopColor="#FBE3CF" />
+        </radialGradient>
+        <linearGradient id={id("hat")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#3B82FF" /><stop offset="1" stopColor="#0047C7" />
+        </linearGradient>
+        <radialGradient id={id("iris")} cx="40%" cy="35%" r="65%">
+          <stop offset="0" stopColor="#9FE7FF" /><stop offset="1" stopColor="#0058F4" />
+        </radialGradient>
+        <clipPath id={id("el")}><path d={EYE_L} /></clipPath>
+        <clipPath id={id("er")}><path d={EYE_R} /></clipPath>
+      </defs>
+      {/* голова с острыми ушами */}
+      <path d="M24 44C13.4 44 5.5 36.6 5.5 26.4V6.5l11.2 7.6c2.3-1 4.7-1.4 7.3-1.4s5 .4 7.3 1.4l11.2-7.6v19.9C42.5 36.6 34.6 44 24 44Z"
+        fill={url("fur")} stroke="#9A3412" strokeWidth=".8" strokeLinejoin="round" />
+      {/* внутренняя часть ушей и тёмные кончики */}
+      <path d="M8.6 11.8l6.4 4.3-5.6 4.8zM39.4 11.8l-6.4 4.3 5.6 4.8z" fill="#7C2D12" />
+      <path d="M5.5 6.5l4.4 3v-.1L5.5 13zM42.5 6.5l-4.4 3L42.5 13z" fill="#431407" />
+      {/* светлые щёки-пушок */}
+      <path d="M24 44c-7.4 0-13.4-4.6-15.4-11.2 5-1.8 10.6 0 15.4 4.2 4.8-4.2 10.4-6 15.4-4.2C37.4 39.4 31.4 44 24 44Z" fill={url("muz")} />
+      {/* объёмный блик */}
+      <ellipse cx="14.5" cy="21.5" rx="4.6" ry="2.2" fill="#fff" opacity=".4" transform="rotate(-30 14.5 21.5)" />
+      {/* глаза: уверенный прищур */}
+      {[["el", 17.3, EYE_L], ["er", 30.7, EYE_R]].map(([k, x, d]) => (
+        <g key={k}>
+          <path d={d} fill="#fff" />
+          <g clipPath={url(k)}>
+            <circle cx={x + .6} cy="29.6" r="2.6" fill={url("iris")} />
+            <circle cx={x + .6} cy="29.6" r="1.1" fill="#0B1530" />
+            <circle cx={x - .2} cy="28.6" r=".7" fill="#fff" />
+          </g>
+          <path d={`M${x - 4.2} 27.8Q${x} 26.2 ${x + 4.2} 27.8`} fill="none" stroke="#1E1B2E" strokeWidth="1.6" strokeLinecap="round" />
+        </g>
+      ))}
+      {/* брови: одна приподнята */}
+      <path d="M14 24.8q3-1.2 6-.2M27.8 23.8q3.2-2 6.4-.6" fill="none" stroke="#7C2D12" strokeWidth="1.4" strokeLinecap="round" />
+      {/* нос с бликом */}
+      <ellipse cx="24" cy="34.4" rx="2.7" ry="2" fill="#1E1B2E" />
+      <ellipse cx="23.2" cy="33.8" rx=".9" ry=".45" fill="#fff" opacity=".7" />
+      {/* ухмылка */}
+      <path d="M21.4 38.4q2.6 1.2 4.6.2t2.4-1.6" fill="none" stroke="#1E1B2E" strokeWidth="1.4" strokeLinecap="round" />
+      {/* тюбетейка, лихо набок, между ушами */}
+      <g transform="rotate(-10 24 12)">
+        <path d="M15.4 9.6 16.2 15.6q7.8 2.8 15.6 0l.8-6Z" fill={url("hat")} />
+        <ellipse cx="24" cy="9.6" rx="8.6" ry="2.7" fill="#2F74F6" />
+        <path d="M17.2 13.8l1.8-2 1.8 2 1.8-2 1.8 2 1.8-2 1.8 2 1.8-2 1.8 2" fill="none" stroke="#FFD43B" strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx="24" cy="9.4" r="1.4" fill="#FFD43B" />
+        <ellipse cx="20" cy="8.9" rx="3" ry=".9" fill="#fff" opacity=".45" />
+      </g>
+    </svg>
+  );
+}
+
 export function Icon({ n, s = 20 }) {
+  if (n === "dara") return <Dara s={s} />;
   return (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{P[n]}</svg>
