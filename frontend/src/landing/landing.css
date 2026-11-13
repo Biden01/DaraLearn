@@ -289,7 +289,7 @@ section { padding-block: 104px; position: relative; }
 .pilot-form .btn { min-height: 52px; margin-top: 4px; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; }
 .form-note { font-size: .82rem; color: var(--ink-soft); }
-.form-error { color: #c0362c; font-weight: 600; }
+.form-error { color: #ee1c25; font-weight: 600; }
 .form-done { text-align: center; padding-block: 56px; }
 .form-done::before { content: "✓"; display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 50%; background: var(--green-soft); color: var(--green); font-size: 1.6rem; font-weight: 700; }
 .form-done-t { font-weight: 700; font-size: 1.25rem; }
