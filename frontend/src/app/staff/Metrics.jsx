@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Crumb, Loading, useApp } from "../ui.jsx";
+import { Bar, Box, Crumb, Loading, fox, useApp } from "../ui.jsx";
 
 export default function Metrics() {
   const { t } = useApp();
@@ -124,7 +124,7 @@ function Feedback({ fb }) {
                 {["treatment", "control"].map((arm) => r.by_arm[arm].responses > 0 && ` · ${f.arm[arm]} ${score(r.by_arm[arm].overall)}`)}</span></div>
             {r.responses ? sv.questions[role].map((q) => (
               <div key={q} style={{ marginTop: 8 }}>
-                <div className="row between small"><span>{t.survey.q[role]?.[q] || q}</span><b>{score(r.questions[q])}</b></div>
+                <div className="row between small"><span>{fox(t.survey.q[role]?.[q] || q)}</span><b>{score(r.questions[q])}</b></div>
                 <Bar p={((r.questions[q] || 0) / 5) * 100} />
               </div>
             )) : <p className="muted small">{f.noSurvey}</p>}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { useApp } from "../ui.jsx";
+import { fox, useApp } from "../ui.jsx";
 
 export default function Auth() {
   const { t, lang, setLang, setUser } = useApp();
@@ -36,7 +36,7 @@ export default function Auth() {
         <a href="/" className="brand"><img src="/logo.png" alt="" style={{ width: 34, filter: "brightness(0) invert(1)" }} /> DaraLearn</a>
         <div>
           <h2>{a.side}</h2>
-          <p>{a.sideText}</p>
+          <p>{fox(a.sideText)}</p>
         </div>
         <a href="/" className="small" style={{ color: "#d5e3ff" }}>{a.toSite}</a>
       </div>

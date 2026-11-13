@@ -3,7 +3,7 @@
 // /verification/checks, /auth/me/classes; счётчик олқылықтар — из /decisions/me (общий с меню и колокольчиком).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Icon, Loading, Ring, useApp } from "../ui.jsx";
+import { Bar, Box, Icon, Loading, Ring, fox, useApp } from "../ui.jsx";
 import { actionHref } from "./actions.js";
 import { AttToday } from "../Attendance.jsx";
 import { dateLongKk } from "../kk.js";
@@ -70,7 +70,7 @@ export default function Home() {
       </div>
 
       <div className="quick">
-        <Quick href="#/tutor" icon="bot" c="purple" title={h.quick.tutor[0]} sub={h.quick.tutor[1]} />
+        <Quick href="#/tutor" icon="dara" c="purple" title={h.quick.tutor[0]} sub={h.quick.tutor[1]} />
         <Quick href="#/gaps" icon="target" c="red" title={h.quick.gaps[0]} sub={h.quick.gaps[1](alerts?.length || 0)} />
         <Quick href="#/diagnostics" icon="docchk" c="green" title={h.quick.diagnostics[0]} sub={h.quick.diagnostics[1]} />
       </div>
@@ -81,7 +81,7 @@ export default function Home() {
           <div className="list-item" key={r.lesson + r.action}>
             <span className={`dot ${r.skill_status || r.status}`} />
             <div className="grow"><div className="t-strong">{L(r.title)}</div>
-              <div className="muted small">{t.actions[r.action][0]}{["accepted", "changed"].includes(r.status) ? ` · ${t.rec.byTeacher}` : ""}</div></div>
+              <div className="muted small">{fox(t.actions[r.action][0])}{["accepted", "changed"].includes(r.status) ? ` · ${t.rec.byTeacher}` : ""}</div></div>
             <a className="tlink" href={actionHref(r)}>{t.open} <Icon n="chev" s={16} /></a>
           </div>
         )) : <p className="muted">{h.noRecs}</p>}
@@ -109,9 +109,9 @@ function NextStep({ n, subject, lessonMin }) {
   return (
     <section className="hcard next">
       <p className="next-eyebrow"><b>{h.nextTitle}</b>{subject && <> · {L(subject.title)}</>} · {t.grade(user.grade)}</p>
-      <h2 className="next-title">{title}</h2>
+      <h2 className="next-title">{fox(title)}</h2>
       {lessonTitle && <div className="topic-pill"><span className="topic-sym">{subject?.sym || "√x"}</span>{lessonTitle}</div>}
-      <p className="next-text">{text}</p>
+      <p className="next-text">{fox(text)}</p>
       {n.comment && n.status && n.status !== "new" && (
         <p className="why green"><Icon n="user" s={18} /><span><b>{t.rec.teacherNote}</b> {n.comment}</span></p>
       )}
@@ -155,7 +155,7 @@ function PlanCard({ plan }) {
           <li key={i.id} className={i.status === "done" ? "done" : k === cur ? "cur" : ""}>
             <span className="step-mark" aria-hidden="true">{i.status === "done" && <Icon n="check" s={14} />}</span>
             <div className="grow">
-              <div className="step-title">{t.plan.blocks[i.block] || i.block}</div>
+              <div className="step-title">{fox(t.plan.blocks[i.block] || i.block)}</div>
               <div className="muted small">{L(i.title)}</div>
             </div>
             <span className="muted small">{t.plan.min(i.minutes)}</span>
@@ -177,7 +177,7 @@ function AttendanceCard({ att }) {
       <div className="hcard-head"><h2>{t.att.title}</h2><a href="#/profile" className="tlink">{h.attMore} <Icon n="chev" s={16} /></a></div>
       <p className="att-big">
         <b>{att.rate == null ? "—" : `${Math.round(att.rate * 100)}%`}</b> <span>· {t.att.days(att.present, att.school_days)}</span>
-        {att.freezes > 0 && <span className="att-freezes" style={{ marginLeft: 10 }} title={t.att.freezeHelp}><Icon n="snow" s={15} /> {att.freezes}</span>}
+        {att.freezes > 0 && <span className="att-freezes" title={t.att.freezeHelp}><Icon n="snow" s={15} />{att.freezes}</span>}
       </p>
       <div className="att-row-big">
         {days.map((x) => {

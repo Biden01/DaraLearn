@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { fox } from "../app/ui.jsx";
 
 // Ответ → исход и состояние узлов карты знаний.
 const OUTCOME = ["lost", "ok", "swap", "swap"];
@@ -51,7 +52,7 @@ export default function HeroDemo({ t }) {
         {msg ? (
           <>
             <p className="demo-msg-t">{msg.t}</p>
-            <p>{msg.d}</p>
+            <p>{fox(msg.d)}</p>
             <button type="button" className="link-btn" onClick={() => setPick(null)}>{t.again}</button>
           </>
         ) : (

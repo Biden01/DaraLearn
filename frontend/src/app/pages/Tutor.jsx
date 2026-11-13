@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Crumb, Dara, Icon, Rich, useApp } from "../ui.jsx";
+import { Bar, Box, Crumb, Dara, Icon, Rich, fox, useApp } from "../ui.jsx";
 import TutorTask from "./TutorTask.jsx";
 
 const hhmm = (iso) => new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
@@ -129,7 +129,7 @@ export default function Tutor() {
     <div className="tutor-page">
       <Crumb items={[[t.nav.tutor]]} />
       <div className="tutor-top">
-        <div className="row" style={{ gap: 10 }}><h1 style={{ margin: 0 }}>Dara AI Tutor</h1><span className="badge">{tp.beta}</span></div>
+        <div className="row" style={{ gap: 10 }}><h1 style={{ margin: 0 }}>{fox("Dara AI Tutor")}</h1><span className="badge">{tp.beta}</span></div>
         {status && (
           <span className={`quota ${!status.enabled ? "off" : noLeft ? "empty" : ""}`}>
             <Icon n="bot" s={14} /> {status.enabled ? tp.left(status.remaining) : tp.offShort}
@@ -173,7 +173,7 @@ export default function Tutor() {
             </div>
           )}
 
-          {status && !status.enabled && <div className="chat-banner">{tp.off}</div>}
+          {status && !status.enabled && <div className="chat-banner">{fox(tp.off)}</div>}
 
           {showTask && task && !taskSeen && session.first_attempt_correct !== true && (
             <button className="task-pin" onClick={() => taskRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>

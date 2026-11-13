@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "motion/react";
+import { fox } from "../app/ui.jsx";
 
 // Стопка карточек с фото: тянется мышью/пальцем, листается стрелками и сама раз в несколько секунд.
 // Порт карусели «stacked» на наш CSS вместо Tailwind.
@@ -90,8 +91,8 @@ function StackCard({ slide, index, total, progress, config }) {
       <div className="stack-shade" />
       <span className="stack-badge">{slide.badge}</span>
       <motion.div className="stack-text" style={{ opacity: text }}>
-        <p className="stack-title">{slide.title}</p>
-        <p className="stack-desc">{slide.description}</p>
+        <p className="stack-title">{fox(slide.title)}</p>
+        <p className="stack-desc">{fox(slide.description)}</p>
       </motion.div>
     </motion.div>
   );

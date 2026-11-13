@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { TEXT } from "./text.js";
+import { fox } from "../app/ui.jsx";
 import HeroDemo from "./HeroDemo.jsx";
 import HeroCarousel from "./HeroCarousel.jsx";
 import PilotForm from "./PilotForm.jsx";
@@ -63,7 +64,7 @@ function Head({ kicker, title, lead, center }) {
     <div className={center ? "head center" : "head"}>
       <p className="kicker">{kicker}</p>
       <h2>{title}</h2>
-      {lead && <p className="lead">{lead}</p>}
+      {lead && <p className="lead">{fox(lead)}</p>}
     </div>
   );
 }
@@ -179,7 +180,7 @@ export default function Landing() {
                 </MacbookPro>
                 {CHIPS.map(([icon, i], n) => (
                   <div key={icon} className={`chip chip-${n}`} aria-hidden="true">
-                    <span className="ico-sm"><Icon name={icon} /></span>{t.inside.items[i][0]}
+                    <span className="ico-sm"><Icon name={icon} /></span>{fox(t.inside.items[i][0])}
                   </div>
                 ))}
               </div>
@@ -194,8 +195,8 @@ export default function Landing() {
               {t.loop.steps.map(([h, d], i) => (
                 <li key={h} className="card reveal" style={{ "--d": `${i * 80}ms` }}>
                   <div className="card-top"><span className="ico-box"><Icon name={LOOP_ICONS[i]} /></span><span className="loop-n">0{i + 1}</span></div>
-                  <h3>{h}</h3>
-                  <p>{d}</p>
+                  <h3>{fox(h)}</h3>
+                  <p>{fox(d)}</p>
                 </li>
               ))}
             </ol>
@@ -255,7 +256,7 @@ export default function Landing() {
               {t.roles.items.map(([h, d], i) => (
                 <div key={h} className="card reveal" style={{ "--d": `${i * 80}ms` }}>
                   <span className="ico-box"><Icon name={ROLE_ICONS[i]} /></span>
-                  <h3>{h}</h3><p>{d}</p>
+                  <h3>{fox(h)}</h3><p>{fox(d)}</p>
                 </div>
               ))}
             </div>
@@ -283,7 +284,7 @@ export default function Landing() {
             </div>
             <div>
               {t.faq.items.map(([q, a]) => (
-                <details key={q}><summary>{q}</summary><p>{a}</p></details>
+                <details key={q}><summary>{fox(q)}</summary><p>{fox(a)}</p></details>
               ))}
             </div>
           </div>

@@ -1,5 +1,6 @@
 import * as React from "react";
 import "./flipbook-scroll-gallery.css";
+import { fox } from "../../app/ui.jsx";
 
 // Фотокнига с перелистыванием (21st.dev, FlipbookScrollGallery), перенесена под проект:
 // JSX вместо TSX, обычный CSS (flipbook-scroll-gallery.css) вместо Tailwind, React 18
@@ -101,8 +102,8 @@ function FrontPage({ item, index, fontSize }) {
       <Grain />
       <Photo src={item.image} priority={index === 0} className="fb-front-photo" />
       <div className="fb-front-text">
-        {item.title && <p className="fb-title">{item.title}</p>}
-        {item.caption && <p className="fb-caption">{item.caption}</p>}
+        {item.title && <p className="fb-title">{fox(item.title)}</p>}
+        {item.caption && <p className="fb-caption">{fox(item.caption)}</p>}
         <p className="fb-meta">
           <span>{item.date}</span>
           <span>{two(index + 1)}</span>
@@ -132,7 +133,7 @@ function BackPage({ item, index, fontSize }) {
         </span>
       )}
       <div className="fb-back-text">
-        {item.title && <p className="fb-back-title">{item.title}</p>}
+        {item.title && <p className="fb-back-title">{fox(item.title)}</p>}
         {item.date && <p className="fb-back-date">{item.date}</p>}
       </div>
       <Gutter edge="right" />

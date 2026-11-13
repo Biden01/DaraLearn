@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { Box, Crumb, useApp } from "../ui.jsx";
+import { Box, Crumb, fox, useApp } from "../ui.jsx";
 
 export default function Help() {
   const { t, toast } = useApp();
@@ -19,7 +19,7 @@ export default function Help() {
       <h1>{h.title}</h1>
       <p className="subtitle">{h.sub}</p>
       <div className="grid g-main">
-        <div className="card faq">{h.faq.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div>
+        <div className="card faq">{h.faq.map(([q, a]) => <details key={q}><summary>{fox(q)}</summary><p>{fox(a)}</p></details>)}</div>
         <form className="card" style={{ alignSelf: "start" }} onSubmit={send}>
           <Box sym="?" size={40} />
           <p className="card-title" style={{ margin: "16px 0 8px" }}>{h.notFound}</p>

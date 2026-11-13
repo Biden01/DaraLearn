@@ -587,11 +587,15 @@ h2 { letter-spacing: -.3px; }
 .att-dow { text-align: center; font-size: 11px; color: var(--muted); }
 .att-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
 .att-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.att-stats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.att-stats { display: flex; flex-wrap: wrap; gap: 12px 40px; margin: 16px 0 4px; }
 .att-stats > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .att-stats b { display: flex; align-items: center; gap: 4px; height: 28px; font-size: 22px; line-height: 1; }
 .att-stats svg { flex: none; }
 .att-stats svg { color: var(--orange); }
+.att-stats .att-freezes svg { color: var(--accent); }
+@media (max-width: 600px) {
+  .att-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+}
 .att-today { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 8px 12px; border-radius: 10px;
   background: #f1f3f6; font-size: 13px; font-weight: 600; }
 .att-today.yes { background: #e7f6ef; color: var(--green); }
@@ -744,7 +748,8 @@ h2 { letter-spacing: -.3px; }
 .steps li.done .step-mark { background: #16A34A; border-color: #16A34A; }
 .steps li.done .step-title { color: var(--muted); text-decoration: line-through; }
 
-.att-big { margin: 0 0 18px; display: flex; align-items: baseline; gap: 6px; }
+.att-big { margin: 0 0 18px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.att-big .att-freezes { margin-left: 8px; gap: 3px; align-self: center; color: var(--accent); font-weight: 600; }
 .att-big b { font-size: 36px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
 .att-row-big { display: flex; gap: 6px; }
 .att-sq { flex: 1; min-width: 0; aspect-ratio: 1; max-height: 40px; border-radius: 8px; background: #F1F3F6; }
@@ -963,3 +968,7 @@ button.pl-row:active { background: #EEF1F5; }
   .stu .pl-goal .ring { --size: 56px !important; }
   .plan-page .hcard-head { flex-wrap: wrap; }
 }
+
+/* лисёнок Dara перед «AI Tutor» в тексте (fox() в ui.jsx) */
+.ai-tutor { white-space: nowrap; }
+.ai-tutor .dara { display: inline-block; vertical-align: -.25em; margin-right: .25em; }
