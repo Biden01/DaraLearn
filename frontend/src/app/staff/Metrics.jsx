@@ -28,7 +28,7 @@ export default function Metrics() {
     <>
       <Crumb items={[[a.metricsTitle]]} />
       <h1>{a.metricsTitle}</h1>
-      <p className="subtitle">docs/PLAN.md · 7</p>
+      <p className="subtitle">{a.metricsSub}</p>
       <div className="grid g-4" style={{ marginBottom: 20 }}>
         {cards.map(([icon, c, v, l, sub]) => (
           <div className="card row" key={l}><Box icon={icon} c={c} /><div><div style={{ fontSize: 22, fontWeight: 700 }}>{v}</div><div className="muted small">{l}</div>{sub && <div className="muted small">{sub}</div>}</div></div>
