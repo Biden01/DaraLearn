@@ -49,9 +49,9 @@ export function AttStats({ a }) {
   return (
     <div className="att-stats">
       <div><b>{a.rate == null ? "—" : `${Math.round(a.rate * 100)}%`}</b><span className="muted small">{at.days(a.present, a.school_days)}</span></div>
-      <div><b className="row" style={{ gap: 4 }}><Icon n="fire" s={16} />{a.streak}</b><span className="muted small">{at.streak}</span></div>
+      <div><b><Icon n="fire" s={18} />{a.streak}</b><span className="muted small">{at.streak}</span></div>
       {a.freezes > 0 && (
-        <div><b className="att-freezes"><Icon n="snow" s={16} />{a.freezes}</b><span className="muted small" title={at.freezeHelp}>{at.freezes}</span></div>
+        <div><b className="att-freezes"><Icon n="snow" s={18} />{a.freezes}</b><span className="muted small" title={at.freezeHelp}>{at.freezes}</span></div>
       )}
     </div>
   );
