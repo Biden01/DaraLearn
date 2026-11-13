@@ -93,9 +93,14 @@ export function AttCalendar({ days }) {
   );
 }
 
-export function AttLegend({ a }) {
+export function AttLegend({ a, strip = false }) {
   const { t } = useApp();
   const at = t.att;
+  if (strip) return ( // легенда полоски (таблица класса): те же квадратики, что в полоске
+    <div className="att-legend muted small">
+      {["present", "absent", "off", "today"].map((k) => <span key={k}><i className={`att-cell ${k}`} />{at.status[k]}</span>)}
+    </div>
+  );
   const frozen = a?.days.some((d) => d.status === "frozen");
   return (
     <div className="att-legend muted small">
