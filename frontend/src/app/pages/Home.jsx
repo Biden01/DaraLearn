@@ -3,7 +3,7 @@
 // /verification/checks, /auth/me/classes; счётчик олқылықтар — из /decisions/me (общий с меню и колокольчиком).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Icon, Loading, Ring, fox, useApp } from "../ui.jsx";
+import { Bar, Box, Icon, Loading, Ring, SymIcon, fox, useApp } from "../ui.jsx";
 import { actionHref } from "./actions.js";
 import { AttToday } from "../Attendance.jsx";
 import { dateLongKk } from "../kk.js";
@@ -110,7 +110,7 @@ function NextStep({ n, subject, lessonMin }) {
     <section className="hcard next">
       <p className="next-eyebrow"><b>{h.nextTitle}</b>{subject && <> · {L(subject.title)}</>} · {t.grade(user.grade)}</p>
       <h2 className="next-title">{fox(title)}</h2>
-      {lessonTitle && <div className="topic-pill"><span className="topic-sym">{subject?.sym || "√x"}</span>{lessonTitle}</div>}
+      {lessonTitle && <div className="topic-pill"><span className="topic-sym"><SymIcon sym={subject?.sym || "√x"} /></span>{lessonTitle}</div>}
       <p className="next-text">{fox(text)}</p>
       {n.comment && n.status && n.status !== "new" && (
         <p className="why green"><Icon n="user" s={18} /><span><b>{t.rec.teacherNote}</b> {n.comment}</span></p>
