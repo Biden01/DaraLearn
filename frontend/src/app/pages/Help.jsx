@@ -19,16 +19,16 @@ export default function Help() {
       <h1>{h.title}</h1>
       <p className="subtitle">{h.sub}</p>
       <div className="grid g-main">
-        <div className="card faq">{h.faq.map(([q, a]) => <details key={q}><summary>{fox(q)}</summary><p>{fox(a)}</p></details>)}</div>
+        <div className="card faq">{h.faq.map(([q, a]) => <details key={q}><summary><span>{fox(q)}</span></summary><p>{fox(a)}</p></details>)}</div>
         <form className="card" style={{ alignSelf: "start" }} onSubmit={send}>
           <Box sym="?" size={40} />
           <p className="card-title" style={{ margin: "16px 0 8px" }}>{h.notFound}</p>
           <p className="muted small" style={{ lineHeight: 1.5 }}>{h.write}</p>
-          <label className="field"><select value={topic} onChange={(e) => setTopic(e.target.value)} required aria-label={h.topic}>
+          <label className="field" style={{ marginTop: 14 }}><select value={topic} onChange={(e) => setTopic(e.target.value)} required aria-label={h.topic}>
             <option value="" disabled>{h.topic}</option>
             {Object.entries(h.topics).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select></label>
-          <label className="field"><textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={h.placeholder} minLength={3} maxLength={3000} required aria-label={h.placeholder} /></label>
+          <label className="field" style={{ marginTop: 10 }}><textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={h.placeholder} minLength={3} maxLength={3000} required aria-label={h.placeholder} /></label>
           <button className="btn block" style={{ marginTop: 12 }} disabled={busy}>{h.send}</button>
         </form>
       </div>

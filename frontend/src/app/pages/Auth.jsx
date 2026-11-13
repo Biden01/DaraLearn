@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { fox, useApp } from "../ui.jsx";
+import { Icon, fox, useApp } from "../ui.jsx";
 
 export default function Auth() {
   const { t, lang, setLang, setUser } = useApp();
   const [mode, setMode] = useState(window.location.hash.includes("register") ? "register" : "login");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const a = t.auth;
 
   async function submit(e) {
@@ -62,8 +63,12 @@ export default function Auth() {
           <label className="field">{mode === "login" ? t.me.loginOrEmail : a.email}
             <input name="email" type={mode === "login" ? "text" : "email"} required autoComplete={mode === "login" ? "username" : "email"} /></label>
           <label className="field">{a.password}
-            <input name="password" type="password" required minLength={mode === "login" ? undefined : 8}
-              autoComplete={mode === "login" ? "current-password" : "new-password"} />
+            <span className="pw-wrap">
+              <input name="password" type={showPw ? "text" : "password"} required minLength={mode === "login" ? undefined : 8}
+                autoComplete={mode === "login" ? "current-password" : "new-password"} />
+              <button type="button" className="pw-eye" onClick={() => setShowPw((v) => !v)} aria-pressed={showPw}
+                aria-label={showPw ? a.hidePw : a.showPw} title={showPw ? a.hidePw : a.showPw}><Icon n={showPw ? "eyeoff" : "eye"} s={18} /></button>
+            </span>
             {mode !== "login" && <span className="small">{a.min8}</span>}
           </label>
           {mode === "register" && (

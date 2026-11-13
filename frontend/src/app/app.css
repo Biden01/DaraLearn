@@ -328,7 +328,14 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
 .field input, .field select { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; color: #111329; outline: none; background: #fff; }
 .faq details { border-top: 1px solid var(--line); padding: 14px 0; }
 .faq details:first-child { border-top: 0; }
-.faq summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.card.faq summary { cursor: pointer; font-weight: 600; font-size: 14px; list-style: none; display: flex; align-items: center; gap: 12px; }
+.card.faq summary::-webkit-details-marker { display: none; }
+.card.faq summary > :first-child { flex: 1; }
+.card.faq summary::after { content: ""; flex: none; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg) translate(-2px, -2px); transition: transform .2s; }
+.card.faq details[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+.card.faq summary:hover { color: var(--accent); }
+.card.faq summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
 .faq p { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .empty { text-align: center; padding: 40px 20px; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #111329; color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 13px; z-index: 100; opacity: 0; transition: opacity .2s; pointer-events: none; }
@@ -1036,3 +1043,16 @@ button.pl-row:active { background: #EEF1F5; }
 .topic-meta { display: flex; align-items: center; gap: 10px; margin: 4px 0 8px; font-size: 12px; }
 .topic-st { font-weight: 600; }
 .topic-pct { width: 52px; flex: none; text-align: right; font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* достижения: столько колонок, сколько влезает (в узкой колонке кабинета — одна), без переносов по слогам */
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+.ach-grid > div { min-width: 0; }
+.ach-grid .t-strong, .ach-grid .muted { overflow-wrap: normal; word-break: normal; hyphens: none; }
+
+/* поле пароля с кнопкой «показать» */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap input { width: 100%; padding-right: 44px; }
+.pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; display: grid; place-items: center;
+  border: 0; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; }
+.pw-eye:hover { color: var(--fg, #111); background: #f4f6fa; }
+.pw-eye:focus-visible { outline: 2px solid var(--accent); }
