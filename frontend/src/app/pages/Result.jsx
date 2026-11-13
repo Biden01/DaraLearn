@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Crumb, Loading, Ring, useApp } from "../ui.jsx";
+import { Crumb, Loading, Ring, fox, useApp } from "../ui.jsx";
 import { actionHref } from "./actions.js";
 
 export default function Result() {
@@ -64,7 +64,7 @@ export default function Result() {
                 <div className="grow">
                   <div className="t-strong small">{L(r.title)}</div>
                   <div className="muted small">{t.causes[r.cause]}{r.action === "prereq" ? ` → ${L(r.target_title)}` : ""}</div>
-                  <a href={actionHref(r)} className="link" style={{ marginTop: 6 }}>{t.actions[r.action][0]}</a>
+                  <a href={actionHref(r)} className="link" style={{ marginTop: 6 }}>{fox(t.actions[r.action][0])}</a>
                 </div>
               </div>
             )) : <p className="muted small">{t.gaps.empty}</p>}

@@ -367,3 +367,7 @@ section { padding-block: 104px; position: relative; }
   .top-in { gap: 12px; }
   .top-act { gap: 8px; }
 }
+
+/* лисёнок Dara перед «AI Tutor» в тексте (fox() в app/ui.jsx) */
+.ai-tutor { white-space: nowrap; }
+.ai-tutor .dara { display: inline-block; vertical-align: -.25em; margin-right: .25em; }

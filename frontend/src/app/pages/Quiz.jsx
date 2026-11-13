@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Box, Crumb, Icon, useApp } from "../ui.jsx";
+import { Box, Crumb, Icon, fox, useApp } from "../ui.jsx";
 import { RecentAttempts } from "./Diagnostics.jsx";
 
 export default function Quiz() {
@@ -79,7 +79,7 @@ export default function Quiz() {
             )}
           </div>
           <div className="card soft">
-            <div className="row"><Box icon="lock" size={36} /><p className="card-title" style={{ margin: 0 }}>AI Tutor</p></div>
+            <div className="row"><Box icon="lock" size={36} /><p className="card-title" style={{ margin: 0 }}>{fox("AI Tutor")}</p></div>
             <p className="muted small" style={{ lineHeight: 1.5, margin: "12px 0 0" }}>{q.noAi}</p>
           </div>
         </div>

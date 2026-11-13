@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { STRINGS } from "./i18n.js";
-import { Ctx, Icon, pick, useApp } from "./ui.jsx";
+import { Ctx, Icon, fox, pick, useApp } from "./ui.jsx";
 import { actionHref } from "./pages/actions.js";
 import { dayLabel } from "./pages/Plan.jsx";
 import Auth from "./pages/Auth.jsx";
@@ -296,7 +296,7 @@ export default function App() {
   return (
     <Ctx.Provider value={ctx}>
       {body}
-      <div className={`toast ${toastMsg ? "show" : ""}`} role="status">{toastMsg}</div>
+      <div className={`toast ${toastMsg ? "show" : ""}`} role="status">{fox(toastMsg)}</div>
     </Ctx.Provider>
   );
 }
@@ -361,7 +361,7 @@ function Bell({ alerts }) {
                     <span className={`bell-mark p${r.priority}`} role="img" title={t.gaps.priority[r.priority]} aria-label={t.gaps.priority[r.priority]} />
                     <span className="bell-main">
                       <span className="bell-title">{L(r.title)}</span>
-                      <span className="bell-sub">{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
+                      <span className="bell-sub">{fox(t.actions[r.action]?.[0] || r.action)} · {t.causes[r.cause]}
                         {r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}</span>
                     </span>
                     <span className="bell-date">{r.created_at ? dayLabel(r.created_at.slice(0, 10), lang, { day: "numeric", month: "short" }) : ""}</span>
@@ -373,7 +373,7 @@ function Bell({ alerts }) {
                       {["accepted", "changed"].includes(r.status) && (
                         <div className="small st-mastered" style={{ marginTop: 6 }}>{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>
                       )}
-                      <a href={actionHref(r)} className="btn sm" style={{ marginTop: 10 }}>{t.actions[r.action]?.[0] || t.open}</a>
+                      <a href={actionHref(r)} className="btn sm" style={{ marginTop: 10 }}>{fox(t.actions[r.action]?.[0] || t.open)}</a>
                     </div>
                   )}
                 </div>

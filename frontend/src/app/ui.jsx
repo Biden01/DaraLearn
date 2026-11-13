@@ -49,6 +49,14 @@ const P = {
 // Объёмный стиль (градиенты + блики); id градиентов уникальны на каждый экземпляр.
 const EYE_L = "M13.4 27.8Q17.3 26.4 21.2 27.8Q20.8 31.8 17.3 31.8Q13.8 31.8 13.4 27.8Z";
 const EYE_R = "M26.8 27.8Q30.7 26.4 34.6 27.8Q34.2 31.8 30.7 31.8Q27.2 31.8 26.8 27.8Z";
+// «AI Tutor» в тексте → лисёнок Dara перед названием. Строка без «AI Tutor» возвращается как есть,
+// поэтому fox() безопасно оборачивать вокруг любого текста. Только для видимого текста — не для title/alt/option.
+export function fox(s) {
+  if (typeof s !== "string" || !s.includes("AI Tutor")) return s;
+  return s.split(/(AI Tutor)/).map((p, i) => (p === "AI Tutor"
+    ? <span key={i} className="ai-tutor"><Dara s="1.2em" />AI Tutor</span> : p));
+}
+
 export function Dara({ s = 24, title }) {
   const u = useId().replace(/:/g, "");
   const id = (k) => `${k}${u}`, url = (k) => `url(#${k}${u})`;
@@ -132,7 +140,7 @@ export const Crumb = ({ items }) => {
   return (
     <div className="crumb">
       <a href="#/">{t.nav.home}</a>
-      {items.map(([label, href]) => <span key={label}> / {href ? <a href={href}>{label}</a> : label}</span>)}
+      {items.map(([label, href]) => <span key={label}> / {href ? <a href={href}>{fox(label)}</a> : fox(label)}</span>)}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Crumb, Loading, Ring, useApp } from "../ui.jsx";
+import { Bar, Box, Crumb, Loading, Ring, fox, useApp } from "../ui.jsx";
 import { actionHref } from "./actions.js";
 
 export default function Gaps() {
@@ -67,7 +67,7 @@ export default function Gaps() {
                     </div>
                     <b style={{ width: 52, flex: "none", textAlign: "right" }}>{Math.round(r.proof * 100)}%</b>
                     <span className={`badge gap-badge ${r.priority >= 2 ? badge[r.priority] : "gray"}`}>{r.priority >= 2 ? g.priority[r.priority] : g.verifyTitle}</span>
-                    <a href={actionHref(r)} className={`btn sm gap-btn ${r.priority === 3 ? "" : "ghost"}`}>{t.actions[r.action][0]}</a>
+                    <a href={actionHref(r)} className={`btn sm gap-btn ${r.priority === 3 ? "" : "ghost"}`}>{fox(t.actions[r.action][0])}</a>
                   </div>
                 )) : <p className="muted">{g.empty}</p>}
               </div>
@@ -78,7 +78,7 @@ export default function Gaps() {
                   {verify.map((r) => (
                     <div className="list-item" key={r.lesson}>
                       <span className={`dot ${r.skill_status || r.status}`} /><span className="grow t-strong">{L(r.title)}</span>
-                      <a href={actionHref(r)} className="btn sm ghost">{t.actions[r.action][0]}</a>
+                      <a href={actionHref(r)} className="btn sm ghost">{fox(t.actions[r.action][0])}</a>
                     </div>
                   ))}
                 </div>
