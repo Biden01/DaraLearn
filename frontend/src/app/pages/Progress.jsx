@@ -56,15 +56,19 @@ export default function Progress() {
       </div>
       <div className="grid g-2">
         <div className="card">
-          <div className="card-head"><p className="card-title">{pp.topics}</p><span className="muted small">{pp.practiceVs}</span></div>
+          <div className="card-head"><p className="card-title">{pp.topics}</p><span className="muted small">{pp.proof}</span></div>
           {d.lessons.map((l) => (
-            <a href={`#/lesson/${l.slug}`} className="list-item" key={l.slug}>
+            <a href={`#/lesson/${l.slug}`} className="list-item topic-row" key={l.slug}>
               <span className={`dot ${l.status}`} />
               <div className="grow">
-                <div className="row between wrap" style={{ gap: "2px 12px" }}><span className="t-strong small" style={{ flex: "1 1 auto" }}>{L(l.title)}</span><span className={`small st-${l.status}`} style={{ whiteSpace: "nowrap" }}>{t.status[l.status]}</span></div>
-                <div style={{ marginTop: 6 }}><Bar p={l.proof * 100} /></div>
+                <span className="t-strong small topic-title">{L(l.title)}</span>
+                <div className="topic-meta">
+                  <span className={`topic-st st-${l.status}`}>{t.status[l.status]}</span>
+                  <span className="muted">{pp.practice} {Math.round(l.practice * 100)}%</span>
+                </div>
+                <Bar p={l.proof * 100} />
               </div>
-              <span className="muted small" style={{ width: 80, flex: "none", textAlign: "right", whiteSpace: "nowrap" }}>{Math.round(l.practice * 100)} / {Math.round(l.proof * 100)}%</span>
+              <b className="topic-pct" title={pp.proof}>{Math.round(l.proof * 100)}%</b>
             </a>
           ))}
         </div>

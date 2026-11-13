@@ -70,9 +70,10 @@ function Head({ kicker, title, lead, center }) {
 }
 
 // Плавное появление блоков при прокрутке.
-function useReveal() {
+// Перезапускается при смене языка: карточки с key={заголовок} пересоздаются и без этого остались бы невидимыми.
+function useReveal(lang) {
   useEffect(() => {
-    const els = document.querySelectorAll(".reveal");
+    const els = document.querySelectorAll(".reveal:not(.in)");
     if (!("IntersectionObserver" in window) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
       els.forEach((el) => el.classList.add("in"));
       return;
@@ -84,7 +85,7 @@ function useReveal() {
     }, { rootMargin: "0px 0px -8% 0px" });
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [lang]);
 }
 
 export default function Landing() {
@@ -92,7 +93,7 @@ export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const t = TEXT[lang];
   const [titleA, ...titleB] = t.hero.title.split(". ");
-  useReveal();
+  useReveal(lang);
 
   useEffect(() => {
     document.documentElement.lang = lang;

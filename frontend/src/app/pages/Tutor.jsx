@@ -126,10 +126,10 @@ export default function Tutor() {
   const showTask = hasLesson && !locked && !check;
 
   return (
-    <div className="tutor-page">
+    <div className={`tutor-page${hasLesson ? "" : " solo"}`}>
       <Crumb items={[[t.nav.tutor]]} />
       <div className="tutor-top">
-        <div className="row" style={{ gap: 10 }}><h1 style={{ margin: 0 }}>{fox("Dara AI Tutor")}</h1><span className="badge">{tp.beta}</span></div>
+        <div className="row" style={{ gap: 10 }}><h1 className="tutor-h1" style={{ margin: 0 }}><Dara s="1.15em" />Dara AI Tutor</h1><span className="badge">{tp.beta}</span></div>
         {status && (
           <span className={`quota ${!status.enabled ? "off" : noLeft ? "empty" : ""}`}>
             <Icon n="bot" s={14} /> {status.enabled ? tp.left(status.remaining) : tp.offShort}

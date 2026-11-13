@@ -54,8 +54,9 @@ const EYE_R = "M26.8 27.8Q30.7 26.4 34.6 27.8Q34.2 31.8 30.7 31.8Q27.2 31.8 26.8
 // поэтому fox() безопасно оборачивать вокруг любого текста. Только для видимого текста — не для title/alt/option.
 export function fox(s) {
   if (typeof s !== "string" || !s.includes("AI Tutor")) return s;
-  return s.split(/(AI Tutor)/).map((p, i) => (p === "AI Tutor"
-    ? <span key={i} className="ai-tutor"><Dara s="1.2em" />AI Tutor</span> : p));
+  // одним <span>: внутри flex-контейнера (summary, кнопки) куски строки иначе разъезжаются как отдельные элементы
+  return <span>{s.split(/(AI Tutor)/).map((p, i) => (p === "AI Tutor"
+    ? <span key={i} className="ai-tutor"><Dara s="1.2em" />AI Tutor</span> : p))}</span>;
 }
 
 export function Dara({ s = 24, title }) {

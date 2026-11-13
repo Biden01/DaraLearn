@@ -167,12 +167,12 @@ export default function App() {
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
-  // кабинет ученика — своё оформление (шрифт, фон, меню группами, таб-бар)
-  const isStudent = !!user && !user.must_change_password && user.role === "student";
+  // оформление кабинета (шрифт, фон, меню группами, таб-бар) — общее для всех ролей; класс «stu» исторический
+  const inApp = !!user && !user.must_change_password;
   useEffect(() => {
-    document.body.classList.toggle("stu", isStudent);
+    document.body.classList.toggle("stu", inApp);
     return () => document.body.classList.remove("stu");
-  }, [isStudent]);
+  }, [inApp]);
 
   useEffect(() => {
     if (!moreOpen) return;
