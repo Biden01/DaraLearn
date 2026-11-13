@@ -1056,3 +1056,9 @@ button.pl-row:active { background: #EEF1F5; }
   border: 0; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; }
 .pw-eye:hover { color: var(--fg, #111); background: #f4f6fa; }
 .pw-eye:focus-visible { outline: 2px solid var(--accent); }
+
+/* иконка «Мои пробелы»: недостающая деталь пазла покачивается при наведении */
+.piece { transform-box: fill-box; transform-origin: center; }
+a:hover .piece, a.active .piece { animation: piece-wiggle .9s ease-in-out; }
+@keyframes piece-wiggle { 0%, 100% { transform: none; } 30% { transform: translate(-1px, 1px) rotate(-10deg); } 60% { transform: translate(1px, -1px) rotate(8deg); } }
+@media (prefers-reduced-motion: reduce) { a:hover .piece, a.active .piece { animation: none; } }
