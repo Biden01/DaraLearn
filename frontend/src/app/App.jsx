@@ -52,7 +52,7 @@ const ROLES = {
   student: {
     nav: [["", "home", "home"], ["plan", "plan", "doc"], ["calendar", "calendar", "cal"],
       ["subjects", "subjects", "book"], ["courses", "courses", "case"], ["tutor", "tutor", "dara"],
-      ["diagnostics", "diagnostics", "docchk"], ["quiz", "quiz", "checkc"], ["gaps", "gaps", "target"],
+      ["diagnostics", "diagnostics", "docchk"], ["quiz", "quiz", "checkc"], ["gaps", "gaps", "gaps"],
       ["progress", "progress", "chart"]],
     // меню группами (заголовок группы — t.navGroups) и нижний таб-бар на телефоне
     groups: [[null, ["", "plan", "calendar"]], ["learn", ["subjects", "courses", "tutor"]],

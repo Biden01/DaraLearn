@@ -71,7 +71,7 @@ export default function Home() {
 
       <div className="quick">
         <Quick href="#/tutor" icon="dara" c="purple" title={h.quick.tutor[0]} sub={h.quick.tutor[1]} />
-        <Quick href="#/gaps" icon="target" c="red" title={h.quick.gaps[0]} sub={h.quick.gaps[1](alerts?.length || 0)} />
+        <Quick href="#/gaps" icon="gaps" c="red" title={h.quick.gaps[0]} sub={h.quick.gaps[1](alerts?.length || 0)} />
         <Quick href="#/diagnostics" icon="docchk" c="green" title={h.quick.diagnostics[0]} sub={h.quick.diagnostics[1]} />
       </div>
 
