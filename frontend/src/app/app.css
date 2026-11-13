@@ -1062,3 +1062,8 @@ button.pl-row:active { background: #EEF1F5; }
 a:hover .piece, a.active .piece { animation: piece-wiggle .9s ease-in-out; }
 @keyframes piece-wiggle { 0%, 100% { transform: none; } 30% { transform: translate(-1px, 1px) rotate(-10deg); } 60% { transform: translate(1px, -1px) rotate(8deg); } }
 @media (prefers-reduced-motion: reduce) { a:hover .piece, a.active .piece { animation: none; } }
+
+/* duotone-иконки (Icon в ui.jsx): мягкая заливка основной формы в цвет иконки */
+svg.i .d { fill: currentColor; fill-opacity: var(--ico-fill, .14); }
+.nav a.active, .tabbar a.active { --ico-fill: .28; }
+.nav a:hover { --ico-fill: .2; }
