@@ -24,11 +24,13 @@ export function AttStrip({ days, n = 14 }) {
 export function AttCalendar({ days }) {
   const { t } = useApp();
   const pad = days.length ? dow(days[0].day) : 0;
+  const tail = (7 - ((pad + days.length) % 7)) % 7; // добиваем последнюю неделю, чтобы таблица была ровной
   return (
-    <div className="att-cal">
-      {t.att.week.map((w) => <span key={w} className="att-dow">{w}</span>)}
-      {Array.from({ length: pad }, (_, i) => <span key={"p" + i} />)}
+    <div className="att-cal" role="table">
+      {t.att.week.map((w) => <span key={w} className="att-dow" role="columnheader">{w}</span>)}
+      {Array.from({ length: pad }, (_, i) => <span key={"p" + i} className="att-pad" />)}
       {days.map((d) => <Cell key={d.day} d={d} big />)}
+      {Array.from({ length: tail }, (_, i) => <span key={"t" + i} className="att-pad" />)}
     </div>
   );
 }
