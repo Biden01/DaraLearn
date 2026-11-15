@@ -67,6 +67,24 @@ def my_decisions(user: User = Depends(current_user), db: Session = Depends(get_d
     return student_view(db, user)
 
 
+class SeenIn(BaseModel):
+    ids: list[int] = Field(max_length=500)
+
+
+@router.post("/me/seen")
+def mark_seen(payload: SeenIn, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Отметить уведомления колокольчика прочитанными (только свои рекомендации)."""
+    if not payload.ids:
+        return {"updated": 0}
+    rows = list(db.scalars(select(Recommendation).where(
+        Recommendation.user_id == user.id, Recommendation.id.in_(payload.ids), Recommendation.seen_at.is_(None))))
+    now = datetime.now(timezone.utc)
+    for r in rows:
+        r.seen_at = now
+    db.commit()
+    return {"updated": len(rows)}
+
+
 @router.get("/feed")
 def feed(class_id: int | None = None, include_closed: bool = False,
          user: User = Depends(require_role("teacher", "curator")), db: Session = Depends(get_db)) -> dict:
@@ -118,6 +136,7 @@ def decide_rec(rec_id: int, payload: DecisionIn, user: User = Depends(require_ro
     if payload.status == "changed" and payload.action:
         r.action = payload.action
     r.decided_by, r.decided_at = user.id, datetime.now(timezone.utc)
+    r.seen_at = None  # ученик увидит решение учителя как новое уведомление
     if payload.status == "done":
         r.done_at = r.decided_at
     audit(db, user, f"recommendation.{payload.status}", "recommendation", r.id, comment=payload.comment, new_action=payload.action)
