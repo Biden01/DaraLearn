@@ -256,7 +256,7 @@ export default function App() {
       <div className={`${menuOpen ? "menu-open" : ""} ${collapsed ? "nav-min" : ""}`}>
         <aside className="sidebar" style={menuOpen ? { transform: "none" } : undefined}>
           <a href="#/" className="brand"><img src="/logo.png" alt="" /> <span>DaraLearn</span></a>
-          <nav className="nav" aria-label="Main">{navMain}</nav>
+          <nav className="nav" aria-label={t.menu}>{navMain}</nav>
           <nav className="nav nav-bottom">
             {NAV_BOTTOM.map(link)}
             <InstallLink collapsed={collapsed} label={t.install} />
