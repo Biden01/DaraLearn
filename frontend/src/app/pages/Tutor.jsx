@@ -19,6 +19,7 @@ export default function Tutor() {
   const sg = t.stages;
   const wanted = route.query.get("lesson");
   const wantedRec = route.query.get("rec");
+  const wantedTask = Number(route.query.get("task")) || null; // разбор ошибки из «Мои достижения»
   const [check, setCheck] = useState(null); // этапы 7–9: {tasks, answers, result}
   const [task, setTask] = useState(null);          // задача первой попытки (карточка в ленте)
   const [taskSeen, setTaskSeen] = useState(true);  // карточка задачи сейчас в кадре
@@ -33,7 +34,7 @@ export default function Tutor() {
     api("/content/courses?subject=math").then((cs) => setLessons(cs.flatMap((c) => c.lessons))).catch(() => {});
     api("/tutor/sessions/current").then((s) => {
       // новая тема из ссылки — новый диалог
-      if (!s || s.finished || (wanted && s.lesson?.slug !== wanted)) return newSession(wanted);
+      if (!s || s.finished || (wanted && s.lesson?.slug !== wanted) || (wantedTask && s.task !== wantedTask)) return newSession(wanted);
       if (s.stage >= 7) api(`/tutor/sessions/${s.id}/check`).then((c) => setCheck({ tasks: c.tasks, answers: {} })).catch(() => {});
       setSession(s);
     }).catch(() => newSession(wanted));
@@ -66,7 +67,8 @@ export default function Tutor() {
   async function newSession(lesson) {
     setCheck(null);
     const rec = lesson && lesson === wanted && wantedRec ? Number(wantedRec) : null;
-    try { setSession(await api("/tutor/sessions", { method: "POST", body: { lesson: lesson || null, recommendation_id: rec } })); } catch { toast(t.error); }
+    const task = lesson && lesson === wanted ? wantedTask : null;
+    try { setSession(await api("/tutor/sessions", { method: "POST", body: { lesson: lesson || null, recommendation_id: rec, task } })); } catch { toast(t.error); }
   }
 
   async function nextStage() {
