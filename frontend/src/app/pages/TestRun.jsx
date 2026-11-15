@@ -96,7 +96,7 @@ export default function TestRun({ id }) {
       <div className="focus-foot">
         <div className="focus-foot-in">
           <button className="btn ghost" disabled={i === 0} onClick={() => setI(i - 1)}><Icon n="left" s={16} /> {q.prev}</button>
-          <div className="qnums inline" aria-label="nav">
+          <div className="qnums inline" aria-label={t.quiz.qnav}>
             {a.tasks.map((x, k) => (
               <button key={x.id} className={k === i ? "cur" : ans[x.id] !== undefined ? "done" : ""} onClick={() => setI(k)} aria-label={String(k + 1)}>{k + 1}</button>
             ))}
