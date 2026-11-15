@@ -14,6 +14,7 @@ from app.modules.content.service import lessons_of, subject_by_slug, task_public
 from app.modules.decisions.models import Recommendation
 from app.modules.decisions.service import sync_student
 from app.modules.events.models import LearningEvent
+from app.modules.verification.results import wrong_on_task
 from app.modules.verification.service import schedule_check
 from app.modules.school.models import User
 from app.modules.state.engine import SkillState, compute_states
@@ -90,6 +91,7 @@ PASS = 2
 class SessionIn(BaseModel):
     lesson: str | None = None
     recommendation_id: int | None = None
+    task: int | None = None  # разбор конкретной ошибки из теста («Мои достижения»)
 
 
 class StageIn(BaseModel):
@@ -115,7 +117,7 @@ def _session_out(db: Session, s: TutorSession) -> dict:
     lesson = db.get(Lesson, s.lesson_id) if s.lesson_id else None
     msgs = db.scalars(select(TutorMessage).where(TutorMessage.session_id == s.id).order_by(TutorMessage.id))
     return {"id": s.id, "lesson": {"slug": lesson.slug, "title": lesson.title} if lesson else None,
-            "stage": s.stage, "goal": s.goal, "result": s.result, "finished": s.finished_at is not None,
+            "stage": s.stage, "goal": s.goal, "task": s.first_task_id if s.goal.startswith("mistake:") else None, "result": s.result, "finished": s.finished_at is not None,
             "hints_used": s.hints_used, "first_attempt_correct": s.first_attempt_correct, "escalated": s.escalated,
             "messages": [{"id": m.id, "role": m.role, "content": m.content, "at": m.created_at.isoformat()} for m in msgs]}
 
@@ -140,8 +142,14 @@ def new_session(payload: SessionIn, user: User = Depends(current_user), db: Sess
         rec = None
     if rec and not lesson:
         lesson = db.get(Lesson, rec.lesson_id)
+    task = db.get(Task, payload.task) if payload.task else None
+    if task and not wrong_on_task(db, user.id, task.id):
+        task = None  # разбирать можно только своё неверное задание
+    if task:
+        lesson = db.get(Lesson, task.lesson_id)
     s = TutorSession(user_id=user.id, lesson_id=lesson.id if lesson else None, recommendation_id=rec.id if rec else None,
-                     goal=f"{rec.action}:{rec.cause}" if rec else "", prompt_version=PROMPT_VERSION)
+                     goal=f"mistake:{task.id}" if task else f"{rec.action}:{rec.cause}" if rec else "",
+                     first_task_id=task.id if task else None, prompt_version=PROMPT_VERSION)
     db.add(s)
     db.commit()
     return _session_out(db, s)
@@ -154,7 +162,11 @@ def _subject_theory(db: Session, lang: str) -> str:
     return "\n\n".join(parts)
 
 
-def _system_prompt(db: Session, user: User, lesson: Lesson | None, stage: int = 1) -> str:
+def _focus(s: TutorSession) -> int | None:
+    return s.first_task_id if s.goal.startswith("mistake:") else None
+
+
+def _system_prompt(db: Session, user: User, lesson: Lesson | None, stage: int = 1, focus: int | None = None) -> str:
     lang = user.lang if user.lang in RULES else "kk"
     stage_text = STAGES.get(stage, STAGES[6])
     if not lesson:  # свободная тема: опора — теория всех навыков предмета, а не знания модели
@@ -172,7 +184,14 @@ def _system_prompt(db: Session, user: User, lesson: Lesson | None, stage: int = 
     def txt(v):
         return v if isinstance(v, str) else v.get(lang, "")
 
-    mistakes = "\n".join(f"- «{txt(q)}»: ответил «{txt(o[c])}», верно «{txt(o[a])}»" for q, o, c, a in wrong) or "—"
+    def said(o, c):  # результаты ПҚС приходят без выбранного варианта
+        return f"ответил «{txt(o[c])}»" if c is not None and 0 <= c < len(o) else "ответ неверный (результат ПҚС/БЖБ)"
+
+    mistakes = "\n".join(f"- «{txt(q)}»: {said(o, c)}, верно «{txt(o[a])}»" for q, o, c, a in wrong) or "—"
+    if focus:  # сессия открыта из «Мои достижения»: разбираем именно эту ошибку теста
+        ft = db.get(Task, focus)
+        if ft:
+            mistakes = f"Ученик пришёл разобрать ошибку из теста: «{txt(ft.question)}». Начни с неё.\n" + mistakes
     return SYSTEM.format(grade=user.grade, lang_rule=RULES[lang], lesson=txt(lesson.title),
                          theory="\n".join(lesson.theory.get(lang, [])), state=state, mistakes=mistakes, stage=stage_text)
 
@@ -205,7 +224,7 @@ def send(session_id: int, payload: MessageIn, user: User = Depends(current_user)
         while history and history[0].role != "user":  # диалог должен начинаться с ученика
             history.pop(0)
         try:
-            reply, tin, tout = gateway.complete(_system_prompt(db, user, lesson, s.stage),
+            reply, tin, tout = gateway.complete(_system_prompt(db, user, lesson, s.stage, _focus(s)),
                                                 [{"role": m.role, "content": m.content} for m in history])
         except gateway.TutorUnavailable:
             db.rollback()
@@ -386,7 +405,7 @@ def hint(session_id: int, user: User = Depends(current_user), db: Session = Depe
         if gateway.enabled() and theory:
             try:
                 q = t.question.get(lang, "") if isinstance(t.question, dict) else t.question
-                text, *_ = gateway.complete(_system_prompt(db, user, lesson, 4),
+                text, *_ = gateway.complete(_system_prompt(db, user, lesson, 4, _focus(s)),
                                             [{"role": "user", "content": f"Задача: {q}\nДай подсказку ступени {level} из 3 "
                                               "(1 — намёк, на что обратить внимание; 2 — какую формулу или идею применить; "
                                               f"3 — первый шаг решения). Не называй ответ. {RULES[lang]}"}])

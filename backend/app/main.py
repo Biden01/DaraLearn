@@ -21,6 +21,7 @@ from app.modules.school.auth import router as auth_router
 from app.modules.school.router import router as school_router
 from app.modules.state.router import router as state_router
 from app.modules.tutor.router import router as tutor_router
+from app.modules.verification.results import router as results_router
 from app.modules.verification.router import router as verification_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: [%(name)s] %(message)s")
@@ -56,7 +57,7 @@ def health():
     return {"status": "ok", "db": "ok"}
 
 
-for r in (analytics_router, auth_router, school_router, admin_router, content_admin_router, content_router, events_router, state_router,
+for r in (results_router, analytics_router, auth_router, school_router, admin_router, content_admin_router, content_router, events_router, state_router,
           decisions_router, plan_router, tutor_router, verification_router, leads_router, dev_router):
     api.include_router(r)
 

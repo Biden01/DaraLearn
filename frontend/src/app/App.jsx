@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { STRINGS } from "./i18n.js";
 import { Ctx, Icon, fox, pick, useApp } from "./ui.jsx";
+import { dateKk } from "./kk.js";
 import { actionHref } from "./pages/actions.js";
 import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
+import Achievements from "./pages/Achievements.jsx";
 import Plan from "./pages/Plan.jsx";
 import Subjects from "./pages/Subjects.jsx";
 import Courses from "./pages/Courses.jsx";
@@ -52,13 +54,13 @@ const ROLES = {
     nav: [["", "home", "home"], ["plan", "plan", "plan"], ["calendar", "calendar", "cal"],
       ["subjects", "subjects", "book"], ["courses", "courses", "case"], ["tutor", "tutor", "dara"],
       ["diagnostics", "diagnostics", "docchk"], ["quiz", "quiz", "checkc"], ["gaps", "gaps", "gaps"],
-      ["progress", "progress", "trend"]],
+      ["progress", "progress", "trend"], ["results", "results", "trophy"]],
     // меню группами (заголовок группы — t.navGroups) и нижний таб-бар на телефоне
     groups: [[null, ["", "plan", "calendar"]], ["learn", ["subjects", "courses", "tutor"]],
-      ["check", ["diagnostics", "quiz", "gaps"]], ["analyze", ["progress"]]],
+      ["check", ["diagnostics", "quiz", "gaps"]], ["analyze", ["progress", "results"]]],
     tabs: ["", "plan", "subjects", "tutor"],
     pages: { "": Home, plan: Plan, subjects: Subjects, courses: Courses, diagnostics: Diagnostics, gaps: Gaps, tutor: Tutor,
-      quiz: Quiz, result: Result, progress: Progress, calendar: Calendar },
+      quiz: Quiz, result: Result, progress: Progress, results: Achievements, calendar: Calendar },
   },
   teacher: {
     nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["pilot", "pilot", "chart"]],
@@ -314,8 +316,16 @@ const NOTIF_ICON = { diagnostic: "clip", prereq: "gaps", lesson: "book", tutor: 
 function relTime(iso, lang) {
   const d = Date.parse(iso);
   if (!d) return "";
-  const loc = lang === "kk" ? "kk-KZ" : "ru-RU";
+  const loc = "ru-RU";
   const min = Math.round((Date.now() - d) / 60000);
+  if (lang === "kk") { // браузеры часто не знают казахского — свои строки
+    if (min < 1) return "қазір";
+    if (min < 60) return `${min} мин бұрын`;
+    if (min < 1440) return `${Math.round(min / 60)} сағ бұрын`;
+    if (min < 2880) return "кеше";
+    if (min < 7 * 1440) return `${Math.round(min / 1440)} күн бұрын`;
+    return dateKk(new Date(d), { day: "numeric", month: "short" });
+  }
   try {
     const rtf = new Intl.RelativeTimeFormat(loc, { numeric: "auto", style: "short" });
     if (min < 1) return rtf.format(0, "minute");
