@@ -66,9 +66,9 @@ const ROLES = {
   },
   teacher: {
     nav: [["", "classes", "home"], ["feed", "feed", "target"], ["schedule", "schedule", "sched"], ["import", "import", "doc"], ["time", "time", "clock"],
-      ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["analytics", "analytics", "trend"]],
-    groups: [[null, ["", "feed", "schedule"]], ["learn", ["courses", "calendar"]], ["data", ["import", "time"]], ["analyze", ["analytics"]]],
-    pages: { "": Classes, feed: Feed, schedule: Schedule, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar,
+      ["calendar", "calendar", "cal"], ["analytics", "analytics", "trend"]],
+    groups: [[null, ["", "feed", "schedule"]], ["learn", ["calendar"]], ["data", ["import", "time"]], ["analyze", ["analytics"]]],
+    pages: { "": Classes, feed: Feed, schedule: Schedule, import: ImportResults, time: TeacherTime, calendar: Calendar,
       analytics: StudentsProgress, ...STAFF_VIEW },
   },
   curator: {
@@ -487,7 +487,7 @@ function Header({ alerts, onSeen, onMenu, collapsed }) {
     api("/content/courses?subject=math").then((cs) => {
       const items = [];
       cs.forEach((c) => {
-        items.push({ title: c.title, href: "#/courses", hint: t.nav.courses });
+        if (user.role !== "teacher") items.push({ title: c.title, href: "#/courses", hint: t.nav.courses }); // у учителя нет раздела «Курсы»
         c.lessons.forEach((l) => items.push({ title: l.title, href: `#/lesson/${l.slug}`, hint: c.title }));
       });
       setIndex(items);
