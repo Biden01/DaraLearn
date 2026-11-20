@@ -1,14 +1,14 @@
 """Показать решение: bookwork_checks (фото тетради к проверочному заданию, PLAN.md §9 #6)
 
-Revision ID: 0017
-Revises: 0016
+Revision ID: 0018
+Revises: 0017
 """
 from alembic import op
 import sqlalchemy as sa
 
 
-revision = '0017'
-down_revision = '0016'
+revision = '0018'
+down_revision = '0017'
 branch_labels = None
 depends_on = None
 
