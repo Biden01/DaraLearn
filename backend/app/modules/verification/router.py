@@ -17,10 +17,12 @@ from app.modules.school.access import class_students, get_class, get_student, vi
 from app.modules.school.models import ClassMember, SchoolClass, User
 from app.modules.school.router import audit
 from app.modules.state.engine import SkillState, compute_states
+from app.modules.verification.bookwork_router import router as bookwork_router
 from app.modules.verification.models import AdviserCase, Attempt, Check
 from app.modules.verification.service import complete_check, pending_checks, refresh_cases, schedule_check
 
 router = APIRouter(prefix="/verification", tags=["verification"])
+router.include_router(bookwork_router)
 
 SECONDS_PER_TASK = 90
 

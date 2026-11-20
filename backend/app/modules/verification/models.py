@@ -57,6 +57,26 @@ class Outcome(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class BookworkCheck(Base):
+    """«Показать решение» (PLAN.md §9 #6): фото страницы тетради к проверочному заданию.
+    AI проверяет ход решения; сомнительное или неверное — учителю, против списывания."""
+    __tablename__ = "bookwork_checks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    attempt_id: Mapped[int] = mapped_column(ForeignKey("attempts.id", ondelete="CASCADE"), index=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id"))
+    image_path: Mapped[str] = mapped_column(String(255))
+    # pending_ai | ok | flagged | approved | rejected
+    status: Mapped[str] = mapped_column(String(20), default="pending_ai", index=True)
+    ai_verdict: Mapped[str] = mapped_column(String(20), default="")  # ok | questionable | wrong
+    ai_reason: Mapped[str] = mapped_column(Text, default="")
+    teacher_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    teacher_note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class AdviserCase(Base):
     """Adviser Lite: ученик не выполняет план — случай для куратора."""
     __tablename__ = "adviser_cases"

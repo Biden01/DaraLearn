@@ -50,3 +50,36 @@ def complete(system: str, messages: list[dict]) -> tuple[str, int, int]:
         return "", usage.prompt_tokens, usage.completion_tokens
     text = (choice.message.content or "").strip()
     return text, usage.prompt_tokens, usage.completion_tokens
+
+
+def complete_vision(system: str, prompt: str, image_b64: str, mime: str = "image/jpeg") -> tuple[str, int, int]:
+    """Как complete(), но с одной картинкой (vision): фото страницы тетради и т.п."""
+    try:
+        resp = _get_client().chat.completions.create(
+            model=settings.vision_model or settings.llm_model,
+            max_completion_tokens=1000,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{image_b64}"}},
+                ]},
+            ],
+        )
+    except openai.RateLimitError as e:
+        log.warning("LLM vision rate limit: %s", e)
+        raise TutorUnavailable from e
+    except openai.APIStatusError as e:
+        log.error("LLM vision API error %s: %s", e.status_code, e)
+        raise TutorUnavailable from e
+    except openai.APIConnectionError as e:
+        log.error("LLM vision connection error: %s", e)
+        raise TutorUnavailable from e
+
+    usage = resp.usage
+    choice = resp.choices[0]
+    log.info("LLM vision %s finish=%s in=%s out=%s", resp.model, choice.finish_reason, usage.prompt_tokens, usage.completion_tokens)
+    if choice.finish_reason == "content_filter":
+        return "", usage.prompt_tokens, usage.completion_tokens
+    text = (choice.message.content or "").strip()
+    return text, usage.prompt_tokens, usage.completion_tokens

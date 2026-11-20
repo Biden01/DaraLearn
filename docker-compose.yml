@@ -32,6 +32,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://daralearn:${POSTGRES_PASSWORD}@db:5432/daralearn
+    volumes:
+      # Фото «Показать решение» (пока BOOKWORK_CHECK_ENABLED=false — пусто, но том готов на будущее).
+      - bookwork_storage:/app/storage
     depends_on:
       db:
         condition: service_healthy
@@ -41,3 +44,4 @@ services:
 
 volumes:
   pgdata:
+  bookwork_storage:

@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     # email'ы, которые при регистрации сразу получают роль администратора
     admin_emails: list[str] = []
 
+    # «Показать решение» (PLAN.md §9 #6): выключено по умолчанию — готово, но не включено в пилот.
+    bookwork_check_enabled: bool = False
+    bookwork_storage_dir: str = "./storage/bookwork"
+    bookwork_max_photo_mb: int = 8
+    # модель OpenAI с поддержкой vision; пусто — берём llm_model
+    vision_model: str = ""
+
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"
