@@ -1249,3 +1249,23 @@ svg.i .d { fill: currentColor; fill-opacity: var(--ico-fill, .14); }
   .prog-last { grid-area: last; align-self: end; }
   .prog-search { max-width: none; }
 }
+
+/* кабинет учителя v2: уроки сегодня (таймлайн), кому нужна помощь */
+.tc-today { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tc-today li { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 0 10px 22px; border-bottom: 1px solid var(--line); }
+.tc-today li:last-child { border-bottom: 0; }
+.tc-today li::before { content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: var(--line); }
+.tc-today li:first-child::before { top: 50%; } .tc-today li:last-child::before { bottom: 50%; }
+.tc-dot { position: absolute; left: 0; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: #fff; border: 2px solid #CBD5E1; z-index: 1; }
+.tc-today li.live .tc-dot { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.tc-today li.soon .tc-dot { border-color: var(--accent); }
+.tc-today li.past { opacity: .55; }
+.tc-today li.past .tc-dot { background: #CBD5E1; }
+.tc-time { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px; color: var(--accent); min-width: 92px; }
+.tc-today li.past .tc-time { color: var(--muted); }
+.pill.tc-live { background: var(--accent); color: #fff; }
+.tc-num { color: var(--fg, #111329); }
+.tc-av { width: 36px; height: 36px; font-size: 15px; }
+.tc-why { color: #B45309; }
+.tc-ok { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--green); }
+@media (max-width: 600px) { .tc-time { min-width: 0; } .tc-today .btn { display: none; } }
