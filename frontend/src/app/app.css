@@ -1179,3 +1179,13 @@ svg.i .d { fill: currentColor; fill-opacity: var(--ico-fill, .14); }
 .nav-ico.plain, .nav a:hover .nav-ico.plain, .nav a.active .nav-ico.plain { background: none; }
 .stu .nav .nav-ico.plain svg { width: 19px; height: 19px; }
 @media (min-width: 901px) { .nav-min .nav a { padding-left: 4px; padding-right: 4px; } }
+
+/* ---------- Кабинет учителя ---------- */
+.tc-class { align-items: flex-start; }
+.tc-class .btn { flex: none; }
+.tc-att { display: grid; grid-template-columns: auto minmax(60px, 160px) auto; align-items: center; gap: 10px; margin-top: 8px; }
+.tc-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; color: var(--fg, #111329); }
+.tc-quick { color: inherit; border-radius: 10px; }
+.tc-quick:hover { background: #F7F8FB; }
+.tc-quick > svg { color: var(--muted); flex: none; }
+@media (max-width: 600px) { .tc-att { grid-template-columns: 1fr; gap: 4px; } }
