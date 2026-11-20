@@ -15,7 +15,8 @@ def _tutor_pass(kid, db, lesson="sqrt"):
 def test_pilot_metrics_treatment_vs_control(school, db):
     admin, teacher = school["admin"], school["teacher"]
     t_cls = school["class"]
-    c_cls = teacher.ok("POST", "/api/school/classes", 201, json={"name": "8Б", "grade": 8})
+    tid = teacher.ok("GET", "/api/auth/me")["id"]
+    c_cls = admin.ok("POST", "/api/school/classes", 201, json={"name": "8Б", "grade": 8, "teacher_id": tid})
     admin.ok("PUT", f"/api/analytics/classes/{t_cls['id']}/arm", json={"arm": "treatment"})
     admin.ok("PUT", f"/api/analytics/classes/{c_cls['id']}/arm", json={"arm": "control"})
     assert teacher.put(f"/api/analytics/classes/{t_cls['id']}/arm", json={"arm": "control"}).status_code == 403

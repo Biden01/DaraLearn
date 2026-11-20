@@ -165,7 +165,7 @@ function TeacherPart() {
               </div>
             );
           }) : (
-            <><p className="muted small" style={{ margin: "0 0 12px" }}>{tp.noClasses}</p>{isTeacher && <a href="#/" className="btn sm">{tp.toClasses}</a>}</>
+            <><p className="muted small" style={{ margin: "0 0 12px" }}>{tp.noClasses}</p>{isTeacher && <a href="#/settings" className="btn sm">{tp.toClasses}</a>}</>
           )}
         </div>
         <div className="stack">
