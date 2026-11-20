@@ -149,7 +149,7 @@ export default function App() {
   const toast = useCallback((msg) => {
     setToastMsg(msg);
     clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastMsg(""), 2600);
+    toastTimer.current = setTimeout(() => setToastMsg(""), typeof msg === "string" && msg.length > 80 ? 8000 : 2600);
   }, []);
 
   const setLang = useCallback((l) => {
@@ -165,9 +165,22 @@ export default function App() {
     api("/auth/me").then((u) => { setUser(u); setLangState(u.lang); }).catch(() => setUser(null));
     const onHash = () => { setRoute(parseHash()); setMenuOpen(false); setMoreOpen(false); window.scrollTo(0, 0); };
     const onUnauth = () => setUser(null);
+    // 403: если сессия сменилась (вход в другой аккаунт в соседней вкладке) — переключаемся на него и объясняем
+    const onForbidden = () => api("/auth/me").then((u) => setUser((prev) => {
+      if (!prev || (prev.id === u.id && prev.role === u.role)) return prev;
+      const tt = STRINGS[u.lang] || STRINGS.ru;
+      setTimeout(() => toast(tt.sessionSwitched(u.name, tt.roles[u.role] || u.role)), 0);
+      window.location.hash = "#/";
+      return u;
+    })).catch(() => {});
     window.addEventListener("hashchange", onHash);
     window.addEventListener("dl:unauthorized", onUnauth);
-    return () => { window.removeEventListener("hashchange", onHash); window.removeEventListener("dl:unauthorized", onUnauth); };
+    window.addEventListener("dl:forbidden", onForbidden);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      window.removeEventListener("dl:unauthorized", onUnauth);
+      window.removeEventListener("dl:forbidden", onForbidden);
+    };
   }, []);
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
