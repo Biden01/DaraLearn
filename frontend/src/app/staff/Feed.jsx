@@ -19,8 +19,8 @@ export default function Feed() {
   return (
     <>
       <Crumb items={[[t.snav.feed]]} />
-      <h1>Teacher Action Feed</h1>
-      <p className="subtitle">{t.snav.feed}</p>
+      <h1>{t.snav.feed}</h1>
+      <p className="subtitle">{t.feedSub}</p>
       <div className="row between wrap" style={{ marginBottom: 16 }}>
         <div className="chips" style={{ margin: 0 }}>
           {[["important", t.rec.important, view.important.filter((x) => ["new", "accepted", "changed"].includes(x.status)).length],

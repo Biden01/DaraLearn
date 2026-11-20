@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Crumb, Loading, Ring, useApp } from "../ui.jsx";
+import { Crumb, Loading, Ring, fox, useApp } from "../ui.jsx";
 import { actionHref } from "./actions.js";
 
 export default function Result() {
@@ -43,8 +43,10 @@ export default function Result() {
                   <div className="grow">
                     <div className="t-strong">{L(task.question)}</div>
                     <div className="small" style={{ marginTop: 4 }}>
-                      {q.your}: <b className={r.choice == null ? "" : r.correct ? "st-mastered" : "st-gap"}>{r.choice == null ? q.noAnswer : L(task.options[r.choice])}</b>
-                      {!r.correct && <> · {t.lesson.correctIs} <b>{L(task.options[r.answer])}</b></>}
+                      {r.choice == null
+                        ? <><span className="muted">{q.noAnswer}.</span> {t.lesson.correctIs} <b>{L(task.options[r.answer])}</b></>
+                        : <>{q.your}: <b className={r.correct ? "st-mastered" : "st-gap"}>{L(task.options[r.choice])}</b>
+                          {!r.correct && <> · {t.lesson.correctIs} <b>{L(task.options[r.answer])}</b></>}</>}
                     </div>
                     {!r.correct && <div className="ex">{L(r.explanation)}</div>}
                   </div>
@@ -62,7 +64,7 @@ export default function Result() {
                 <div className="grow">
                   <div className="t-strong small">{L(r.title)}</div>
                   <div className="muted small">{t.causes[r.cause]}{r.action === "prereq" ? ` → ${L(r.target_title)}` : ""}</div>
-                  <a href={actionHref(r)} className="link" style={{ marginTop: 6 }}>{t.actions[r.action][0]}</a>
+                  <a href={actionHref(r)} className="link" style={{ marginTop: 6 }}>{fox(t.actions[r.action][0])}</a>
                 </div>
               </div>
             )) : <p className="muted small">{t.gaps.empty}</p>}

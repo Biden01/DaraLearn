@@ -64,6 +64,8 @@ def sync_student(db: Session, user_id: int, lessons: list[Lesson] | None = None)
                                  rules_version=RULES.version)
             db.add(rec)
         elif rec.status == "new":
+            if rec.action != r["action"]:
+                rec.seen_at = None  # другой совет — снова непрочитанное уведомление
             rec.action, rec.rule = r["action"], f"{r['action']}:{r['cause']}"
             rec.needs_teacher = r["action"] in TEACHER_ACTIONS
         rec.priority, rec.proof, rec.cause = r["priority"], r["proof"], r["cause"]
@@ -143,4 +145,5 @@ def rec_out(r: Recommendation, lessons_by_id: dict[int, Lesson], states: dict[in
             "status": r.status, "skill_status": skill.status, "comment": r.comment, "needs_teacher": r.needs_teacher,
             "lesson": l.slug if l else None, "title": l.title if l else None, "order": l.order if l else 0,
             "target": t.slug if t else None, "target_title": t.title if t else None,
-            "user_id": r.user_id, "class_id": r.class_id, "created_at": r.created_at.isoformat() if r.created_at else None}
+            "user_id": r.user_id, "class_id": r.class_id, "seen": r.seen_at is not None,
+            "created_at": r.created_at.isoformat() if r.created_at else None}

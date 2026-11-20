@@ -2,7 +2,7 @@
 // Все данные — из /plan/today: шаги плана на сегодня (items) и цель месяца с расписанием тем по дням (goal.days).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Icon, Loading, Ring, useApp } from "../ui.jsx";
+import { Bar, Icon, Loading, Ring, fox, useApp } from "../ui.jsx";
 import { dateKk, dateLongKk, monthKk } from "../kk.js";
 
 export const TOPIC_DOT = { done: "mastered", learning: "learning", todo: "gap" };
@@ -48,7 +48,7 @@ export default function Plan() {
     <div className="home plan-page">
       <p className="home-date">{longDay(plan.day, lang)}</p>
       <h1>{p.title}</h1>
-      <p className="subtitle">{p.sub(plan.total_minutes)}</p>
+      <p className="subtitle">{fox(p.sub(plan.total_minutes))}</p>
 
       {plan.items.length === 0 ? (
         <section className="hcard">
@@ -133,7 +133,7 @@ function TodayCard({ plan, goal, onChange, onTomorrow }) {
               <button className="pl-step" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : it.id)}>
                 <span className="step-mark">{done && <Icon n="check" s={13} />}</span>
                 <span className="grow pl-step-text">
-                  <span className="step-title">{p.blocks[it.block]}</span>
+                  <span className="step-title">{fox(p.blocks[it.block])}</span>
                   <span className="pl-step-sub">{L(it.title)}{cur && <> · <em>{p.next}</em></>}</span>
                 </span>
                 <span className="pl-min">{p.min(it.minutes)}</span>
@@ -272,7 +272,7 @@ function Week({ plan, goal, sel, setSel }) {
                 {plan.items.map((it) => (
                   <li key={it.id} className={it.status === "done" ? "done" : ""}>
                     <span className="step-mark">{it.status === "done" && <Icon n="check" s={11} />}</span>
-                    <span className="grow">{p.blocks[it.block]} · {L(it.title)}</span><span className="pl-min">{p.min(it.minutes)}</span>
+                    <span className="grow">{fox(p.blocks[it.block])} · {L(it.title)}</span><span className="pl-min">{p.min(it.minutes)}</span>
                   </li>
                 ))}
               </ul>

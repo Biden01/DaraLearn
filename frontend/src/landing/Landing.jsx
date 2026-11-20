@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { TEXT } from "./text.js";
+import { fox } from "../app/ui.jsx";
 import HeroDemo from "./HeroDemo.jsx";
 import HeroCarousel from "./HeroCarousel.jsx";
 import PilotForm from "./PilotForm.jsx";
 import RevealText from "../components/ui/reveal-text.jsx";
 import { MacbookPro } from "../components/ui/macbook-pro.jsx";
+import { FlipbookScrollGallery } from "../components/ui/flipbook-scroll-gallery.jsx";
 import { ArrowLoop, ArrowCurl, ArrowFlick, SpinBadge } from "./Doodles.jsx";
 import "@fontsource-variable/onest";
 import "./landing.css";
@@ -39,14 +41,15 @@ const ROLE_ICONS = ["student", "teacher", "bell"];
 const HERO_SLIDES = [[1, 0, 0], [2, 2, 0], [3, 1, 1], [4, 3, 0], [5, 4, 2]];
 const CHIPS = [["pulse", 0], ["map", 1], ["chat", 2], ["chart", 4]];
 
-// Мини-иллюстрации для плиток «Что внутри» — без текста, чтобы не переводить.
-const VISUALS = [
-  <div className="v-rows">{[86, 64, 40, 92].map((w) => <i key={w} style={{ "--w": `${w}%` }} />)}</div>,
-  <svg className="v-map" viewBox="0 0 120 70"><path d="M24 16 60 54M96 16 60 54" /><circle cx="24" cy="16" r="9" /><circle cx="96" cy="16" r="9" className="gap" /><circle cx="60" cy="54" r="11" className="cur" /></svg>,
-  <div className="v-chat"><i /><i /><i /></div>,
-  <div className="v-cards"><i /><i /><i /></div>,
-  <div className="v-bars">{[30, 46, 40, 62, 74, 90].map((h, i) => <i key={i} style={{ "--h": `${h}%` }} />)}</div>,
-  <div className="v-cal">{Array.from({ length: 21 }, (_, i) => <i key={i} className={[3, 8, 11, 17].includes(i) ? "on" : i === 13 ? "test" : ""} />)}</div>,
+// Фото для страниц книги «Что внутри» (Unsplash): [лицевая сторона, оборот].
+const UNSPLASH = (id) => `https://images.unsplash.com/photo-${id}?w=900&q=70&auto=format&fit=crop`;
+const BOOK_PHOTOS = [
+  ["1434030216411-0b793f4b4173", "1484480974693-6ca0a78fb36b"],
+  ["1551288049-bebda4e38f71", "1580582932707-520aed937b7b"],
+  ["1677442136019-21780ecad995", "1522202176988-66273c2fd55f"],
+  ["1635070041078-e363dbe005cb", "1456513080510-7bf3a84b82f8"],
+  ["1501504905252-473c47e087f8", "1546410531-bb4caa6b424d"],
+  ["1506784983877-45594efa4cbe", null],
 ];
 
 function Icon({ name }) {
@@ -61,15 +64,16 @@ function Head({ kicker, title, lead, center }) {
     <div className={center ? "head center" : "head"}>
       <p className="kicker">{kicker}</p>
       <h2>{title}</h2>
-      {lead && <p className="lead">{lead}</p>}
+      {lead && <p className="lead">{fox(lead)}</p>}
     </div>
   );
 }
 
 // Плавное появление блоков при прокрутке.
-function useReveal() {
+// Перезапускается при смене языка: карточки с key={заголовок} пересоздаются и без этого остались бы невидимыми.
+function useReveal(lang) {
   useEffect(() => {
-    const els = document.querySelectorAll(".reveal");
+    const els = document.querySelectorAll(".reveal:not(.in)");
     if (!("IntersectionObserver" in window) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
       els.forEach((el) => el.classList.add("in"));
       return;
@@ -81,21 +85,15 @@ function useReveal() {
     }, { rootMargin: "0px 0px -8% 0px" });
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [lang]);
 }
 
 export default function Landing() {
   const [lang, setLang] = useState(initialLang);
   const [scrolled, setScrolled] = useState(false);
   const t = TEXT[lang];
-  const railRef = useRef(null);
-  const slide = (dir) => {
-    const rail = railRef.current;
-    const card = rail?.querySelector(".feat");
-    if (card) rail.scrollBy({ left: dir * (card.offsetWidth + 20), behavior: "smooth" });
-  };
   const [titleA, ...titleB] = t.hero.title.split(". ");
-  useReveal();
+  useReveal(lang);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -114,7 +112,7 @@ export default function Landing() {
       <header className={scrolled ? "top scrolled" : "top"}>
         <div className="wrap top-in">
           <a href="/" className="brand"><img src="/logo.png" alt="" width="34" height="34" />DaraLearn</a>
-          <nav className="top-nav" aria-label="Main">
+          <nav className="top-nav" aria-label={t.nav.aria}>
             <a href="#how">{t.nav.how}</a>
             <a href="#pilot">{t.nav.schools}</a>
             <a href="#faq">{t.nav.faq}</a>
@@ -183,7 +181,7 @@ export default function Landing() {
                 </MacbookPro>
                 {CHIPS.map(([icon, i], n) => (
                   <div key={icon} className={`chip chip-${n}`} aria-hidden="true">
-                    <span className="ico-sm"><Icon name={icon} /></span>{t.inside.items[i][0]}
+                    <span className="ico-sm"><Icon name={icon} /></span>{fox(t.inside.items[i][0])}
                   </div>
                 ))}
               </div>
@@ -198,33 +196,34 @@ export default function Landing() {
               {t.loop.steps.map(([h, d], i) => (
                 <li key={h} className="card reveal" style={{ "--d": `${i * 80}ms` }}>
                   <div className="card-top"><span className="ico-box"><Icon name={LOOP_ICONS[i]} /></span><span className="loop-n">0{i + 1}</span></div>
-                  <h3>{h}</h3>
-                  <p>{d}</p>
+                  <h3>{fox(h)}</h3>
+                  <p>{fox(d)}</p>
                 </li>
               ))}
             </ol>
           </div>
         </section>
 
-        <section className="rail-sec">
+        <section id="features" className="book-sec">
           <div className="wrap">
-            <div className="row-head">
-              <Head kicker={t.inside.kicker} title={t.inside.title} />
-              <div className="arrows">
-                <button type="button" aria-label="←" onClick={() => slide(-1)}>←</button>
-                <button type="button" aria-label="→" onClick={() => slide(1)}>→</button>
-              </div>
-            </div>
+            <Head kicker={t.inside.kicker} title={t.inside.title} center />
           </div>
-          <div className="rail" ref={railRef}>
-            {t.inside.items.map(([h, d], i) => (
-              <article key={h} className={`feat feat-${i}`}>
-                <div className="feat-vis" aria-hidden="true">{VISUALS[i]}</div>
-                <h3>{h}</h3>
-                <p>{d}</p>
-              </article>
-            ))}
-          </div>
+          <FlipbookScrollGallery
+            className="book"
+            cover={`${t.inside.kicker} · DaraLearn`}
+            labels={t.inside.book}
+            scrollDriven={false}
+            autoplay
+            interval={2200}
+            items={t.inside.items.map(([h, d], i) => ({
+              id: `feature-${i}`,
+              title: h,
+              caption: d,
+              date: "DaraLearn",
+              image: UNSPLASH(BOOK_PHOTOS[i][0]),
+              backImage: BOOK_PHOTOS[i][1] ? UNSPLASH(BOOK_PHOTOS[i][1]) : undefined,
+            }))}
+          />
         </section>
 
         <section className="cta-band">
@@ -258,7 +257,7 @@ export default function Landing() {
               {t.roles.items.map(([h, d], i) => (
                 <div key={h} className="card reveal" style={{ "--d": `${i * 80}ms` }}>
                   <span className="ico-box"><Icon name={ROLE_ICONS[i]} /></span>
-                  <h3>{h}</h3><p>{d}</p>
+                  <h3>{fox(h)}</h3><p>{fox(d)}</p>
                 </div>
               ))}
             </div>
@@ -286,7 +285,7 @@ export default function Landing() {
             </div>
             <div>
               {t.faq.items.map(([q, a]) => (
-                <details key={q}><summary>{q}</summary><p>{a}</p></details>
+                <details key={q}><summary>{fox(q)}</summary><p>{fox(a)}</p></details>
               ))}
             </div>
           </div>
@@ -300,7 +299,7 @@ export default function Landing() {
             <a href="/" className="brand"><img src="/logo.png" alt="" width="28" height="28" />DaraLearn</a>
             <p className="muted small">{t.footer.rights}</p>
           </div>
-          <nav className="foot-nav" aria-label="Footer">
+          <nav className="foot-nav" aria-label={t.footer.contact}>
             <a href="#how">{t.nav.how}</a>
             <a href="#pilot">{t.nav.schools}</a>
             <a href="#faq">{t.nav.faq}</a>

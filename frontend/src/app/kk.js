@@ -18,6 +18,12 @@ const endsVowel = (w) => /[аәеоөұүыіэяюи]$/.test(w);
 // притяжательная форма: «10 сұрақтың 3-і», «20-сы»
 export const poss = (n) => { const w = lastWord(n); return `${n}-${endsVowel(w) ? "с" : ""}${back(w) ? "ы" : "і"}`; };
 
+// притяжательная + дательный: «10 сұрақтың 3-іне жауап берілді», «20-сына»
+export const possDat = (n) => `${poss(n)}${back(lastWord(n)) ? "на" : "не"}`;
+
+// притяжательная + местный: «10 тексерудің 3-інде», «20-сында»
+export const possLoc = (n) => `${poss(n)}${back(lastWord(n)) ? "нда" : "нде"}`;
+
 // исходный падеж: «10-нан 3», «5-тен»
 export const abl = (n) => {
   const w = lastWord(n);

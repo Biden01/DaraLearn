@@ -1,7 +1,7 @@
 // Короткий опрос удобства (ученик, учитель): приглашение-карточка и форма с оценками 1–5.
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
-import { Box, Icon, useApp } from "./ui.jsx";
+import { Box, Icon, fox, useApp } from "./ui.jsx";
 
 const LATER_DAYS = 3;
 const laterKey = (survey) => `dl_survey_later_${survey}`;
@@ -78,7 +78,7 @@ export default function SurveyCard({ always = false, quiet = false }) {
       <div className="stack" style={{ gap: 16 }}>
         {data.questions.map((q, i) => (
           <fieldset key={q} style={{ border: 0, padding: 0, margin: 0 }}>
-            <legend style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>{i + 1}. {qs[q] || q}</legend>
+            <legend style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>{i + 1}. {fox(qs[q] || q)}</legend>
             <div style={{ display: "inline-flex", flexDirection: "column", gap: 4 }}>
               <div className="row" style={{ gap: 8 }} role="radiogroup">
                 {[1, 2, 3, 4, 5].map((v) => (

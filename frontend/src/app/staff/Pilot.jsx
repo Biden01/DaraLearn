@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Box, Crumb, Loading, useApp } from "../ui.jsx";
+import { Box, Crumb, Loading, fox, useApp } from "../ui.jsx";
 
 const pct = (x) => (x == null ? "—" : `${Math.round(x * 100)}%`);
 
@@ -15,7 +15,7 @@ function ArmCard({ title, data, targets, p }) {
       <div className="row between small" style={{ padding: "4px 0" }}>
         <span>{p.recUseful}</span><b>{pct(data.recommendation_useful)} <span className="muted">/ {pct(targets.recommendation_useful)}</span></b>
       </div>
-      <div className="row between small" style={{ padding: "4px 0" }}><span>{p.tutorSessions}</span><b>{data.tutor_sessions_per_student_week ?? "—"}</b></div>
+      <div className="row between small" style={{ padding: "4px 0" }}><span>{fox(p.tutorSessions)}</span><b>{data.tutor_sessions_per_student_week ?? "—"}</b></div>
       <div className="row between small" style={{ padding: "4px 0" }}>
         <span>{p.intervention}</span>
         <b>{data.intervention.total ? p.interventionText(data.intervention.helped, data.intervention.total) : p.noOutcomes}</b>

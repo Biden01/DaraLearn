@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Icon, Loading, useApp } from "../ui.jsx";
+import { Bar, Box, Icon, Loading, fox, useApp } from "../ui.jsx";
 import { Chain } from "./Courses.jsx";
 
 function Theory({ lines, t }) {
@@ -86,7 +86,7 @@ export default function Lesson() {
           <div className="row between wrap" style={{ borderTop: "1px solid var(--line)", paddingTop: 18, marginTop: 18, gap: 12 }}>
             {d.prev ? <a className="btn ghost" href={`#/lesson/${d.prev}`}><Icon n="left" s={16} /> {lp.prev}</a> : <span />}
             <div className="row wrap">
-              <a href={`#/tutor?lesson=${d.slug}`} className="btn ghost">{lp.ask}</a>
+              <a href={`#/tutor?lesson=${d.slug}`} className="btn ghost">{fox(lp.ask)}</a>
               <button className="btn" onClick={() => startTest({ kind: "verification", lesson: d.slug })}>{lp.check} <Icon n="check" s={16} /></button>
             </div>
           </div>

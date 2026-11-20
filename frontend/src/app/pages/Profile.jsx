@@ -92,7 +92,7 @@ function StudentPart({ d, goal, classes, att }) {
         </div>
         <div className="card" style={{ alignSelf: "start" }}>
           <div className="card-head"><p className="card-title">{pp.achievements}</p><span className="muted small">{t.of(got, 6)}</span></div>
-          <div className="grid g-2" style={{ gap: 12 }}>
+          <div className="ach-grid">
             {Object.entries(pp.ach).map(([k, [h, desc]]) => (
               <div key={k} className="row" style={{ border: "1px solid var(--line)", borderRadius: 10, padding: 12, opacity: d.achievements[k] ? 1 : 0.45 }}>
                 <Box icon={ACH_ICONS[k]} c={d.achievements[k] ? "orange" : ""} size={36} />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { Bar, useApp } from "../ui.jsx";
+import { Bar, fox, useApp } from "../ui.jsx";
 
 const BADGE = { new: "", accepted: "green", changed: "orange", rejected: "gray", done: "green", obsolete: "gray" };
 const ACTIONS = ["lesson", "tutor", "practice", "prereq", "verify", "teacher", "group"];
@@ -29,7 +29,7 @@ export default function RecItem({ r, onChange, showStudent = true, covered = 0 }
           ? <a href={`#/student/${r.student.id}`} className="t-strong">{r.student.name} <span className="muted small">· {r.student.class}</span></a>
           : <span className="t-strong">{r.class_name} <span className="muted small">· {t.rec.groupText(r.comment)}</span></span>)}
         <div className={showStudent ? "small" : "t-strong"} style={{ marginTop: 2 }}>{title}</div>
-        <div className="muted small">{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
+        <div className="muted small">{fox(t.actions[r.action]?.[0] || r.action)} · {t.causes[r.cause]}
           {r.target_title ? ` → ${L(r.target_title)}` : ""}</div>
         {r.errors && Object.keys(r.errors).length > 0 && (
           <div className="small" style={{ marginTop: 4 }}>{t.errLine}: {Object.entries(r.errors).sort((a, b) => b[1] - a[1])

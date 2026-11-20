@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { STRINGS } from "./i18n.js";
-import { Ctx, Icon, pick, useApp } from "./ui.jsx";
+import { Ctx, Icon, fox, pick, useApp } from "./ui.jsx";
+import { dateKk } from "./kk.js";
 import { actionHref } from "./pages/actions.js";
-import { dayLabel } from "./pages/Plan.jsx";
 import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
+import Achievements from "./pages/Achievements.jsx";
 import Plan from "./pages/Plan.jsx";
 import Subjects from "./pages/Subjects.jsx";
 import Courses from "./pages/Courses.jsx";
@@ -44,22 +45,28 @@ import "@fontsource-variable/onest";
 import "@fontsource-variable/inter";
 import "./app.css";
 
+// цвет пункта меню (по иконке — одинаково у всех ролей): цветная плашка иконки, активный пункт — в своём цвете
+const NAV_COLOR = { home: "#2563EB", plan: "#F97316", cal: "#EC4899", book: "#10B981", case: "#0891B2", dara: "#8B5CF6",
+  docchk: "#0D9488", checkc: "#16A34A", gaps: "#EF4444", trend: "#6366F1", trophy: "#EAB308", target: "#F43F5E",
+  doc: "#0EA5E9", clock: "#F59E0B", chart: "#6366F1", clip: "#14B8A6", board: "#8B5CF6", bulb: "#EAB308",
+  user: "#0EA5E9", gear: "#64748B", help: "#A855F7", download: "#64748B" };
+const navColor = (icon) => ({ "--c": NAV_COLOR[icon] || "#2563EB" });
 const NAV_BOTTOM = [["profile", "profile", "user"], ["settings", "settings", "gear"], ["help", "help", "help"]];
 const COMMON = { profile: Profile, settings: Settings, help: Help, lesson: Lesson };
 const STAFF_VIEW = { class: ClassMap, student: StudentCard };
 // меню и страницы по ролям
 const ROLES = {
   student: {
-    nav: [["", "home", "home"], ["plan", "plan", "doc"], ["calendar", "calendar", "cal"],
+    nav: [["", "home", "home"], ["plan", "plan", "plan"], ["calendar", "calendar", "cal"],
       ["subjects", "subjects", "book"], ["courses", "courses", "case"], ["tutor", "tutor", "dara"],
-      ["diagnostics", "diagnostics", "docchk"], ["quiz", "quiz", "checkc"], ["gaps", "gaps", "target"],
-      ["progress", "progress", "chart"]],
+      ["diagnostics", "diagnostics", "docchk"], ["quiz", "quiz", "checkc"], ["gaps", "gaps", "gaps"],
+      ["progress", "progress", "trend"], ["results", "results", "trophy"]],
     // меню группами (заголовок группы — t.navGroups) и нижний таб-бар на телефоне
     groups: [[null, ["", "plan", "calendar"]], ["learn", ["subjects", "courses", "tutor"]],
-      ["check", ["diagnostics", "quiz", "gaps"]], ["analyze", ["progress"]]],
+      ["check", ["diagnostics", "quiz", "gaps"]], ["analyze", ["progress", "results"]]],
     tabs: ["", "plan", "subjects", "tutor"],
     pages: { "": Home, plan: Plan, subjects: Subjects, courses: Courses, diagnostics: Diagnostics, gaps: Gaps, tutor: Tutor,
-      quiz: Quiz, result: Result, progress: Progress, calendar: Calendar },
+      quiz: Quiz, result: Result, progress: Progress, results: Achievements, calendar: Calendar },
   },
   teacher: {
     nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["pilot", "pilot", "chart"]],
@@ -106,8 +113,8 @@ function InstallLink({ collapsed, label }) {
     setReady(false);
   };
   return (
-    <a href="#" onClick={install} title={collapsed ? label : undefined}>
-      <Icon n="download" /><span>{label}</span>
+    <a href="#" onClick={install} title={collapsed ? label : undefined} style={navColor("download")}>
+      <i className="nav-ico"><Icon n="download" /></i><span>{label}</span>
     </a>
   );
 }
@@ -167,12 +174,12 @@ export default function App() {
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
-  // кабинет ученика — своё оформление (шрифт, фон, меню группами, таб-бар)
-  const isStudent = !!user && !user.must_change_password && user.role === "student";
+  // оформление кабинета (шрифт, фон, меню группами, таб-бар) — общее для всех ролей; класс «stu» исторический
+  const inApp = !!user && !user.must_change_password;
   useEffect(() => {
-    document.body.classList.toggle("stu", isStudent);
+    document.body.classList.toggle("stu", inApp);
     return () => document.body.classList.remove("stu");
-  }, [isStudent]);
+  }, [inApp]);
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -187,6 +194,13 @@ export default function App() {
     api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2))).catch(() => {});
     api("/plan/today").then((p) => setPlanLeft(p.items.length ? Math.max(0, p.total_minutes - p.done_minutes) : 0)).catch(() => {});
   }, [user, route.page]);
+
+  // отметить уведомления прочитанными: сразу в интерфейсе, затем на сервере
+  const markSeen = useCallback((ids) => {
+    if (!ids.length) return;
+    setAlerts((a) => a.map((r) => (ids.includes(r.id) ? { ...r, seen: true } : r)));
+    api("/decisions/me/seen", { method: "POST", body: { ids } }).catch(() => {});
+  }, []);
 
   const ctx = useMemo(() => ({
     t, lang, setLang, user, setUser, toast, route, alerts,
@@ -228,8 +242,8 @@ export default function App() {
     const name = (label) => t.nav[label] ?? t.snav[label];
     const link = ([k, label, icon]) => (
       <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
-        title={collapsed ? name(label) : undefined}>
-        <Icon n={icon} /><span>{name(label)}</span>
+        title={collapsed ? name(label) : undefined} style={navColor(icon)}>
+        <i className="nav-ico"><Icon n={icon} /></i><span>{name(label)}</span>
         {badges[k] && <em className="nav-badge">{badges[k]}</em>}
       </a>
     );
@@ -248,25 +262,26 @@ export default function App() {
       <div className={`${menuOpen ? "menu-open" : ""} ${collapsed ? "nav-min" : ""}`}>
         <aside className="sidebar" style={menuOpen ? { transform: "none" } : undefined}>
           <a href="#/" className="brand"><img src="/logo.png" alt="" /> <span>DaraLearn</span></a>
-          <nav className="nav" aria-label="Main">{navMain}</nav>
+          <nav className="nav" aria-label={t.menu}>{navMain}</nav>
           <nav className="nav nav-bottom">
             {NAV_BOTTOM.map(link)}
             <InstallLink collapsed={collapsed} label={t.install} />
           </nav>
         </aside>
         {menuOpen && <div className="overlay" style={{ display: "block", position: "fixed", inset: 0, background: "rgba(17,19,41,.3)", zIndex: 25 }} onClick={() => setMenuOpen(false)} />}
-        <Header alerts={alerts} onMenu={onMenu} collapsed={collapsed} />
+        <Header alerts={alerts} onSeen={markSeen} onMenu={onMenu} collapsed={collapsed} />
         <main className="main" id="app"><Page key={route.page + route.param} /></main>
         {tabs && (
           <nav className="tabbar" aria-label={t.menu}>
             {tabs.map((k) => (
-              <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}>
-                <Icon n={byKey[k][2]} s={22} /><span>{t.tabs[k]}</span>
+              <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
+                style={navColor(byKey[k][2])}>
+                <i className="tab-ico"><Icon n={byKey[k][2]} s={22} /></i><span>{t.tabs[k]}</span>
               </a>
             ))}
             <button className={moreActive || moreOpen ? "active" : ""} aria-expanded={moreOpen} aria-haspopup="dialog"
               onClick={() => setMoreOpen((o) => !o)}>
-              <Icon n="menu" s={22} /><span>{t.tabs.more}</span>
+              <i className="tab-ico"><Icon n="menu" s={22} /></i><span>{t.tabs.more}</span>
             </button>
           </nav>
         )}
@@ -296,21 +311,60 @@ export default function App() {
   return (
     <Ctx.Provider value={ctx}>
       {body}
-      <div className={`toast ${toastMsg ? "show" : ""}`} role="status">{toastMsg}</div>
+      <div className={`toast ${toastMsg ? "show" : ""}`} role="status">{fox(toastMsg)}</div>
     </Ctx.Provider>
   );
 }
 
-// Колокольчик: по нажатию — панель с полным текстом уведомлений платформы.
-function Bell({ alerts }) {
+// Колокольчик: счётчик непрочитанных и панель уведомлений (вкладки, группы по дням, «прочитать все»).
+const NOTIF_ICON = { diagnostic: "clip", prereq: "gaps", lesson: "book", tutor: "bot", practice: "target",
+  teacher: "user", verify: "checkc", group: "user", done: "checkc" };
+
+function relTime(iso, lang) {
+  const d = Date.parse(iso);
+  if (!d) return "";
+  const loc = "ru-RU";
+  const min = Math.round((Date.now() - d) / 60000);
+  if (lang === "kk") { // браузеры часто не знают казахского — свои строки
+    if (min < 1) return "қазір";
+    if (min < 60) return `${min} мин бұрын`;
+    if (min < 1440) return `${Math.round(min / 60)} сағ бұрын`;
+    if (min < 2880) return "кеше";
+    if (min < 7 * 1440) return `${Math.round(min / 1440)} күн бұрын`;
+    return dateKk(new Date(d), { day: "numeric", month: "short" });
+  }
+  try {
+    const rtf = new Intl.RelativeTimeFormat(loc, { numeric: "auto", style: "short" });
+    if (min < 1) return rtf.format(0, "minute");
+    if (min < 60) return rtf.format(-min, "minute");
+    if (min < 24 * 60) return rtf.format(-Math.round(min / 60), "hour");
+    if (min < 7 * 24 * 60) return rtf.format(-Math.round(min / 1440), "day");
+  } catch { /* старый браузер — покажем дату */ }
+  return new Date(d).toLocaleDateString(loc, { day: "numeric", month: "short" });
+}
+
+function dayGroup(iso) {
+  const d = new Date(Date.parse(iso) || 0), now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (d.getTime() >= start) return "today";
+  if (d.getTime() >= start - 86400000) return "yesterday";
+  return "earlier";
+}
+
+function Bell({ alerts, onSeen }) {
   const { t, L, lang } = useApp();
+  const nt = t.notif;
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState("all");
-  const [showAll, setShowAll] = useState(false);
+  const [tab, setTab] = useState("unread");
   const [openId, setOpenId] = useState(null);
+  const [kept, setKept] = useState([]); // непрочитанные на момент открытия: не исчезают из вкладки, пока панель открыта
   const box = useRef();
+  const unread = alerts.filter((r) => !r.seen);
+  const n = unread.length;
   useEffect(() => {
-    if (!open) { setShowAll(false); setOpenId(null); return; }
+    if (!open) { setOpenId(null); return; }
+    setKept(unread.map((r) => r.id));
+    setTab(n > 0 ? "unread" : "all"); // открываем на непрочитанных, если они есть
     const onDown = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
     const onHash = () => setOpen(false);
@@ -322,73 +376,94 @@ function Bell({ alerts }) {
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("hashchange", onHash);
     };
-  }, [open]);
-  const n = alerts.length;
-  // Сначала важные (высокий приоритет), внутри одного приоритета — самые свежие
-  const sorted = useMemo(() => [...alerts].sort((a, b) =>
-    (b.priority - a.priority) || (Date.parse(b.created_at || 0) || 0) - (Date.parse(a.created_at || 0) || 0)), [alerts]);
-  const n3 = alerts.filter((r) => r.priority === 3).length, n2 = alerts.filter((r) => r.priority === 2).length;
-  const f = n3 > 0 && n2 > 0 ? filter : "all"; // вкладки видны только когда есть оба приоритета
-  const filtered = f === "all" ? sorted : sorted.filter((r) => r.priority === f);
-  const LIMIT = 5;
-  const shown = showAll ? filtered : filtered.slice(0, LIMIT);
-  const hidden = filtered.length - shown.length;
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // свежие сверху; внутри одного времени — важные первыми
+  const list = useMemo(() => (tab === "unread" ? alerts.filter((r) => !r.seen || kept.includes(r.id)) : alerts).slice().sort((a, b) =>
+    ((Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0)) || (b.priority - a.priority)), [alerts, tab, kept]);
+  const groups = ["today", "yesterday", "earlier"]
+    .map((g) => [g, list.filter((r) => dayGroup(r.created_at) === g)]).filter(([, rs]) => rs.length);
+
+  const toggle = (r) => {
+    const id = r.id;
+    setOpenId(openId === id ? null : id);
+    if (!r.seen && id != null) onSeen([id]);
+  };
+  const badge = n > 9 ? "9+" : String(n);
+
   return (
     <div className="bell-wrap" ref={box}>
-      <button className="bell" aria-label={n ? `${t.notif.title}: ${n}` : t.notif.title} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <Icon n="bell" s={22} />{n > 0 && <span className="bell-dot" aria-hidden="true" />}
+      <button className="bell" aria-label={n ? nt.unreadLabel(n) : nt.title} aria-expanded={open} aria-haspopup="dialog"
+        onClick={() => setOpen((o) => !o)}>
+        <Icon n="bell" s={22} />{n > 0 && <span className="bell-count" aria-hidden="true">{badge}</span>}
       </button>
       {open && (
-        <div className="bell-pop" role="dialog" aria-label={t.notif.title}>
+        <div className="bell-pop" role="dialog" aria-label={nt.title}>
           <div className="bell-head">
-            <b>{t.notif.title}{n > 0 && <span className="bell-total">{n}</span>}</b>
-            <span className="muted small">{t.notif.from}</span>
+            <h2>{nt.title}</h2>
+            {n > 0 && (
+              <button className="bell-readall" onClick={() => onSeen(unread.map((r) => r.id).filter((x) => x != null))}>
+                <Icon n="checks" s={16} />{nt.markAll}
+              </button>
+            )}
           </div>
-          {n3 > 0 && n2 > 0 && (
-            <div className="bell-tabs" role="tablist">
-              {[["all", t.notif.tabAll, n], [3, t.notif.tabHigh, n3], [2, t.notif.tabMid, n2]].map(([k, label, c]) => (
-                <button key={k} role="tab" aria-selected={f === k} className={f === k ? "on" : ""}
-                  onClick={() => { setFilter(k); setShowAll(false); setOpenId(null); }}>{label} <span>{c}</span></button>
-              ))}
-            </div>
-          )}
-          <div className="bell-list">
-            {shown.length ? shown.map((r) => {
-              const id = r.id ?? r.lesson + r.action, isOpen = openId === id;
-              return (
-                <div className={`bell-item p${r.priority} ${isOpen ? "open" : ""}`} key={id}>
-                  <button className="bell-row" aria-expanded={isOpen} onClick={() => setOpenId(isOpen ? null : id)}>
-                    <span className={`bell-mark p${r.priority}`} role="img" title={t.gaps.priority[r.priority]} aria-label={t.gaps.priority[r.priority]} />
-                    <span className="bell-main">
-                      <span className="bell-title">{L(r.title)}</span>
-                      <span className="bell-sub">{t.actions[r.action]?.[0] || r.action} · {t.causes[r.cause]}
-                        {r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}</span>
-                    </span>
-                    <span className="bell-date">{r.created_at ? dayLabel(r.created_at.slice(0, 10), lang, { day: "numeric", month: "short" }) : ""}</span>
-                    <span className="bell-chev"><Icon n="chev" s={16} /></span>
-                  </button>
-                  {isOpen && (
-                    <div className="bell-more">
-                      {t.causeHelp[r.cause] && <p className="small" style={{ margin: 0, lineHeight: 1.45 }}>{t.causeHelp[r.cause]}</p>}
-                      {["accepted", "changed"].includes(r.status) && (
-                        <div className="small st-mastered" style={{ marginTop: 6 }}>{t.rec.byTeacher}{r.comment ? `: ${r.comment}` : ""}</div>
+          <div className="bell-tabs" role="tablist">
+            {[["unread", nt.tabUnread, n], ["all", nt.tabAll, alerts.length]].map(([k, label, c]) => (
+              <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""}
+                onClick={() => { setTab(k); setOpenId(null); }}>{label}{c > 0 && <span className="bell-tab-n">{c}</span>}</button>
+            ))}
+          </div>
+          <div className="bell-list" role="tabpanel">
+            {groups.length ? groups.map(([g, rs]) => (
+              <section key={g} aria-label={nt.groups[g]}>
+                <div className="bell-group">{nt.groups[g]}</div>
+                {rs.map((r) => {
+                  const id = r.id ?? `${r.lesson}:${r.action}`, isOpen = openId === r.id;
+                  const action = t.actions[r.action]?.[0] || r.action;
+                  const teacher = ["accepted", "changed"].includes(r.status);
+                  return (
+                    <div className={`bell-item ${r.seen ? "" : "unread"} ${isOpen ? "open" : ""}`} key={id}>
+                      <button className="bell-row" aria-expanded={isOpen} onClick={() => toggle(r)}>
+                        <span className={`bell-ico p${r.priority}`} aria-hidden="true"><Icon n={NOTIF_ICON[r.action] || "bell"} s={18} /></span>
+                        <span className="bell-main">
+                          <span className="bell-title">{fox(action)}</span>
+                          <span className="bell-text">{L(r.title)}{r.action === "prereq" && r.target_title ? ` → ${L(r.target_title)}` : ""}
+                            {t.causes[r.cause] ? ` · ${t.causes[r.cause]}` : ""}</span>
+                          <span className="bell-meta">
+                            {r.priority >= 3 && <span className="bell-tag">{nt.important}</span>}
+                            {teacher && <span className="bell-tag teacher">{nt.fromTeacher}</span>}
+                            <time dateTime={r.created_at || undefined}>{r.created_at ? relTime(r.created_at, lang) : ""}</time>
+                          </span>
+                        </span>
+                        {!r.seen && <span className="bell-unread" role="img" aria-label={nt.unread} />}
+                      </button>
+                      {isOpen && (
+                        <div className="bell-more">
+                          {t.causeHelp[r.cause] && <p>{t.causeHelp[r.cause]}</p>}
+                          {teacher && r.comment && <p className="bell-quote">{t.rec.byTeacher}: {r.comment}</p>}
+                          <a href={actionHref(r)} className="btn sm">{fox(action)}<Icon n="arrow" s={14} /></a>
+                        </div>
                       )}
-                      <a href={actionHref(r)} className="btn sm" style={{ marginTop: 10 }}>{t.actions[r.action]?.[0] || t.open}</a>
                     </div>
-                  )}
-                </div>
-              );
-            }) : <p className="muted small" style={{ padding: 14, margin: 0 }}>{t.notif.empty}</p>}
-            {hidden > 0 && <button className="bell-showmore" onClick={() => setShowAll(true)}>{t.notif.more(hidden)}</button>}
+                  );
+                })}
+              </section>
+            )) : (
+              <div className="bell-empty">
+                <span className="bell-empty-ico"><Icon n={tab === "unread" ? "checkc" : "bell"} s={24} /></span>
+                <b>{tab === "unread" ? nt.caughtUp : nt.empty}</b>
+                <span>{nt.emptySub}</span>
+              </div>
+            )}
           </div>
-          <a href="#/gaps" className="bell-foot link">{t.notif.all}</a>
+          <a href="#/gaps" className="bell-foot">{nt.all}<Icon n="arrow" s={14} /></a>
         </div>
       )}
     </div>
   );
 }
 
-function Header({ alerts, onMenu, collapsed }) {
+function Header({ alerts, onSeen, onMenu, collapsed }) {
   const { t, lang, setLang, user, L } = useApp();
   const [q, setQ] = useState("");
   const [index, setIndex] = useState([]);
@@ -467,7 +542,7 @@ function Header({ alerts, onMenu, collapsed }) {
           ))}
         </div>
         {user.role === "student" && (
-          <Bell alerts={alerts} />
+          <Bell alerts={alerts} onSeen={onSeen} />
         )}
         <a href="#/profile" className="user">
           <div className="avatar">{(user.name || "?")[0].toUpperCase()}</div>

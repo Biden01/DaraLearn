@@ -24,7 +24,7 @@ export default function ClassAttendance({ classId }) {
           <span className="muted small att-rate">{s.rate == null ? "—" : `${Math.round(s.rate * 100)}%`}</span>
         </div>
       ))}
-      <AttLegend />
+      <AttLegend strip />
     </div>
   );
 }

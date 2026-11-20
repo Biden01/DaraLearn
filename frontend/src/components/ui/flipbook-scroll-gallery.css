@@ -1,0 +1,133 @@
+/* Фотокнига (flipbook-scroll-gallery.jsx). Цвета — через --fb-*, переопределяются снаружи. */
+.fb {
+  --fb-bg: transparent;
+  --fb-fg: #0a0a0f;
+  --fb-card: #fffdf8;
+  --fb-muted: #f1f0ea;
+  --fb-muted-fg: #6b6d7a;
+  --fb-accent: #0038ff;
+  --fb-cover: color-mix(in oklab, var(--fb-fg) 80%, #fff);
+  --fb-cast: rgba(0, 0, 0, .45);
+  --fb-ring: #0038ff;
+  --fb-sheen: 1;
+  --fb-serif: Georgia, "Times New Roman", serif;
+  --fb-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  position: relative;
+  width: 100%;
+  background: var(--fb-bg);
+  color: var(--fb-fg);
+}
+.fb p { margin: 0; }
+.fb-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.fb-abs { position: absolute; }
+.fb-fill { position: absolute; inset: 0; pointer-events: none; }
+.fb-3d { position: absolute; transform-style: preserve-3d; }
+
+.fb-viewport { position: relative; height: min(100svh, 760px); display: flex; flex-direction: column; width: 100%; overflow: hidden; }
+.fb-viewport.driven { position: sticky; top: 0; height: 100svh; }
+.fb-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(70% 55% at 50% 60%, color-mix(in oklab, var(--fb-fg) 6%, transparent), transparent 72%); }
+.fb-header { position: relative; z-index: 10; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 24px 0; text-align: center; }
+.fb-eyebrow { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .28em; color: var(--fb-muted-fg); }
+.fb-heading { font-size: 1.25rem; font-weight: 500; letter-spacing: -.025em; text-wrap: balance; }
+@media (min-width: 640px) {
+  .fb-header { padding-top: 32px; }
+  .fb-heading { font-size: 1.5rem; }
+}
+.fb-area { position: relative; min-height: 0; width: 100%; flex: 1; }
+.fb-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.fb-book { position: relative; flex-shrink: 0; }
+
+/* Обложка, корешок, обрез, ленточка */
+.fb-shadow { position: absolute; pointer-events: none; bottom: -5%; left: 6%; right: 6%; top: 40%; border-radius: 50%; background: #000; opacity: .22; filter: blur(40px); }
+.fb-cover { position: absolute; inset: 0; background: var(--fb-cover); box-shadow: inset 0 -3px 0 color-mix(in oklab, black 30%, transparent), inset 0 1px 0 color-mix(in oklab, white 12%, transparent); }
+.fb-cloth {
+  position: absolute; inset: 0; opacity: .16; border-radius: inherit;
+  background-image: repeating-linear-gradient(0deg, color-mix(in oklab, white 35%, transparent) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, color-mix(in oklab, black 35%, transparent) 0 1px, transparent 1px 3px);
+}
+.fb-bump { position: absolute; left: 50%; transform: translateX(-50%); background: var(--fb-cover); }
+.fb-thickness {
+  position: absolute; transform: scaleY(.14);
+  background-image: repeating-linear-gradient(to bottom, color-mix(in oklab, var(--fb-card) 96%, var(--fb-fg)) 0 1px, color-mix(in oklab, var(--fb-card) 70%, var(--fb-fg)) 1px 2px);
+  box-shadow: 0 1px 1px color-mix(in oklab, black 22%, transparent);
+}
+.fb-ribbon {
+  position: absolute; transform: rotate(-7deg); transform-origin: 50% 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+  background: linear-gradient(to right, var(--fb-accent), color-mix(in oklab, var(--fb-accent) 72%, black));
+}
+.fb-cast-box { position: absolute; top: 0; overflow: hidden; pointer-events: none; }
+.fb-cast { position: absolute; opacity: 0; }
+.fb-corner { position: absolute; z-index: 10; padding: 0; border: 0; background: none; border-radius: 6px; cursor: pointer; outline: none; }
+.fb-corner:focus-visible { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--fb-ring); }
+
+/* Грани листа */
+.fb-face { position: absolute; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.fb-page { position: absolute; inset: 0; overflow: hidden; background: var(--fb-card); color: var(--fb-fg); }
+.fb-grain { position: absolute; inset: 0; pointer-events: none; opacity: .04; background-size: 180px 180px; }
+.fb-gutter { position: absolute; top: 0; bottom: 0; width: 18%; pointer-events: none; }
+.fb-gutter.left { left: 0; background: linear-gradient(to right, rgba(0, 0, 0, .25), rgba(0, 0, 0, .07), transparent); }
+.fb-gutter.right { right: 0; background: linear-gradient(to left, rgba(0, 0, 0, .25), rgba(0, 0, 0, .07), transparent); }
+.fb-edge { position: absolute; top: 0; bottom: 0; right: 0; width: 4%; pointer-events: none; background: linear-gradient(to left, rgba(0, 0, 0, .06), transparent); }
+.fb-curl { position: absolute; bottom: 0; aspect-ratio: 1; width: 7%; pointer-events: none; }
+.fb-curl.right { right: 0; }
+.fb-curl.left { left: 0; }
+
+.fb-photo { position: relative; display: block; overflow: hidden; background: var(--fb-muted); }
+.fb-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .5s; }
+.fb-img[data-loaded="true"] { opacity: 1; }
+.fb-photo-ring { position: absolute; inset: 0; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--fb-fg) 10%, transparent); }
+@media (prefers-reduced-motion: reduce) { .fb-img { transition: none; } }
+
+/* Лицевая сторона */
+.fb-front { display: flex; flex-direction: column; padding: 8% 8% 9%; }
+.fb-front-photo { min-height: 0; flex: 1; box-shadow: 0 1px 3px color-mix(in oklab, var(--fb-fg) 22%, transparent); }
+.fb-front-text { position: relative; margin-top: .8em; flex-shrink: 0; }
+.fb-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--fb-serif); font-size: 1.05em; font-weight: 500; line-height: 1.25; letter-spacing: -.025em; }
+.fb-caption {
+  margin-top: .3em !important; font-size: .7em; line-height: 1.375; color: var(--fb-muted-fg);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden;
+}
+.fb-meta { margin-top: .75em !important; display: flex; justify-content: space-between; font-family: var(--fb-mono); font-size: .56em; text-transform: uppercase; letter-spacing: .16em; color: var(--fb-muted-fg); }
+
+/* Оборот */
+.fb-ruled { position: absolute; left: 11%; right: 11%; bottom: 9%; top: 54%; background-image: repeating-linear-gradient(to bottom, transparent 0 1.5em, color-mix(in oklab, var(--fb-fg) 11%, transparent) 1.5em calc(1.5em + 1px)); }
+.fb-polaroid {
+  position: absolute; left: 50%; top: 9%; display: block; width: 64%; transform: translateX(-50%) rotate(-3deg);
+  background: var(--fb-card); padding: 3.5% 3.5% 10%;
+  box-shadow: 0 6px 14px -6px color-mix(in oklab, var(--fb-fg) 45%, transparent), 0 0 0 1px color-mix(in oklab, var(--fb-fg) 8%, transparent);
+}
+.fb-polaroid-photo { aspect-ratio: 4 / 3; width: 100%; }
+.fb-tape { position: absolute; top: -.55em; left: 50%; height: 1.15em; width: 38%; transform: translateX(-50%) rotate(2deg); background: rgba(255, 255, 255, .6); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.fb-stamp {
+  position: absolute; left: 50%; top: 13%; width: 40%; aspect-ratio: 1; transform: translateX(-50%) rotate(-6deg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%;
+  border: 1px dashed color-mix(in oklab, var(--fb-fg) 25%, transparent); text-align: center;
+  font-family: var(--fb-mono); font-size: .56em; text-transform: uppercase; letter-spacing: .18em; color: var(--fb-muted-fg);
+}
+.fb-stamp-n { font-size: 1.6em; letter-spacing: .08em; color: color-mix(in oklab, var(--fb-fg) 70%, transparent); }
+.fb-stamp-date { margin-top: .5em; max-width: 78%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-back-text { position: absolute; left: 12%; right: 12%; top: 56%; }
+.fb-back-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--fb-serif); font-size: 1.08em; font-style: italic; line-height: 1.4; }
+.fb-back-date { margin-top: .55em !important; font-family: var(--fb-mono); font-size: .56em; text-transform: uppercase; letter-spacing: .16em; color: var(--fb-muted-fg); }
+
+/* Форзац с титульной карточкой */
+.fb-endpaper { background: color-mix(in oklab, var(--fb-muted) 65%, var(--fb-card)); }
+.fb-marble { position: absolute; inset: 0; pointer-events: none; opacity: .045; background-size: 100% 100%; }
+.fb-title-card {
+  position: absolute; left: 50%; top: 50%; width: 82%; transform: translate(-50%, -50%);
+  background: var(--fb-card); padding: 2em 1.4em; text-align: center; font-size: 1.3em;
+  box-shadow: 0 1px 3px color-mix(in oklab, var(--fb-fg) 12%, transparent);
+}
+.fb-title-card-b1 { position: absolute; inset: 0; pointer-events: none; border: 1px solid color-mix(in oklab, var(--fb-fg) 20%, transparent); }
+.fb-title-card-b2 { position: absolute; inset: .3em; pointer-events: none; border: 1px solid color-mix(in oklab, var(--fb-fg) 10%, transparent); }
+.fb-title-card-lead { font-family: var(--fb-serif); font-size: 1em; font-style: italic; line-height: 1.375; text-wrap: balance; }
+.fb-title-card-rule { display: block; margin: .7em auto 0; height: 1px; width: 2.2em; background: color-mix(in oklab, var(--fb-fg) 25%, transparent); }
+.fb-title-card-more { margin-top: .7em !important; font-family: var(--fb-mono); font-size: .5em; text-transform: uppercase; letter-spacing: .2em; color: var(--fb-muted-fg); }
+
+/* Подвал: точки и счётчик */
+.fb-footer { position: relative; z-index: 10; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 4px 24px 20px; }
+.fb-dots { display: flex; align-items: center; gap: 6px; }
+.fb-dots span { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in oklab, var(--fb-fg) 20%, transparent); transition: transform .3s, background-color .3s; }
+.fb-dots span.on { transform: scale(1.6); background: var(--fb-accent); }
+@media (prefers-reduced-motion: reduce) { .fb-dots span { transition: none; } }
+.fb-counter { font-family: var(--fb-mono); font-size: 11px; letter-spacing: .2em; color: var(--fb-muted-fg); }

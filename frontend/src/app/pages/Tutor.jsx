@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Crumb, Dara, Icon, Rich, useApp } from "../ui.jsx";
+import { Bar, Box, Crumb, Dara, Icon, Rich, fox, useApp } from "../ui.jsx";
 import TutorTask from "./TutorTask.jsx";
 
 const hhmm = (iso) => new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
@@ -19,6 +19,7 @@ export default function Tutor() {
   const sg = t.stages;
   const wanted = route.query.get("lesson");
   const wantedRec = route.query.get("rec");
+  const wantedTask = Number(route.query.get("task")) || null; // разбор ошибки из «Мои достижения»
   const [check, setCheck] = useState(null); // этапы 7–9: {tasks, answers, result}
   const [task, setTask] = useState(null);          // задача первой попытки (карточка в ленте)
   const [taskSeen, setTaskSeen] = useState(true);  // карточка задачи сейчас в кадре
@@ -33,7 +34,7 @@ export default function Tutor() {
     api("/content/courses?subject=math").then((cs) => setLessons(cs.flatMap((c) => c.lessons))).catch(() => {});
     api("/tutor/sessions/current").then((s) => {
       // новая тема из ссылки — новый диалог
-      if (!s || s.finished || (wanted && s.lesson?.slug !== wanted)) return newSession(wanted);
+      if (!s || s.finished || (wanted && s.lesson?.slug !== wanted) || (wantedTask && s.task !== wantedTask)) return newSession(wanted);
       if (s.stage >= 7) api(`/tutor/sessions/${s.id}/check`).then((c) => setCheck({ tasks: c.tasks, answers: {} })).catch(() => {});
       setSession(s);
     }).catch(() => newSession(wanted));
@@ -66,7 +67,8 @@ export default function Tutor() {
   async function newSession(lesson) {
     setCheck(null);
     const rec = lesson && lesson === wanted && wantedRec ? Number(wantedRec) : null;
-    try { setSession(await api("/tutor/sessions", { method: "POST", body: { lesson: lesson || null, recommendation_id: rec } })); } catch { toast(t.error); }
+    const task = lesson && lesson === wanted ? wantedTask : null;
+    try { setSession(await api("/tutor/sessions", { method: "POST", body: { lesson: lesson || null, recommendation_id: rec, task } })); } catch { toast(t.error); }
   }
 
   async function nextStage() {
@@ -126,10 +128,10 @@ export default function Tutor() {
   const showTask = hasLesson && !locked && !check;
 
   return (
-    <div className="tutor-page">
+    <div className={`tutor-page${hasLesson ? "" : " solo"}`}>
       <Crumb items={[[t.nav.tutor]]} />
       <div className="tutor-top">
-        <div className="row" style={{ gap: 10 }}><h1 style={{ margin: 0 }}>Dara AI Tutor</h1><span className="badge">{tp.beta}</span></div>
+        <div className="row" style={{ gap: 10 }}><h1 className="tutor-h1" style={{ margin: 0 }}><Dara s="1.15em" />Dara AI Tutor</h1><span className="badge">{tp.beta}</span></div>
         {status && (
           <span className={`quota ${!status.enabled ? "off" : noLeft ? "empty" : ""}`}>
             <Icon n="bot" s={14} /> {status.enabled ? tp.left(status.remaining) : tp.offShort}
@@ -173,7 +175,7 @@ export default function Tutor() {
             </div>
           )}
 
-          {status && !status.enabled && <div className="chat-banner">{tp.off}</div>}
+          {status && !status.enabled && <div className="chat-banner">{fox(tp.off)}</div>}
 
           {showTask && task && !taskSeen && session.first_attempt_correct !== true && (
             <button className="task-pin" onClick={() => taskRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
