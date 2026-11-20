@@ -193,7 +193,7 @@ function TeacherPart() {
             </div>
           )}
           <div className="card">
-            <div className="card-head"><p className="card-title">{tp.classes}</p>{classes.length > 0 && <a href={isTeacher ? "#/" : "#/classes"} className="tlink">{tp.allClasses} <Icon n="chev" s={16} /></a>}</div>
+            <div className="card-head"><p className="card-title">{tp.classes}</p>{classes.length > 0 && <a href="#/classes" className="tlink">{tp.allClasses} <Icon n="chev" s={16} /></a>}</div>
             {classes.length ? classes.map((c) => {
               const a = att[c.id], p = avg(c.id);
               return (
