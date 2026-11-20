@@ -45,12 +45,6 @@ import "@fontsource-variable/onest";
 import "@fontsource-variable/inter";
 import "./app.css";
 
-// цвет пункта меню (по иконке — одинаково у всех ролей): цветная плашка иконки, активный пункт — в своём цвете
-const NAV_COLOR = { home: "#2563EB", plan: "#F97316", cal: "#EC4899", book: "#10B981", case: "#0891B2", dara: "#8B5CF6",
-  docchk: "#0D9488", checkc: "#16A34A", gaps: "#EF4444", trend: "#6366F1", trophy: "#EAB308", target: "#F43F5E",
-  doc: "#0EA5E9", clock: "#F59E0B", chart: "#6366F1", clip: "#14B8A6", board: "#8B5CF6", bulb: "#EAB308",
-  user: "#0EA5E9", gear: "#64748B", help: "#A855F7", download: "#64748B" };
-const navColor = (icon) => ({ "--c": NAV_COLOR[icon] || "#2563EB" });
 const NAV_BOTTOM = [["profile", "profile", "user"], ["settings", "settings", "gear"], ["help", "help", "help"]];
 const COMMON = { profile: Profile, settings: Settings, help: Help, lesson: Lesson };
 const STAFF_VIEW = { class: ClassMap, student: StudentCard };
@@ -113,7 +107,7 @@ function InstallLink({ collapsed, label }) {
     setReady(false);
   };
   return (
-    <a href="#" onClick={install} title={collapsed ? label : undefined} style={navColor("download")}>
+    <a href="#" onClick={install} title={collapsed ? label : undefined}>
       <i className="nav-ico"><Icon n="download" /></i><span>{label}</span>
     </a>
   );
@@ -242,8 +236,8 @@ export default function App() {
     const name = (label) => t.nav[label] ?? t.snav[label];
     const link = ([k, label, icon]) => (
       <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
-        title={collapsed ? name(label) : undefined} style={navColor(icon)}>
-        <i className="nav-ico"><Icon n={icon} /></i><span>{name(label)}</span>
+        title={collapsed ? name(label) : undefined}>
+        <i className={icon === "dara" ? "nav-ico plain" : "nav-ico"}><Icon n={icon} /></i><span>{name(label)}</span>
         {badges[k] && <em className="nav-badge">{badges[k]}</em>}
       </a>
     );
@@ -274,14 +268,13 @@ export default function App() {
         {tabs && (
           <nav className="tabbar" aria-label={t.menu}>
             {tabs.map((k) => (
-              <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
-                style={navColor(byKey[k][2])}>
-                <i className="tab-ico"><Icon n={byKey[k][2]} s={22} /></i><span>{t.tabs[k]}</span>
+              <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}>
+                <Icon n={byKey[k][2]} s={22} /><span>{t.tabs[k]}</span>
               </a>
             ))}
             <button className={moreActive || moreOpen ? "active" : ""} aria-expanded={moreOpen} aria-haspopup="dialog"
               onClick={() => setMoreOpen((o) => !o)}>
-              <i className="tab-ico"><Icon n="menu" s={22} /></i><span>{t.tabs.more}</span>
+              <Icon n="menu" s={22} /><span>{t.tabs.more}</span>
             </button>
           </nav>
         )}
