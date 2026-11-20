@@ -65,10 +65,11 @@ const ROLES = {
       quiz: Quiz, result: Result, progress: Progress, results: Achievements, calendar: Calendar },
   },
   teacher: {
-    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["schedule", "schedule", "sched"], ["import", "import", "doc"], ["time", "time", "clock"],
-      ["calendar", "calendar", "cal"], ["analytics", "analytics", "trend"]],
-    groups: [[null, ["", "feed", "schedule"]], ["learn", ["calendar"]], ["data", ["import", "time"]], ["analyze", ["analytics"]]],
-    pages: { "": Classes, feed: Feed, schedule: Schedule, import: ImportResults, time: TeacherTime, calendar: Calendar,
+    // главная учителя — кабинет («что у меня сегодня»), классы — отдельным пунктом
+    nav: [["", "home", "home"], ["classes", "classes", "board"], ["feed", "feed", "target"], ["schedule", "schedule", "sched"], ["import", "import", "doc"],
+      ["time", "time", "clock"], ["calendar", "calendar", "cal"], ["analytics", "analytics", "trend"]],
+    groups: [[null, ["", "classes", "feed", "schedule"]], ["learn", ["calendar"]], ["data", ["import", "time"]], ["analyze", ["analytics"]]],
+    pages: { "": Profile, classes: Classes, feed: Feed, schedule: Schedule, import: ImportResults, time: TeacherTime, calendar: Calendar,
       analytics: StudentsProgress, ...STAFF_VIEW },
   },
   curator: {

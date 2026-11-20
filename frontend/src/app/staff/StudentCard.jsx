@@ -21,7 +21,7 @@ export default function StudentCard() {
   const s = t.student;
   return (
     <>
-      <Crumb items={[[t.classes.title, "#/"], [d.student.name]]} />
+      <Crumb items={[[t.classes.title, "#/classes"], [d.student.name]]} />
       <h1>{d.student.name}</h1>
       <p className="subtitle">{t.grade(d.student.grade)} · {d.student.login || d.student.email}</p>
       <div className="grid g-4" style={{ marginBottom: 20 }}>

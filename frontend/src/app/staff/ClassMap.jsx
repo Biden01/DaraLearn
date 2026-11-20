@@ -37,7 +37,7 @@ export default function ClassMap() {
   const o = d.outcomes;
   return (
     <>
-      <Crumb items={[[t.classes.title, "#/" + (user.role === "teacher" ? "" : "classes")], [d.class.name]]} />
+      <Crumb items={[[t.classes.title, "#/classes"], [d.class.name]]} />
       <h1>{d.class.name}</h1>
       <p className="subtitle">{t.classes.students(d.students.length)} · Математика · {t.grade(d.class.grade)}</p>
       <ClassPlan classId={id} />
