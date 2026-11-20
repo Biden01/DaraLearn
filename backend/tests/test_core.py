@@ -92,6 +92,9 @@ def test_school_codes_import_and_access(school):
 def test_admin_creates_class_for_teacher(school):
     admin, t = school["admin"], school["teacher"]
     tid = t.ok("GET", "/api/auth/me")["id"]
+    # учитель и куратор класс не создают — только админ
+    for who in (t, school["curator"]):
+        assert who.post("/api/school/classes", json={"name": "8Б", "grade": 8}).status_code == 403
     # без учителя и школы — некуда класть класс
     r = admin.post("/api/school/classes", json={"name": "8Б", "grade": 8})
     assert r.status_code == 400 and r.json()["detail"] == "no_school"

@@ -64,7 +64,8 @@ def school(admin):
     c_inv = admin.ok("POST", f"/api/school/schools/{s['id']}/invites", 201, json={"role": "curator"})
     teacher = register(code=t_inv["code"], name="Учитель")
     curator = register(code=c_inv["code"], name="Куратор")
-    cls = teacher.ok("POST", "/api/school/classes", 201, json={"name": "8А", "grade": 8})
+    tid = teacher.ok("GET", "/api/auth/me")["id"]
+    cls = admin.ok("POST", "/api/school/classes", 201, json={"name": "8А", "grade": 8, "teacher_id": tid})
     return {"school": s, "teacher": teacher, "curator": curator, "class": cls, "admin": admin}
 
 

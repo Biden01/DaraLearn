@@ -169,16 +169,14 @@ def classes(user: User = Depends(require_role("teacher", "curator")), db: Sessio
 
 
 @router.post("/classes", status_code=status.HTTP_201_CREATED)
-def create_class(payload: ClassIn, user: User = Depends(require_role("teacher")), db: Session = Depends(get_db)) -> dict:
-    teacher: User | None = user if user.role == "teacher" else None
-    school_id = user.school_id
-    if user.role == "admin":
-        teacher = db.get(User, payload.teacher_id) if payload.teacher_id else None
-        if payload.teacher_id and (not teacher or teacher.role != "teacher"):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "no_teacher")
-        school_id = payload.school_id or (teacher.school_id if teacher else None)
-        if teacher and teacher.school_id and teacher.school_id != school_id:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "teacher_other_school")
+def create_class(payload: ClassIn, user: User = Depends(require_role()), db: Session = Depends(get_db)) -> dict:
+    """Классы создаёт только админ; учителя и ученики входят в класс по коду, который им отправляет админ."""
+    teacher = db.get(User, payload.teacher_id) if payload.teacher_id else None
+    if payload.teacher_id and (not teacher or teacher.role != "teacher"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "no_teacher")
+    school_id = payload.school_id or (teacher.school_id if teacher else None)
+    if teacher and teacher.school_id and teacher.school_id != school_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "teacher_other_school")
     if not school_id or not db.get(School, school_id):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "no_school")
     if teacher and not teacher.school_id:
