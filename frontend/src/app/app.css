@@ -1169,3 +1169,81 @@ svg.i .d { fill: currentColor; fill-opacity: var(--ico-fill, .14); }
   .ach-hero { gap: 18px; }
   .ach-hero h1 { font-size: 22px; }
 }
+
+/* ===================== Яркое оформление (по образцам Mobbin: Duolingo, Uxcel, Brilliant, ClassDojo) ===================== */
+/* меню: у каждого пункта свой цвет (--c из App.jsx), иконка в цветной плашке; активный пункт — в своём цвете */
+.nav-ico { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; flex: none; font-style: normal;
+  background: color-mix(in srgb, var(--c, var(--accent)) 13%, #fff); color: var(--c, var(--accent));
+  transition: background .15s, color .15s, transform .15s; }
+.stu .nav a { padding: 5px 8px; gap: 12px; font-weight: 500; }
+.stu .nav .nav-ico svg { width: 18px; height: 18px; }
+.stu .nav a:hover { background: color-mix(in srgb, var(--c, var(--accent)) 7%, #fff); color: var(--fg); }
+.stu .nav a:hover .nav-ico { transform: scale(1.06); }
+.stu .nav a:active { background: color-mix(in srgb, var(--c, var(--accent)) 12%, #fff); }
+.stu .nav a.active { background: color-mix(in srgb, var(--c, var(--accent)) 12%, #fff); font-weight: 600;
+  color: color-mix(in srgb, var(--c, var(--accent)) 72%, #0F172A);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c, var(--accent)) 30%, #fff); }
+.stu .nav a.active .nav-ico { background: var(--c, var(--accent)); color: #fff; --ico-fill: .3;
+  box-shadow: 0 4px 10px -3px color-mix(in srgb, var(--c, var(--accent)) 60%, transparent); }
+.stu .nav a.active .nav-badge { background: #fff; color: color-mix(in srgb, var(--c, var(--accent)) 80%, #0F172A); }
+.stu .nav-badge { background: color-mix(in srgb, var(--c, var(--accent)) 13%, #fff); color: color-mix(in srgb, var(--c, var(--accent)) 80%, #0F172A); }
+.stu .nav-group-title { padding-left: 10px; }
+.stu .brand { font-weight: 800; }
+.stu .brand span { background: linear-gradient(90deg, #2563EB, #7C3AED); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* свёрнутое меню: плашка 30px помещается в 36px ширины */
+.nav-min .nav a { padding-left: 3px; padding-right: 3px; }
+
+/* шапка: аватар градиентом, колокольчик с цветным hover */
+.stu .avatar { background: linear-gradient(135deg, #60A5FA, #7C3AED); color: #fff; box-shadow: 0 4px 12px -4px rgba(124, 58, 237, .5); }
+.stu .bell:hover { background: #FFF4E5; color: #F59E0B; }
+
+/* главная кнопка — градиент */
+.stu .btn.primary { background: linear-gradient(135deg, #2563EB, #7C3AED); box-shadow: 0 8px 20px -8px rgba(91, 33, 182, .6); }
+.stu .btn.primary:hover { background: linear-gradient(135deg, #1D4ED8, #6D28D9); }
+
+/* «Следующий шаг» — яркий баннер */
+.stu .next { background: linear-gradient(135deg, #2563EB 0%, #5B4BF0 55%, #8B5CF6 100%); border: 0; color: #fff;
+  box-shadow: 0 18px 40px -18px rgba(79, 70, 229, .65); }
+.stu .next::after { right: -70px; top: -90px; width: 340px; height: 340px; background: radial-gradient(closest-side, rgba(255,255,255,.22), transparent); }
+.stu .next::before { content: ""; position: absolute; left: -40px; bottom: -120px; width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(244, 114, 182, .35), transparent); pointer-events: none; }
+.stu .next > * { position: relative; z-index: 1; }
+.stu .next .next-eyebrow { color: rgba(255,255,255,.75); }
+.stu .next .next-eyebrow b { color: #FDE68A; }
+.stu .next .next-title { color: #fff; }
+.stu .next .topic-pill { background: rgba(255,255,255,.16); color: #fff; backdrop-filter: blur(4px); }
+.stu .next .topic-sym { color: #4F46E5; }
+.stu .next .next-text { color: rgba(255,255,255,.88); }
+.stu .next .why { background: rgba(255,255,255,.14); color: rgba(255,255,255,.9); }
+.stu .next .why svg { color: #FDE68A; }
+.stu .next .why b, .stu .next .why.green b { color: #fff; }
+.stu .next .why.green { background: rgba(16, 185, 129, .28); }
+.stu .next .why.green svg { color: #A7F3D0; }
+.stu .next .next-cta .muted { color: rgba(255,255,255,.8); }
+.stu .next .btn.primary { background: #fff; color: #4338CA; box-shadow: 0 8px 20px -8px rgba(15, 23, 42, .45); }
+.stu .next .btn.primary:hover { background: #EEF2FF; }
+.stu .next .btn.primary:focus-visible { box-shadow: 0 0 0 3px rgba(255,255,255,.6); }
+
+/* прогресс: полосы и кольцо градиентом */
+.stu .bar > span { background: linear-gradient(90deg, #3B82F6, #8B5CF6); }
+.stu .ring { background: conic-gradient(from 0deg, #3B82F6, #8B5CF6 calc(var(--p) * 1%), #EEF1F5 0); }
+
+/* быстрые ссылки — тонированные под свою иконку */
+.quick-link.q-purple { background: linear-gradient(135deg, #F5F0FF, #fff 70%); border-color: #E9DFFF; }
+.quick-link.q-red { background: linear-gradient(135deg, #FFF1F2, #fff 70%); border-color: #FFDDE1; }
+.quick-link.q-green { background: linear-gradient(135deg, #ECFDF5, #fff 70%); border-color: #CDEFDD; }
+.quick-link.q-purple:hover { border-color: #C4B5FD; color: #7C3AED; }
+.quick-link.q-red:hover { border-color: #FDA4AF; color: var(--red); }
+.quick-link.q-green:hover { border-color: #86EFAC; color: #16A34A; }
+
+/* таб-бар телефона: активный пункт — цветная «пилюля» под иконкой */
+.tab-ico { display: grid; place-items: center; width: 52px; height: 28px; border-radius: 999px; font-style: normal; transition: background .15s, color .15s; }
+@media (max-width: 900px) {
+  .tabbar a, .tabbar button { gap: 3px; }
+  .tabbar a .tab-ico { color: color-mix(in srgb, var(--c, var(--accent)) 75%, #94A3B8); }
+  .tabbar a.active { color: color-mix(in srgb, var(--c, var(--accent)) 80%, #0F172A); font-weight: 600; }
+  .tabbar a.active .tab-ico { background: color-mix(in srgb, var(--c, var(--accent)) 15%, #fff); color: var(--c, var(--accent)); }
+  .tabbar button.active .tab-ico { background: var(--accent-soft); color: var(--accent); }
+  .sheet .nav-ico { width: 32px; height: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { .stu .nav a:hover .nav-ico { transform: none; } }
