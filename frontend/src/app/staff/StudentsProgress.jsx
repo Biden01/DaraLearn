@@ -7,7 +7,7 @@ import { Bar, Box, Crumb, Icon, Loading, useApp } from "../ui.jsx";
 const DAY = 86400000;
 
 // почему ученику нужно внимание (пустой список — всё в порядке)
-function reasons(r, today) {
+export function reasons(r, today) {
   const out = [];
   const idle = r.last_active ? Math.round((Date.parse(today) - Date.parse(r.last_active)) / DAY) : Infinity;
   if (idle >= 7) out.push("idle");
