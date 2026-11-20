@@ -14,7 +14,7 @@ from app.modules.decisions.service import rec_out, sync_student
 from app.modules.events.models import LearningEvent
 from app.modules.plan import rules as plan_rules
 from app.modules.plan.attendance import attendance_for
-from app.modules.school.access import class_students, get_class, get_student
+from app.modules.school.access import class_students, get_class, get_student, visible_classes
 from app.modules.school.models import User
 from app.modules.state.engine import SkillState, compute_states
 from app.modules.verification.models import Attempt
@@ -141,3 +141,59 @@ def _next(lessons, states, recs: list[dict]) -> dict:
     if step.get("action") not in ("diagnostic", "done") and recs and recs[0]["priority"] >= 2:
         return recs[0]
     return step
+
+
+@router.get("/progress")
+def students_progress(class_id: int | None = None, user: User = Depends(require_role("teacher", "curator")),
+                      db: Session = Depends(get_db)) -> dict:
+    """Анализ и трек прогресса учеников учителя: освоение тем сейчас, недельная активность и точность
+    за 6 недель, последние тесты. Одна строка на пару «ученик × класс»."""
+    classes = [get_class(db, user, class_id)] if class_id else visible_classes(db, user)
+    today = datetime.now(LOCAL_TZ).date()
+    week0 = today - timedelta(days=today.weekday()) - timedelta(weeks=5)  # понедельник 6 недель назад
+    pairs = [(c, s) for c in classes for s in class_students(db, c.id)]
+    ids = list({s.id for _, s in pairs}) or [-1]
+
+    events = db.execute(select(LearningEvent.user_id, LearningEvent.created_at, LearningEvent.correct, LearningEvent.source)
+                        .where(LearningEvent.user_id.in_(ids),
+                               LearningEvent.created_at >= datetime.combine(week0, datetime.min.time(), LOCAL_TZ))).all()
+    last_any = dict(db.execute(select(LearningEvent.user_id, func.max(LearningEvent.created_at))
+                               .where(LearningEvent.user_id.in_(ids)).group_by(LearningEvent.user_id)).all())
+    tests: dict[int, list] = {}
+    for a in db.scalars(select(Attempt).where(Attempt.user_id.in_(ids), Attempt.finished_at.is_not(None))
+                        .order_by(Attempt.finished_at)):
+        tests.setdefault(a.user_id, []).append({"day": _local_day(a.finished_at).isoformat(), "kind": a.kind,
+                                                "pct": round(100 * (a.score or 0) / (a.total or 1))})
+
+    per: dict[int, dict] = {}
+    for uid_, at, correct, src in events:
+        d = _local_day(at)
+        p_ = per.setdefault(uid_, {"weeks": [[0, 0, 0] for _ in range(6)], "days": set()})
+        w = min(5, max(0, (d - week0).days // 7))
+        p_["weeks"][w][0] += 1  # ответов за неделю
+        if src != "practice":
+            p_["weeks"][w][1] += 1
+            p_["weeks"][w][2] += bool(correct)
+        if d > today - timedelta(days=14):
+            p_["days"].add(d)
+
+    states_cache: dict[int, dict] = {}
+    lessons_cache: dict[str, list] = {}
+    rows = []
+    for c, s in pairs:
+        lessons = lessons_cache.setdefault(c.subject, lessons_of(db, subject_by_slug(db, c.subject).id))
+        st = states_cache.setdefault(s.id, compute_states(db, s.id))
+        cells = [st.get(l.id, SkillState()) for l in lessons]
+        mastered = sum(x.status == "mastered" for x in cells)
+        p_ = per.get(s.id, {"weeks": [[0, 0, 0] for _ in range(6)], "days": set()})
+        rows.append({
+            "id": s.id, "name": s.name, "class_id": c.id, "class_name": c.name,
+            "percent": round(100 * mastered / (len(lessons) or 1)), "mastered": mastered, "total": len(lessons),
+            "gaps": sum(x.status == "gap" for x in cells),
+            "weeks": [{"start": (week0 + timedelta(weeks=i)).isoformat(), "answers": a,
+                       "accuracy": round(ok / n, 2) if n else None} for i, (a, n, ok) in enumerate(p_["weeks"])],
+            "active_days_14": len(p_["days"]),
+            "last_active": _local_day(last_any[s.id]).isoformat() if s.id in last_any else None,
+            "tests": tests.get(s.id, [])[-6:],
+        })
+    return {"classes": [{"id": c.id, "name": c.name} for c in classes], "students": rows, "today": today.isoformat()}
