@@ -63,9 +63,9 @@ const ROLES = {
       quiz: Quiz, result: Result, progress: Progress, results: Achievements, calendar: Calendar },
   },
   teacher: {
-    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["pilot", "pilot", "chart"]],
-    groups: [[null, ["", "feed"]], ["learn", ["courses", "calendar"]], ["data", ["import", "time"]], ["analyze", ["pilot"]]],
-    pages: { "": Classes, feed: Feed, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar, pilot: Pilot, ...STAFF_VIEW },
+    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"]],
+    groups: [[null, ["", "feed"]], ["learn", ["courses", "calendar"]], ["data", ["import", "time"]]],
+    pages: { "": Classes, feed: Feed, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar, ...STAFF_VIEW },
   },
   curator: {
     nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"], ["pilot", "pilot", "chart"]],
