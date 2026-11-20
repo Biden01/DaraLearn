@@ -9,7 +9,7 @@
   "padding": 2.5,
   "opticalBalance": true,
   "duotone": "в приложении основная форма помечена class=\"d\" и получает мягкую заливку (--ico-fill)",
-  "iconCount": 54,
+  "iconCount": 55,
   "icons": [
     "menu",
     "x",
@@ -35,6 +35,7 @@
     "plan",
     "clip",
     "cal",
+    "sched",
     "book",
     "case",
     "docchk",

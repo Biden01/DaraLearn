@@ -38,6 +38,8 @@ import { Leads, Support, Audit } from "./staff/Lists.jsx";
 import DevBoard from "./staff/DevBoard.jsx";
 import Docs from "./staff/Docs.jsx";
 import TeacherTime from "./staff/TeacherTime.jsx";
+import Schedule from "./staff/Schedule.jsx";
+import StudentsProgress from "./staff/StudentsProgress.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
 import ParentHome from "./parent/ParentHome.jsx";
 import ParentChild from "./parent/ParentChild.jsx";
@@ -63,9 +65,11 @@ const ROLES = {
       quiz: Quiz, result: Result, progress: Progress, results: Achievements, calendar: Calendar },
   },
   teacher: {
-    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"]],
-    groups: [[null, ["", "feed"]], ["learn", ["courses", "calendar"]], ["data", ["import", "time"]]],
-    pages: { "": Classes, feed: Feed, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar, ...STAFF_VIEW },
+    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["schedule", "schedule", "sched"], ["import", "import", "doc"], ["time", "time", "clock"],
+      ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["analytics", "analytics", "trend"]],
+    groups: [[null, ["", "feed", "schedule"]], ["learn", ["courses", "calendar"]], ["data", ["import", "time"]], ["analyze", ["analytics"]]],
+    pages: { "": Classes, feed: Feed, schedule: Schedule, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar,
+      analytics: StudentsProgress, ...STAFF_VIEW },
   },
   curator: {
     nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"], ["pilot", "pilot", "chart"]],

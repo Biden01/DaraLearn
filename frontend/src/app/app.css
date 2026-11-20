@@ -1189,3 +1189,63 @@ svg.i .d { fill: currentColor; fill-opacity: var(--ico-fill, .14); }
 .tc-quick:hover { background: #F7F8FB; }
 .tc-quick > svg { color: var(--muted); flex: none; }
 @media (max-width: 600px) { .tc-att { grid-template-columns: 1fr; gap: 4px; } }
+
+/* ---------- Расписание учителя ---------- */
+.sched-week { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.sched-day { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 12px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.sched-day header { display: flex; flex-direction: column; gap: 2px; padding: 2px 4px 6px; border-bottom: 1px solid var(--line); }
+.sched-day.today { border-color: #BFD3FB; box-shadow: 0 0 0 3px var(--accent-soft); }
+.sched-day.today header b { color: var(--accent); }
+.sched-lesson { position: relative; background: var(--accent-soft); border-radius: 10px; padding: 8px 28px 8px 10px; }
+.sched-lesson.live { background: var(--accent); color: #fff; }
+.sched-lesson.live .muted { color: rgba(255,255,255,.8); }
+.sched-time { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.sched-lesson.live .sched-time { color: #fff; }
+.sched-class { font-weight: 700; font-size: 15px; }
+.sched-x { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px;
+  color: var(--muted); opacity: 0; transition: opacity .15s, background .15s; }
+.sched-lesson:hover .sched-x, .sched-x:focus-visible { opacity: 1; }
+.sched-x:hover { background: #fff; color: var(--red); }
+.sched-empty { margin: 6px 4px; }
+.sched-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.sched-fields input, .sched-fields select { width: 100%; }
+.sched-sum { padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.sched-sum.total { border-bottom: 0; padding-top: 12px; }
+@media (max-width: 1100px) { .sched-week { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .sched-week { grid-template-columns: minmax(0, 1fr); }
+  .sched-day header { flex-direction: row; justify-content: space-between; align-items: baseline; }
+  .sched-x { opacity: 1; }
+}
+@media (hover: none) { .sched-x { opacity: 1; } }
+
+/* ---------- Анализ и прогресс учеников ---------- */
+.prog-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.prog-search { flex: 1; min-width: 180px; max-width: 320px; background: #F3F5F8; border-radius: 10px; padding: 9px 12px; }
+.prog-only { gap: 8px; font-size: 14px; color: var(--fg2, #475569); cursor: pointer; }
+.prog-head, .prog-row { display: grid; grid-template-columns: minmax(150px, 1.4fr) minmax(130px, 1fr) 150px 110px 120px; gap: 18px; align-items: center; }
+.prog-head { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.prog-row { padding: 14px 12px; border-bottom: 1px solid var(--line); color: inherit; border-radius: 10px; transition: background .15s; }
+.prog-row:hover { background: #F7F8FB; }
+.prog-row.warn { box-shadow: inset 3px 0 0 #F59E0B; }
+.prog-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.prog-who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prog-why { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.prog-why em { font-style: normal; font-size: 11px; font-weight: 600; color: #B45309; background: #FFF4E5; border-radius: 999px; padding: 2px 8px; }
+.prog-mastery { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.prog-gaps { color: var(--red); font-weight: 600; }
+.prog-act { display: flex; flex-direction: column; gap: 4px; }
+.prog-test { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.prog-test b { font-size: 18px; } .prog-test .good { color: var(--green); } .prog-test .mid { color: #d97706; } .prog-test .low { color: var(--red); }
+.prog-test .up { color: var(--green); font-weight: 600; } .prog-test .down { color: var(--red); font-weight: 600; }
+.prog-last { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.spark { display: block; overflow: visible; }
+.spark .sp-bar { fill: #DCE7FE; } .spark .sp-bar.none { fill: #EEF1F5; }
+.spark .sp-line { fill: none; stroke: var(--accent); stroke-width: 1.75; stroke-linejoin: round; stroke-linecap: round; }
+.spark .sp-dot { fill: var(--accent); stroke: #fff; stroke-width: 1; }
+@media (max-width: 900px) {
+  .prog-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "who test" "mastery mastery" "act last"; gap: 10px 14px; }
+  .prog-who { grid-area: who; } .prog-mastery { grid-area: mastery; } .prog-act { grid-area: act; } .prog-test { grid-area: test; justify-content: flex-end; }
+  .prog-last { grid-area: last; align-self: end; }
+  .prog-search { max-width: none; }
+}
