@@ -132,7 +132,7 @@ function TeacherPart() {
     ["target", waiting ? "red" : "green", waiting ?? "…", tp.stats.waiting], ["checkc", "green", total ? `${present}/${total}` : "—", tp.stats.today]];
   const week = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
   const quick = [["#/feed", "target", "red", tp.feed, waiting ? tp.waitingN(waiting) : tp.feed[1]],
-    ...(isTeacher ? [["#/import", "doc", "", tp.import, tp.import[1]]] : []), ["#/pilot", "chart", "purple", tp.pilot, tp.pilot[1]]];
+    ...(isTeacher ? [["#/import", "doc", "", tp.import, tp.import[1]]] : [["#/pilot", "chart", "purple", tp.pilot, tp.pilot[1]]])];
 
   return (
     <>
