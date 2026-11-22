@@ -16,10 +16,17 @@ def test_auth_and_roles(admin):
     assert s.post("/api/auth/password", json={"old": "wrong", "new": "newsecret2"}).status_code == 400
 
 
-def test_parent_role():
-    s = register()
-    code = s.ok("GET", "/api/auth/family-code")["code"]
-    assert s.ok("GET", "/api/auth/family-code")["code"] == code  # код не меняется при повторном запросе
+def test_parent_role(school):
+    s = register(code=school["class"]["code"])
+    sid = s.ok("GET", "/api/auth/me")["id"]
+    teacher = school["teacher"]
+    # код для родителя видит учитель, а не сам ученик
+    assert s.get(f"/api/auth/family-code/{sid}").status_code == 403
+    code = teacher.ok("GET", f"/api/auth/family-code/{sid}")["code"]
+    assert teacher.ok("GET", f"/api/auth/family-code/{sid}")["code"] == code  # код не меняется при повторном запросе
+    assert school["curator"].ok("GET", f"/api/auth/family-code/{sid}")["code"] == code
+    stranger = register()  # ученик не из класса этого учителя
+    assert teacher.get(f"/api/auth/family-code/{stranger.ok('GET', '/api/auth/me')['id']}").status_code == 404
 
     parent = client()
     parent.ok("POST", "/api/auth/register-parent", 201,

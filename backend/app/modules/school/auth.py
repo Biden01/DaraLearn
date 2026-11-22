@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.core.db import get_db
 from app.core.security import clear_session, current_user, hash_password, require_role, set_session, verify_password
 from app.modules.leads.router import client_ip
-from app.modules.school.access import new_code
+from app.modules.school.access import get_student, new_code
 from app.modules.school.invites import apply_invite, find_invite
 from app.modules.school.models import ClassMember, ParentLink, SchoolClass, User
 
@@ -192,16 +192,21 @@ def register_parent(payload: RegisterParentIn, request: Request, response: Respo
     return user
 
 
-@router.get("/family-code")
-def family_code(user: User = Depends(require_role("student")), db: Session = Depends(get_db)) -> dict:
-    """Код ученика, чтобы родитель привязался к нему. Создаётся при первом запросе и больше не меняется."""
-    if not user.family_code:
+@router.get("/family-code/{student_id}")
+def family_code(student_id: int, user: User = Depends(require_role("teacher", "curator")),
+                db: Session = Depends(get_db)) -> dict:
+    """Код ученика для привязки родителя. Его видит учитель (куратор, админ) и передаёт родителю.
+    Создаётся при первом запросе и больше не меняется."""
+    student = get_student(db, user, student_id)
+    if student.role != "student":
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    if not student.family_code:
         code = new_code(6)
         while db.scalar(select(User).where(User.family_code == code)):
             code = new_code(6)
-        user.family_code = code
+        student.family_code = code
         db.commit()
-    return {"code": user.family_code}
+    return {"code": student.family_code}
 
 
 @router.post("/parent/link", status_code=status.HTTP_204_NO_CONTENT)

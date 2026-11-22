@@ -4,6 +4,7 @@ import { Bar, Crumb, Loading, Ring, useApp } from "../ui.jsx";
 import RecItem from "./RecItem.jsx";
 import StudentMonth from "./StudentMonth.jsx";
 import AttendanceCard from "../Attendance.jsx";
+import FamilyCode from "../pages/FamilyCode.jsx";
 
 export default function StudentCard() {
   const { t, L, route } = useApp();
@@ -38,6 +39,7 @@ export default function StudentCard() {
         </div>
         <div className="stack" style={{ alignSelf: "start" }}>
         <AttendanceCard a={att} />
+        <FamilyCode studentId={route.param} />
         <div className="card">
           <p className="card-title" style={{ marginBottom: 6 }}>{s.skills}</p>
           {d.lessons.map((l) => (

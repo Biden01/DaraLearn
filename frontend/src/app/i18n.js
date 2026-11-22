@@ -174,7 +174,7 @@ const kk = {
       bad_family_code: "Код қате немесе бала табылмады." },
     toSite: "Басты сайтқа",
     parentRegister: "Ата-ана ретінде тіркелу", parentTitle: "Ата-ана тіркелуі", familyCode: "Балаңыздың коды",
-    familyCodeHelp: "Балаңыздың «Баптаулар» бөлімінде көрсетілген кодын енгізіңіз.", toParentLogin: "Кіру" },
+    familyCodeHelp: "Баланың мұғалімі берген кодты енгізіңіз.", toParentLogin: "Кіру" },
 };
 
 const ru = {
@@ -344,7 +344,7 @@ const ru = {
       bad_family_code: "Код неверный или ребёнок не найден." },
     toSite: "На главный сайт",
     parentRegister: "Зарегистрироваться как родитель", parentTitle: "Регистрация родителя", familyCode: "Код ребёнка",
-    familyCodeHelp: "Введите код, который виден ребёнку в разделе «Настройки».", toParentLogin: "Войти" },
+    familyCodeHelp: "Введите код, который вам дал учитель ребёнка.", toParentLogin: "Войти" },
 };
 
 const ruBall = (n) => (n % 10 === 1 && n % 100 !== 11 ? "балла" : "баллов");
