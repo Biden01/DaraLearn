@@ -9,3 +9,4 @@ from app.modules.plan import models as plan  # noqa: F401
 from app.modules.school import models as school  # noqa: F401
 from app.modules.tutor import models as tutor  # noqa: F401
 from app.modules.verification import models as verification  # noqa: F401
+from app.modules.xp import models as xp  # noqa: F401
