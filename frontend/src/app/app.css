@@ -1269,3 +1269,44 @@ svg.i .d { fill: currentColor; fill-opacity: var(--ico-fill, .14); }
 .tc-why { color: #B45309; }
 .tc-ok { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--green); }
 @media (max-width: 600px) { .tc-time { min-width: 0; } .tc-today .btn { display: none; } }
+
+/* ===== Ранги: рамка аватарки (у каждого ранга своя), карточка ранга, поздравление ===== */
+.rank-frame { position: relative; display: inline-grid; place-items: center; flex: none; border-radius: 50%;
+  padding: var(--rf, 3px); background: var(--rf-bg, #c9cdd8); isolation: isolate; overflow: hidden; }
+.rank-frame > .avatar { position: relative; z-index: 1; box-shadow: 0 0 0 2px var(--card); }
+.rank-frame.r1 { --rf-bg: #c9cdd8; }
+.rank-frame.r2 { --rf-bg: #34c27a; }
+.rank-frame.r3 { --rf-bg: linear-gradient(135deg, #14b8a6, #0ea5e9); }
+.rank-frame.r4 { --rf-bg: linear-gradient(135deg, #0058f4, #4f8bff); }
+.rank-frame.r5 { --rf-bg: linear-gradient(135deg, #7c3aed, #a78bfa); }
+.rank-frame.r6 { --rf-bg: linear-gradient(135deg, #db2777, #8b5cf6); }
+.rank-frame.r7 { --rf-bg: linear-gradient(135deg, #f97316, #facc15); box-shadow: 0 0 8px rgba(249, 115, 22, .35); }
+.rank-frame.r8 { --rf-bg: linear-gradient(135deg, #b8860b, #ffe680 45%, #d4a017); box-shadow: 0 0 10px rgba(234, 179, 8, .5); }
+/* 9 и 10 — анимированные: вращающийся градиент под аватаркой */
+.rank-frame.r9, .rank-frame.r10 { --rf-bg: transparent; }
+.rank-frame.r9::before, .rank-frame.r10::before { content: ""; position: absolute; inset: -40%; z-index: 0;
+  animation: rank-spin 4s linear infinite; }
+.rank-frame.r9::before { background: conic-gradient(#dc2626, #f59e0b, #fde047, #f59e0b, #dc2626); }
+.rank-frame.r9 { box-shadow: 0 0 12px rgba(220, 38, 38, .45); }
+.rank-frame.r10::before { background: conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444); }
+.rank-frame.r10 { box-shadow: 0 0 14px rgba(139, 92, 246, .55); }
+@keyframes rank-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .rank-frame::before { animation: none; } }
+
+.rank-more { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.rank-more summary { cursor: pointer; list-style: none; }
+.rank-more summary::-webkit-details-marker { display: none; }
+.rank-more summary::after { content: " ▾"; color: var(--muted); }
+.rank-more[open] summary::after { content: " ▴"; }
+.rank-xp { flex: none; min-width: 58px; font-weight: 700; color: var(--green); }
+.rank-ladder { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; margin-top: 10px; }
+.rank-step { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 10px 6px; border: 1px solid var(--line); border-radius: 10px; }
+.rank-step.current { border-color: var(--accent); background: var(--accent-soft); }
+.rank-step.locked { opacity: .45; filter: grayscale(.6); }
+
+.rank-up { place-items: center; padding: 16px; }
+.rank-up .card { width: min(380px, 100%); text-align: center; animation: rank-pop .35s var(--ease, ease-out); }
+.rank-up-ava { display: grid; place-items: center; margin: 4px 0 14px; }
+@keyframes rank-pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rank-up .card { animation: none; } }
+.user .rank-frame > .avatar { box-shadow: 0 0 0 2px var(--card); }

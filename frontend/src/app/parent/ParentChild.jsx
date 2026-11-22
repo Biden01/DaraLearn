@@ -3,15 +3,18 @@ import { api } from "../api.js";
 import { Bar, Crumb, Loading, Ring, useApp } from "../ui.jsx";
 import StudentMonth from "../staff/StudentMonth.jsx";
 import AttendanceCard from "../Attendance.jsx";
+import { RankCard } from "../Rank.jsx";
 
 // Ата-анаға тек оқу: жоспар, орындалу, расталған дағдылар. Рекомендациялар мен сынып салыстыруы жоқ.
 export default function ParentChild() {
   const { t, L, route } = useApp();
   const [d, setD] = useState(null);
   const [att, setAtt] = useState(null);
+  const [xp, setXp] = useState(null);
   useEffect(() => {
     api(`/state/students/${route.param}`).then(setD).catch(() => setD(false));
     api(`/plan/students/${route.param}/attendance`).then(setAtt).catch(() => {});
+    api(`/xp/students/${route.param}`).then(setXp).catch(() => {});
   }, [route.param]);
   if (d === null) return <Loading />;
   if (d === false) return <p className="muted">{t.error}</p>;
@@ -30,7 +33,10 @@ export default function ParentChild() {
       </div>
       <StudentMonth studentId={route.param} />
       <div className="grid g-main">
-        <AttendanceCard a={att} />
+        <div className="stack" style={{ alignSelf: "start" }}>
+          {xp && <RankCard x={xp} title={t.xp.student} name={d.student.name} />}
+          <AttendanceCard a={att} />
+        </div>
         <div className="card">
           <p className="card-title" style={{ marginBottom: 6 }}>{s.skills}</p>
           {d.lessons.map((l) => (

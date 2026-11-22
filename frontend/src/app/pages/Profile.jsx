@@ -3,13 +3,14 @@ import { api } from "../api.js";
 import { Bar, Box, Icon, Ring, useApp } from "../ui.jsx";
 import { monthName } from "./Plan.jsx";
 import AttendanceCard from "../Attendance.jsx";
+import { RankAvatar, RankCard } from "../Rank.jsx";
 import { reasons } from "../staff/StudentsProgress.jsx";
 
 const ACH_ICONS = { first_step: "star", diagnostic: "doc", perfect_test: "target", streak5: "fire", five_mastered: "book", all_mastered: "check" };
 
 // Личный кабинет: кто я, мои успехи, цель месяца, классы и достижения. Настройки — отдельная страница.
 export default function Profile() {
-  const { t, user } = useApp();
+  const { t, user, xp } = useApp();
   const student = user.role === "student";
   const staff = user.role === "teacher" || user.role === "curator";
   const [d, setD] = useState(null);
@@ -30,7 +31,7 @@ export default function Profile() {
     <>
       <div className="card" style={{ background: "linear-gradient(135deg, var(--accent) 0%, #4f8bff 100%)", color: "#fff", border: 0, marginBottom: 20, padding: 26 }}>
         <div className="row wrap" style={{ gap: 20 }}>
-          <div className="avatar" style={{ width: 76, height: 76, fontSize: 30, background: "#fff", color: "var(--accent)" }}>{(user.name || "?")[0].toUpperCase()}</div>
+          <RankAvatar name={user.name} rank={student ? xp?.rank : null} size={76} style={{ background: "#fff", color: "var(--accent)", boxShadow: "none" }} />
           <div className="grow" style={{ minWidth: 200 }}>
             <h1 style={{ margin: "0 0 4px", color: "#fff" }}>{user.name}</h1>
             <div style={{ opacity: 0.9 }}>{sub}</div>
@@ -43,12 +44,12 @@ export default function Profile() {
       </div>
       {staff && <TeacherPart />}
       {!student && !staff && <p className="muted">{pr.staffSub}</p>}
-      {student && d && <StudentPart d={d} goal={goal} classes={classes} att={att} />}
+      {student && d && <StudentPart d={d} goal={goal} classes={classes} att={att} xp={xp} />}
     </>
   );
 }
 
-function StudentPart({ d, goal, classes, att }) {
+function StudentPart({ d, goal, classes, att, xp }) {
   const { t, L, lang } = useApp();
   const pr = t.profile;
   const pp = t.progress;
@@ -65,6 +66,7 @@ function StudentPart({ d, goal, classes, att }) {
       </div>
       <div className="grid g-main">
         <div className="stack">
+          {xp && <RankCard x={xp} />}
           <div className="card">
             <p className="card-title" style={{ marginBottom: 14 }}>{goal ? `${pr.goal}: ${monthName(goal.month, lang)}` : pr.goal}</p>
             {goal ? (

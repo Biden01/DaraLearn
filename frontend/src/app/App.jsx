@@ -7,6 +7,7 @@ import { actionHref } from "./pages/actions.js";
 import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
 import Achievements from "./pages/Achievements.jsx";
+import { RankAvatar, RankUp } from "./Rank.jsx";
 import Plan from "./pages/Plan.jsx";
 import Subjects from "./pages/Subjects.jsx";
 import Courses from "./pages/Courses.jsx";
@@ -142,6 +143,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(storedCollapsed);
   const [alerts, setAlerts] = useState([]);
+  const [xp, setXp] = useState(null);
   const [planLeft, setPlanLeft] = useState(0); // сколько минут плана на сегодня осталось — бейдж в меню
   const [moreOpen, setMoreOpen] = useState(false);
   const toastTimer = useRef();
@@ -205,6 +207,7 @@ export default function App() {
     if (user?.role !== "student") return;
     api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2))).catch(() => {});
     api("/plan/today").then((p) => setPlanLeft(p.items.length ? Math.max(0, p.total_minutes - p.done_minutes) : 0)).catch(() => {});
+    api("/xp/me").then(setXp).catch(() => {}); // опыт и ранг: рамка аватарки и поздравление с новым рангом
   }, [user, route.page]);
 
   // отметить уведомления прочитанными: сразу в интерфейсе, затем на сервере
@@ -215,7 +218,7 @@ export default function App() {
   }, []);
 
   const ctx = useMemo(() => ({
-    t, lang, setLang, user, setUser, toast, route, alerts,
+    t, lang, setLang, user, setUser, toast, route, alerts, xp,
     L: (v) => pick(v, lang),
     go: (hash) => { window.location.hash = hash; },
     startTest: async (body) => {
@@ -224,7 +227,7 @@ export default function App() {
         window.location.hash = `#/test/${a.id}`;
       } catch { toast(t.error); }
     },
-  }), [t, lang, setLang, user, toast, route, alerts]);
+  }), [t, lang, setLang, user, toast, route, alerts, xp]);
 
   // на телефоне бургер открывает выезжающее меню, на компьютере сворачивает его до иконок
   const onMenu = () => {
@@ -283,6 +286,7 @@ export default function App() {
         {menuOpen && <div className="overlay" style={{ display: "block", position: "fixed", inset: 0, background: "rgba(17,19,41,.3)", zIndex: 25 }} onClick={() => setMenuOpen(false)} />}
         <Header alerts={alerts} onSeen={markSeen} onMenu={onMenu} collapsed={collapsed} />
         <main className="main" id="app"><Page key={route.page + route.param} /></main>
+        {user.role === "student" && <RankUp x={xp} />}
         {tabs && (
           <nav className="tabbar" aria-label={t.menu}>
             {tabs.map((k) => (
@@ -475,7 +479,7 @@ function Bell({ alerts, onSeen }) {
 }
 
 function Header({ alerts, onSeen, onMenu, collapsed }) {
-  const { t, lang, setLang, user, L } = useApp();
+  const { t, lang, setLang, user, L, xp } = useApp();
   const [q, setQ] = useState("");
   const [index, setIndex] = useState([]);
   const [sel, setSel] = useState(0);
@@ -556,7 +560,7 @@ function Header({ alerts, onSeen, onMenu, collapsed }) {
           <Bell alerts={alerts} onSeen={onSeen} />
         )}
         <a href="#/profile" className="user">
-          <div className="avatar">{(user.name || "?")[0].toUpperCase()}</div>
+          <RankAvatar name={user.name} rank={user.role === "student" ? xp?.rank : null} size={40} />
           <div className="user-info"><div className="user-name">{user.name}</div>
             <div className="user-sub">{user.role === "student" ? t.grade(user.grade) : t.roles[user.role]}</div></div>
         </a>

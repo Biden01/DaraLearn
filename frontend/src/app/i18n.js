@@ -4,6 +4,7 @@ import { STAFF } from "./i18n_staff.js";
 import { DEV } from "./i18n_dev.js";
 import { PILOT } from "./i18n_pilot.js";
 import { TEACHER } from "./i18n_teacher.js";
+import { XP } from "./i18n_xp.js";
 import { abl, poss, possDat } from "./kk.js";
 import { gen, pl } from "./ru.js";
 
@@ -348,4 +349,4 @@ const ru = {
 };
 
 const ruBall = (n) => (n % 10 === 1 && n % 100 !== 11 ? "балла" : "баллов");
-export const STRINGS = { kk: { ...kk, ...STAFF.kk, ...PLAN.kk, ...DEV.kk, ...PILOT.kk, ...TEACHER.kk }, ru: { ...ru, ...STAFF.ru, ...PLAN.ru, ...DEV.ru, ...PILOT.ru, ...TEACHER.ru } };
+export const STRINGS = { kk: { ...kk, ...STAFF.kk, ...PLAN.kk, ...DEV.kk, ...PILOT.kk, ...TEACHER.kk, ...XP.kk }, ru: { ...ru, ...STAFF.ru, ...PLAN.ru, ...DEV.ru, ...PILOT.ru, ...TEACHER.ru, ...XP.ru } };

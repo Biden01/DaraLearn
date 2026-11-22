@@ -5,15 +5,18 @@ import RecItem from "./RecItem.jsx";
 import StudentMonth from "./StudentMonth.jsx";
 import AttendanceCard from "../Attendance.jsx";
 import FamilyCode from "../pages/FamilyCode.jsx";
+import { RankCard } from "../Rank.jsx";
 
 export default function StudentCard() {
   const { t, L, route } = useApp();
   const [d, setD] = useState(null);
   const [feed, setFeed] = useState([]);
   const [att, setAtt] = useState(null);
+  const [xp, setXp] = useState(null);
   const load = () => {
     api(`/state/students/${route.param}`).then(setD).catch(() => setD(false));
     api(`/plan/students/${route.param}/attendance`).then(setAtt).catch(() => {});
+    api(`/xp/students/${route.param}`).then(setXp).catch(() => {});
     api("/decisions/feed?include_closed=true").then((f) => setFeed(f.items.filter((x) => String(x.user_id) === route.param))).catch(() => {});
   };
   useEffect(load, [route.param]);
@@ -38,6 +41,7 @@ export default function StudentCard() {
           {feed.length ? feed.map((r) => <RecItem key={r.id} r={r} onChange={load} showStudent={false} />) : <p className="muted small">{t.rec.empty}</p>}
         </div>
         <div className="stack" style={{ alignSelf: "start" }}>
+        {xp && <RankCard x={xp} title={t.xp.student} name={d.student.name} />}
         <AttendanceCard a={att} />
         <FamilyCode studentId={route.param} />
         <div className="card">
