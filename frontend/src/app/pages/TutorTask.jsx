@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Dara, Icon, Rich, useApp } from "../ui.jsx";
+import { Dara, Icon, MathText, Rich, useApp } from "../ui.jsx";
 
 // Шаг 3 занятия: задача без подсказок — карточка от Dara прямо в ленте чата.
 // Помощь открывается после ошибки: лестница из 4 подсказок и кнопка «позвать учителя».
@@ -55,13 +55,13 @@ const TutorTask = forwardRef(function TutorTask({ session, setSession, onCheck, 
           {answered && <span className={`badge ${ok ? "green" : "red"}`}>{ok ? h.rightShort : h.wrongShort}</span>}
         </div>
         {!answered && <p className="muted small" style={{ margin: "0 0 10px" }}>{h.firstHint}</p>}
-        <div className="q">{L(task.question)}</div>
+        <div className="q"><MathText>{L(task.question)}</MathText></div>
         <div className="opts">
           {task.options.map((o, j) => (
             <button key={j} disabled={answered || busy}
               className={picked === j ? (answered ? (ok ? "right" : "wrong") : "picked") : ""}
               onClick={() => choose(j)}>
-              <span className="opt-letter">{"ABCDEF"[j]}</span>{L(o)}
+              <span className="opt-letter">{"ABCDEF"[j]}</span><MathText>{L(o)}</MathText>
             </button>
           ))}
         </div>

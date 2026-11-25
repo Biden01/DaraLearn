@@ -6,6 +6,33 @@ export const useApp = () => useContext(Ctx);
 // Текст из пары {kk, ru} или строка как есть.
 export const pick = (v, lang) => (v == null ? "" : typeof v === "string" ? v : v[lang] ?? v.kk ?? "");
 
+// Қарапайым бөлшектерді («1/6», «π/3», «7·√3/6», «(x+2)/(x+1)») кітаптағыдай
+// үстінде-астында (numerator/denominator) көрсетеді. Үлкен/күрделі өрнектегі
+// «/» (мыс. жай мәтінде кездейсоқ) түртпейді — тек сан/бір әріп/√.../жақшалы
+// жай топтарды таниды, сол арқылы қате тани алмайтын жерге тимейді.
+const MATH_TOKEN = "(?:\\([^()]*\\)|√\\([^()]*\\)|√\\d+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?[a-zA-Zα-ωΑ-Ω]|π|[a-zA-Zα-ωΑ-Ω]|\\d+(?:\\.\\d+)?)";
+const MATH_CHAIN = `${MATH_TOKEN}(?:·${MATH_TOKEN})*`;
+const FRACTION_RE = new RegExp(`(-)?(${MATH_CHAIN})/(${MATH_CHAIN})`, "gu");
+const declamp = (s) => (/^\([^()]*\)$/.test(s) ? s.slice(1, -1) : s);
+
+export const MathText = ({ children }) => {
+  const text = children == null ? "" : String(children);
+  const out = [];
+  let last = 0;
+  for (const m of text.matchAll(FRACTION_RE)) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(
+      <span className="frac" key={m.index}>
+        {m[1] && "−"}
+        <span className="frac-stack"><span className="num">{declamp(m[2])}</span><span className="den">{declamp(m[3])}</span></span>
+      </span>,
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+};
+
 // Иконки 24×24 — собственный набор DaraLearn (пресет Soft: линия 2px, скругления 3–4px, поля 2.5px);
 // исходники и превью — design/icons/. Класс «d» — мягкая заливка основной формы в цвет иконки (duotone);
 // её плотность задаёт --ico-fill (в активном пункте меню ярче). Лисёнок AI Tutor — отдельно, компонент Dara ниже.

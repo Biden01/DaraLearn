@@ -2,7 +2,7 @@
 // Все данные — из /plan/today: шаги плана на сегодня (items) и цель месяца с расписанием тем по дням (goal.days).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Icon, Loading, Ring, fox, useApp } from "../ui.jsx";
+import { Bar, Icon, Loading, MathText, Ring, fox, useApp } from "../ui.jsx";
 import { dateKk, dateLongKk, monthKk } from "../kk.js";
 
 export const TOPIC_DOT = { done: "mastered", learning: "learning", todo: "gap" };
@@ -189,15 +189,15 @@ function StepBody({ item, after, onChange, onAfter }) {
           const res = shown[task.id];
           return (
             <div className="task" key={task.id}>
-              <div className="q">{i + 1}. {L(task.question)}</div>
+              <div className="q">{i + 1}. <MathText>{L(task.question)}</MathText></div>
               <div className="opts">
                 {task.options.map((o, j) => (
                   <button key={j} disabled={was || mine !== undefined}
                     className={res ? (j === res.answer ? "right" : j === mine ? "wrong" : "") : mine === j ? "right" : ""}
-                    onClick={() => choose(task, j)}>{L(o)}</button>
+                    onClick={() => choose(task, j)}><MathText>{L(o)}</MathText></button>
                 ))}
               </div>
-              {res && !res.correct && <div className="feedback">{L(res.explanation)}</div>}
+              {res && !res.correct && <div className="feedback"><MathText>{L(res.explanation)}</MathText></div>}
               {was && mine === undefined && <div className="muted small" style={{ marginTop: 8 }}>{p.answered}</div>}
             </div>
           );

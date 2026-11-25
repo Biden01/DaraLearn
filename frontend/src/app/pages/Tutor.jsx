@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Crumb, Dara, Icon, Rich, fox, useApp } from "../ui.jsx";
+import { Bar, Box, Crumb, Dara, Icon, MathText, Rich, fox, useApp } from "../ui.jsx";
 import TutorTask from "./TutorTask.jsx";
 
 const hhmm = (iso) => new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
@@ -179,7 +179,7 @@ export default function Tutor() {
 
           {showTask && task && !taskSeen && session.first_attempt_correct !== true && (
             <button className="task-pin" onClick={() => taskRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
-              <Icon n="target" s={15} /><span className="task-pin-q">{L(task.question)}</span><span className="link small">{tp.toTask} ↑</span>
+              <Icon n="target" s={15} /><span className="task-pin-q"><MathText>{L(task.question)}</MathText></span><span className="link small">{tp.toTask} ↑</span>
             </button>
           )}
 
@@ -191,15 +191,15 @@ export default function Tutor() {
                   const res = check.result?.results.find((x) => x.task_id === task.id);
                   return (
                     <div className="task" key={task.id}>
-                      <div className="q"><span className="task-no">{i + 7}</span>{L(task.question)}</div>
+                      <div className="q"><span className="task-no">{i + 7}</span><MathText>{L(task.question)}</MathText></div>
                       <div className="opts">
                         {task.options.map((o, j) => (
                           <button key={j} disabled={!!check.result}
                             className={res ? (j === res.answer ? "right" : j === res.choice ? "wrong" : "") : check.answers[task.id] === j ? "picked" : ""}
-                            onClick={() => setCheck((c) => ({ ...c, answers: { ...c.answers, [task.id]: j } }))}>{L(o)}</button>
+                            onClick={() => setCheck((c) => ({ ...c, answers: { ...c.answers, [task.id]: j } }))}><MathText>{L(o)}</MathText></button>
                         ))}
                       </div>
-                      {res && !res.correct && <div className="feedback">{L(res.explanation)}</div>}
+                      {res && !res.correct && <div className="feedback"><MathText>{L(res.explanation)}</MathText></div>}
                     </div>
                   );
                 })}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Icon, Loading, useApp } from "../ui.jsx";
+import { Bar, Icon, Loading, MathText, useApp } from "../ui.jsx";
 
 const SKIP = -1; // «Не знаю»: вопрос пройден, но ответа нет — это не ошибка, а отсутствие данных
 
@@ -84,10 +84,10 @@ export default function TestRun({ id }) {
         <span className={`timer ${left < 60 ? "low" : ""}`} aria-label={q.left}><Icon n="clock" s={18} />{mm}:{ss}</span>
       </div>
       <div className="focus-body">
-        <div className="question">{L(task.question)}</div>
+        <div className="question"><MathText>{L(task.question)}</MathText></div>
         {task.options.map((o, j) => (
           <button key={j} className={`option ${ans[task.id] === j ? "sel" : ""}`} onClick={() => choose(j)} aria-pressed={ans[task.id] === j}>
-            <span className="l">{"ABCD"[j]}</span>{L(o)}<span className="k">{j + 1}</span>
+            <span className="l">{"ABCD"[j]}</span><MathText>{L(o)}</MathText><span className="k">{j + 1}</span>
           </button>
         ))}
         <button className={`option ${ans[task.id] === SKIP ? "sel" : ""}`} style={{ justifyContent: "center", color: "var(--muted)" }} onClick={() => { choose(SKIP); if (!last) setI(i + 1); }}>{q.dontKnow}</button>

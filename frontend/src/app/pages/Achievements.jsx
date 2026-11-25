@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Crumb, Dara, Icon, Loading, Ring, useApp } from "../ui.jsx";
+import { Bar, Box, Crumb, Dara, Icon, Loading, MathText, Ring, useApp } from "../ui.jsx";
 import { dateKk } from "../kk.js";
 
 // «Мои достижения»: все тесты (ПҚС/БЖБ, диагностика, проверка знаний) — динамика, где теряются баллы, разбор ошибок.
@@ -282,12 +282,12 @@ function TestDetail({ id }) {
                   <span className="ach-topic-chip">{L(m.lesson_title)}</span>
                   {m.error && <span className="ach-err">{a.errKinds[m.error]}</span>}
                 </div>
-                <p className="ach-q">{L(m.question)}</p>
+                <p className="ach-q"><MathText>{L(m.question)}</MathText></p>
                 <div className="ach-answers">
-                  <div className="ach-ans bad"><span>{a.your}</span><b>{m.choice != null ? L(m.options[m.choice]) : a.noAnswer}</b></div>
-                  <div className="ach-ans good"><span>{a.right}</span><b>{L(m.options[m.answer])}</b></div>
+                  <div className="ach-ans bad"><span>{a.your}</span><b>{m.choice != null ? <MathText>{L(m.options[m.choice])}</MathText> : a.noAnswer}</b></div>
+                  <div className="ach-ans good"><span>{a.right}</span><b><MathText>{L(m.options[m.answer])}</MathText></b></div>
                 </div>
-                {m.explanation && L(m.explanation) && <p className="ach-ex">{L(m.explanation)}</p>}
+                {m.explanation && L(m.explanation) && <p className="ach-ex"><MathText>{L(m.explanation)}</MathText></p>}
                 <TutorBtn lesson={m.lesson} task={m.task_id} />
               </div>
             )) : <p className="muted">{a.noMistakes}</p>}

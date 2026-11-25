@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Icon, Loading, fox, useApp } from "../ui.jsx";
+import { Bar, Box, Icon, Loading, MathText, fox, useApp } from "../ui.jsx";
 import { Chain } from "./Courses.jsx";
 
 function Theory({ lines, t }) {
@@ -25,18 +25,18 @@ function PracticeTask({ task, i }) {
   }
   return (
     <div className="task">
-      <div className="q">{i + 1}. {L(task.question)}</div>
+      <div className="q">{i + 1}. <MathText>{L(task.question)}</MathText></div>
       <div className="opts">
         {task.options.map((o, j) => (
           <button key={j} disabled={res !== null}
             className={res ? (j === res.answer ? "right" : j === choice ? "wrong" : "") : ""}
-            onClick={() => answer(j)}>{L(o)}</button>
+            onClick={() => answer(j)}><MathText>{L(o)}</MathText></button>
         ))}
       </div>
       {res && (
         <div className="feedback" role="status">
           <b className={res.correct ? "st-mastered" : "st-gap"}>{res.correct ? t.lesson.right : t.lesson.wrong}</b>
-          {!res.correct && <>{t.lesson.correctIs} {L(task.options[res.answer])}. </>}{L(res.explanation)}
+          {!res.correct && <>{t.lesson.correctIs} <MathText>{L(task.options[res.answer])}</MathText>. </>}<MathText>{L(res.explanation)}</MathText>
           {!res.correct && <div style={{ marginTop: 8 }}><button className="link" onClick={() => { setRes(null); setChoice(null); }}>{t.quiz.again}</button></div>}
         </div>
       )}

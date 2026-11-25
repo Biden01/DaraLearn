@@ -82,16 +82,16 @@ function TaskPreview({ f, optCount, a }) {
       {["kk", "ru"].map((lang) => (
         <div key={lang}>
           <p className="muted small" style={{ marginTop: 0, textTransform: "uppercase" }}>{lang}</p>
-          <div className="question">{(lang === "kk" ? f.qkk : f.qru) || "—"}</div>
+          <div className="question"><MathText>{(lang === "kk" ? f.qkk : f.qru) || "—"}</MathText></div>
           {opts.map((o, j) => (
             <div key={j} className={`option preview ${j === answerIdx ? "correct" : ""}`}>
-              <span className="l">{"ABCD"[j] || j + 1}</span>{pick(o, lang)}
+              <span className="l">{"ABCD"[j] || j + 1}</span><MathText>{pick(o, lang)}</MathText>
             </div>
           ))}
           {optCount === 0 && <p className="muted small">—</p>}
           {(f.ekk || f.eru) && (
             <p className="muted small" style={{ marginTop: 10, lineHeight: 1.5 }}>
-              <b>{a.previewExplanation}:</b> {(lang === "kk" ? f.ekk : f.eru) || f.ekk}
+              <b>{a.previewExplanation}:</b> <MathText>{(lang === "kk" ? f.ekk : f.eru) || f.ekk}</MathText>
             </p>
           )}
         </div>

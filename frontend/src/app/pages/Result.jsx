@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Crumb, Loading, Ring, fox, useApp } from "../ui.jsx";
+import { Crumb, Loading, MathText, Ring, fox, useApp } from "../ui.jsx";
 import { actionHref } from "./actions.js";
 
 export default function Result() {
@@ -41,14 +41,14 @@ export default function Result() {
                 <div className="result-row" key={r.task_id}>
                   <span className={`badge ${r.choice == null ? "gray" : r.correct ? "green" : "red"}`}>{k + 1}</span>
                   <div className="grow">
-                    <div className="t-strong">{L(task.question)}</div>
+                    <div className="t-strong"><MathText>{L(task.question)}</MathText></div>
                     <div className="small" style={{ marginTop: 4 }}>
                       {r.choice == null
-                        ? <><span className="muted">{q.noAnswer}.</span> {t.lesson.correctIs} <b>{L(task.options[r.answer])}</b></>
-                        : <>{q.your}: <b className={r.correct ? "st-mastered" : "st-gap"}>{L(task.options[r.choice])}</b>
-                          {!r.correct && <> · {t.lesson.correctIs} <b>{L(task.options[r.answer])}</b></>}</>}
+                        ? <><span className="muted">{q.noAnswer}.</span> {t.lesson.correctIs} <b><MathText>{L(task.options[r.answer])}</MathText></b></>
+                        : <>{q.your}: <b className={r.correct ? "st-mastered" : "st-gap"}><MathText>{L(task.options[r.choice])}</MathText></b>
+                          {!r.correct && <> · {t.lesson.correctIs} <b><MathText>{L(task.options[r.answer])}</MathText></b></>}</>}
                     </div>
-                    {!r.correct && <div className="ex">{L(r.explanation)}</div>}
+                    {!r.correct && <div className="ex"><MathText>{L(r.explanation)}</MathText></div>}
                   </div>
                 </div>
               );
