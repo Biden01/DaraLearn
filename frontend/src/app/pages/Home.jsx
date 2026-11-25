@@ -227,7 +227,7 @@ function ProgressCard({ d, subjects }) {
 
 function Quick({ href, icon, c, title, sub }) {
   return (
-    <a href={href} className={`quick-link q-${c}`}>
+    <a href={href} className="quick-link">
       <Box icon={icon} c={c} size={40} />
       <span className="grow"><b>{title}</b><span className="muted">{sub}</span></span>
       <Icon n="chev" s={18} />

@@ -69,6 +69,19 @@ class CalendarEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class ScheduleLesson(Base):
+    """Урок в недельном расписании учителя: класс, день недели, время начала и длительность. Ведёт сам учитель."""
+    __tablename__ = "schedule_lessons"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    class_id: Mapped[int] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), index=True)
+    weekday: Mapped[int] = mapped_column(Integer)          # 0 — понедельник … 5 — суббота
+    start: Mapped[str] = mapped_column(String(5))          # «08:30»
+    minutes: Mapped[int] = mapped_column(Integer, default=45)
+    room: Mapped[str] = mapped_column(String(30), default="", server_default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 SUPPORT_TOPICS = ("account", "bug", "lessons", "tutor", "idea", "other")
 
 

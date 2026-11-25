@@ -20,6 +20,8 @@ export async function api(path, { method = "GET", body } = {}) {
   if (!res.ok) {
     const code = typeof data?.detail === "string" ? data.detail : null;
     if (res.status === 401) window.dispatchEvent(new Event("dl:unauthorized"));
+    // «нет прав» — возможно, в другой вкладке вошли в другой аккаунт (cookie общая): App перепроверит, кто вошёл
+    if (res.status === 403 && path !== "/auth/me") window.dispatchEvent(new Event("dl:forbidden"));
     throw new ApiError(res.status, code);
   }
   return data;

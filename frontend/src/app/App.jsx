@@ -7,6 +7,7 @@ import { actionHref } from "./pages/actions.js";
 import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
 import Achievements from "./pages/Achievements.jsx";
+import { RankAvatar, RankUp } from "./Rank.jsx";
 import Plan from "./pages/Plan.jsx";
 import Subjects from "./pages/Subjects.jsx";
 import Courses from "./pages/Courses.jsx";
@@ -38,6 +39,8 @@ import { Leads, Support, Audit } from "./staff/Lists.jsx";
 import DevBoard from "./staff/DevBoard.jsx";
 import Docs from "./staff/Docs.jsx";
 import TeacherTime from "./staff/TeacherTime.jsx";
+import Schedule from "./staff/Schedule.jsx";
+import StudentsProgress from "./staff/StudentsProgress.jsx";
 import ForcePassword from "./pages/ForcePassword.jsx";
 import ParentHome from "./parent/ParentHome.jsx";
 import ParentChild from "./parent/ParentChild.jsx";
@@ -45,12 +48,6 @@ import "@fontsource-variable/onest";
 import "@fontsource-variable/inter";
 import "./app.css";
 
-// цвет пункта меню (по иконке — одинаково у всех ролей): цветная плашка иконки, активный пункт — в своём цвете
-const NAV_COLOR = { home: "#2563EB", plan: "#F97316", cal: "#EC4899", book: "#10B981", case: "#0891B2", dara: "#8B5CF6",
-  docchk: "#0D9488", checkc: "#16A34A", gaps: "#EF4444", trend: "#6366F1", trophy: "#EAB308", target: "#F43F5E",
-  doc: "#0EA5E9", clock: "#F59E0B", chart: "#6366F1", clip: "#14B8A6", board: "#8B5CF6", bulb: "#EAB308",
-  user: "#0EA5E9", gear: "#64748B", help: "#A855F7", download: "#64748B" };
-const navColor = (icon) => ({ "--c": NAV_COLOR[icon] || "#2563EB" });
 const NAV_BOTTOM = [["profile", "profile", "user"], ["settings", "settings", "gear"], ["help", "help", "help"]];
 const COMMON = { profile: Profile, settings: Settings, help: Help, lesson: Lesson };
 const STAFF_VIEW = { class: ClassMap, student: StudentCard };
@@ -69,9 +66,12 @@ const ROLES = {
       quiz: Quiz, result: Result, progress: Progress, results: Achievements, calendar: Calendar },
   },
   teacher: {
-    nav: [["", "classes", "home"], ["feed", "feed", "target"], ["import", "import", "doc"], ["time", "time", "clock"], ["courses", "courses", "case"], ["calendar", "calendar", "cal"], ["pilot", "pilot", "chart"]],
-    groups: [[null, ["", "feed"]], ["learn", ["courses", "calendar"]], ["data", ["import", "time"]], ["analyze", ["pilot"]]],
-    pages: { "": Classes, feed: Feed, import: ImportResults, time: TeacherTime, courses: Courses, calendar: Calendar, pilot: Pilot, ...STAFF_VIEW },
+    // главная учителя — кабинет («что у меня сегодня»), классы — отдельным пунктом
+    nav: [["", "home", "home"], ["classes", "classes", "board"], ["feed", "feed", "target"], ["schedule", "schedule", "sched"], ["import", "import", "doc"],
+      ["time", "time", "clock"], ["calendar", "calendar", "cal"], ["analytics", "analytics", "trend"]],
+    groups: [[null, ["", "classes", "feed", "schedule"]], ["learn", ["calendar"]], ["data", ["import", "time"]], ["analyze", ["analytics"]]],
+    pages: { "": Profile, classes: Classes, feed: Feed, schedule: Schedule, import: ImportResults, time: TeacherTime, calendar: Calendar,
+      analytics: StudentsProgress, ...STAFF_VIEW },
   },
   curator: {
     nav: [["", "cases", "target"], ["classes", "classes", "home"], ["feed", "feed", "clip"], ["pilot", "pilot", "chart"]],
@@ -113,7 +113,7 @@ function InstallLink({ collapsed, label }) {
     setReady(false);
   };
   return (
-    <a href="#" onClick={install} title={collapsed ? label : undefined} style={navColor("download")}>
+    <a href="#" onClick={install} title={collapsed ? label : undefined}>
       <i className="nav-ico"><Icon n="download" /></i><span>{label}</span>
     </a>
   );
@@ -143,6 +143,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(storedCollapsed);
   const [alerts, setAlerts] = useState([]);
+  const [xp, setXp] = useState(null);
   const [planLeft, setPlanLeft] = useState(0); // сколько минут плана на сегодня осталось — бейдж в меню
   const [moreOpen, setMoreOpen] = useState(false);
   const toastTimer = useRef();
@@ -151,7 +152,7 @@ export default function App() {
   const toast = useCallback((msg) => {
     setToastMsg(msg);
     clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastMsg(""), 2600);
+    toastTimer.current = setTimeout(() => setToastMsg(""), typeof msg === "string" && msg.length > 80 ? 8000 : 2600);
   }, []);
 
   const setLang = useCallback((l) => {
@@ -167,9 +168,22 @@ export default function App() {
     api("/auth/me").then((u) => { setUser(u); setLangState(u.lang); }).catch(() => setUser(null));
     const onHash = () => { setRoute(parseHash()); setMenuOpen(false); setMoreOpen(false); window.scrollTo(0, 0); };
     const onUnauth = () => setUser(null);
+    // 403: если сессия сменилась (вход в другой аккаунт в соседней вкладке) — переключаемся на него и объясняем
+    const onForbidden = () => api("/auth/me").then((u) => setUser((prev) => {
+      if (!prev || (prev.id === u.id && prev.role === u.role)) return prev;
+      const tt = STRINGS[u.lang] || STRINGS.ru;
+      setTimeout(() => toast(tt.sessionSwitched(u.name, tt.roles[u.role] || u.role)), 0);
+      window.location.hash = "#/";
+      return u;
+    })).catch(() => {});
     window.addEventListener("hashchange", onHash);
     window.addEventListener("dl:unauthorized", onUnauth);
-    return () => { window.removeEventListener("hashchange", onHash); window.removeEventListener("dl:unauthorized", onUnauth); };
+    window.addEventListener("dl:forbidden", onForbidden);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      window.removeEventListener("dl:unauthorized", onUnauth);
+      window.removeEventListener("dl:forbidden", onForbidden);
+    };
   }, []);
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
@@ -193,6 +207,7 @@ export default function App() {
     if (user?.role !== "student") return;
     api("/decisions/me").then((d) => setAlerts(d.recommendations.filter((r) => r.priority >= 2))).catch(() => {});
     api("/plan/today").then((p) => setPlanLeft(p.items.length ? Math.max(0, p.total_minutes - p.done_minutes) : 0)).catch(() => {});
+    api("/xp/me").then(setXp).catch(() => {}); // опыт и ранг: рамка аватарки и поздравление с новым рангом
   }, [user, route.page]);
 
   // отметить уведомления прочитанными: сразу в интерфейсе, затем на сервере
@@ -203,7 +218,7 @@ export default function App() {
   }, []);
 
   const ctx = useMemo(() => ({
-    t, lang, setLang, user, setUser, toast, route, alerts,
+    t, lang, setLang, user, setUser, toast, route, alerts, xp,
     L: (v) => pick(v, lang),
     go: (hash) => { window.location.hash = hash; },
     startTest: async (body) => {
@@ -212,7 +227,7 @@ export default function App() {
         window.location.hash = `#/test/${a.id}`;
       } catch { toast(t.error); }
     },
-  }), [t, lang, setLang, user, toast, route, alerts]);
+  }), [t, lang, setLang, user, toast, route, alerts, xp]);
 
   // на телефоне бургер открывает выезжающее меню, на компьютере сворачивает его до иконок
   const onMenu = () => {
@@ -242,8 +257,8 @@ export default function App() {
     const name = (label) => t.nav[label] ?? t.snav[label];
     const link = ([k, label, icon]) => (
       <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
-        title={collapsed ? name(label) : undefined} style={navColor(icon)}>
-        <i className="nav-ico"><Icon n={icon} /></i><span>{name(label)}</span>
+        title={collapsed ? name(label) : undefined}>
+        <i className={icon === "dara" ? "nav-ico plain" : "nav-ico"}><Icon n={icon} /></i><span>{name(label)}</span>
         {badges[k] && <em className="nav-badge">{badges[k]}</em>}
       </a>
     );
@@ -271,17 +286,17 @@ export default function App() {
         {menuOpen && <div className="overlay" style={{ display: "block", position: "fixed", inset: 0, background: "rgba(17,19,41,.3)", zIndex: 25 }} onClick={() => setMenuOpen(false)} />}
         <Header alerts={alerts} onSeen={markSeen} onMenu={onMenu} collapsed={collapsed} />
         <main className="main" id="app"><Page key={route.page + route.param} /></main>
+        {user.role === "student" && <RankUp x={xp} />}
         {tabs && (
           <nav className="tabbar" aria-label={t.menu}>
             {tabs.map((k) => (
-              <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}
-                style={navColor(byKey[k][2])}>
-                <i className="tab-ico"><Icon n={byKey[k][2]} s={22} /></i><span>{t.tabs[k]}</span>
+              <a key={k} href={`#/${k}`} className={active === k ? "active" : ""} aria-current={active === k ? "page" : undefined}>
+                <Icon n={byKey[k][2]} s={22} /><span>{t.tabs[k]}</span>
               </a>
             ))}
             <button className={moreActive || moreOpen ? "active" : ""} aria-expanded={moreOpen} aria-haspopup="dialog"
               onClick={() => setMoreOpen((o) => !o)}>
-              <i className="tab-ico"><Icon n="menu" s={22} /></i><span>{t.tabs.more}</span>
+              <Icon n="menu" s={22} /><span>{t.tabs.more}</span>
             </button>
           </nav>
         )}
@@ -464,7 +479,7 @@ function Bell({ alerts, onSeen }) {
 }
 
 function Header({ alerts, onSeen, onMenu, collapsed }) {
-  const { t, lang, setLang, user, L } = useApp();
+  const { t, lang, setLang, user, L, xp } = useApp();
   const [q, setQ] = useState("");
   const [index, setIndex] = useState([]);
   const [sel, setSel] = useState(0);
@@ -477,7 +492,7 @@ function Header({ alerts, onSeen, onMenu, collapsed }) {
     api("/content/courses?subject=math").then((cs) => {
       const items = [];
       cs.forEach((c) => {
-        items.push({ title: c.title, href: "#/courses", hint: t.nav.courses });
+        if (user.role !== "teacher") items.push({ title: c.title, href: "#/courses", hint: t.nav.courses }); // у учителя нет раздела «Курсы»
         c.lessons.forEach((l) => items.push({ title: l.title, href: `#/lesson/${l.slug}`, hint: c.title }));
       });
       setIndex(items);
@@ -545,7 +560,7 @@ function Header({ alerts, onSeen, onMenu, collapsed }) {
           <Bell alerts={alerts} onSeen={onSeen} />
         )}
         <a href="#/profile" className="user">
-          <div className="avatar">{(user.name || "?")[0].toUpperCase()}</div>
+          <RankAvatar name={user.name} rank={user.role === "student" ? xp?.rank : null} size={40} />
           <div className="user-info"><div className="user-name">{user.name}</div>
             <div className="user-sub">{user.role === "student" ? t.grade(user.grade) : t.roles[user.role]}</div></div>
         </a>

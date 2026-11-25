@@ -71,9 +71,11 @@ export default function Classes() {
       <Crumb items={[[c.title]]} />
       <div className="page-head">
         <div><h1>{c.title}</h1><p className="subtitle">{c.sub}</p></div>
-        {canEdit && <button className="btn" onClick={() => setForm(!form)}><Icon n="plus" s={18} /> {c.create}</button>}
+        {isAdmin && <button className="btn" onClick={() => setForm(!form)}><Icon n="plus" s={18} /> {c.create}</button>}
       </div>
-      {user.role === "teacher" && !user.school_id && <p className="note" style={{ marginBottom: 20 }}>{c.noSchool}</p>}
+      {user.role === "teacher" && !list.length && (
+        <p className="note" style={{ marginBottom: 20 }}>{c.waitCode} <a href="#/settings" className="tlink">{c.enterCode}</a></p>
+      )}
       {user.role === "teacher" && <SurveyCard />}
       {form && (
         <form className="card row wrap" style={{ marginBottom: 20, alignItems: "flex-end" }} onSubmit={create}>

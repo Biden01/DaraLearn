@@ -13,7 +13,8 @@ from app.core.security import current_user, hash_password, require_role
 from app.modules.decisions.models import AuditLog
 from app.modules.school import people_import
 from app.modules.school.access import class_students, get_class, new_code, visible_classes
-from app.modules.school.models import CalendarEvent, ClassMember, Invite, School, SchoolClass, SupportMessage, User
+from app.modules.school.models import (CalendarEvent, ClassMember, Invite, ScheduleLesson, School, SchoolClass,
+                                      SupportMessage, User)
 
 router = APIRouter(prefix="/school", tags=["school"])
 
@@ -23,6 +24,14 @@ class EventIn(BaseModel):
     day: date
     time: str = Field(default="", pattern=r"^$|^([01]\d|2[0-3]):[0-5]\d$")
     kind: Literal["lesson", "homework", "test", "other"] = "lesson"
+
+
+class ScheduleIn(BaseModel):
+    class_id: int
+    weekday: int = Field(ge=0, le=5)  # пн–сб
+    start: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    minutes: int = Field(default=45, ge=20, le=120)
+    room: str = Field(default="", max_length=30)
 
 
 class SupportIn(BaseModel):
@@ -169,16 +178,14 @@ def classes(user: User = Depends(require_role("teacher", "curator")), db: Sessio
 
 
 @router.post("/classes", status_code=status.HTTP_201_CREATED)
-def create_class(payload: ClassIn, user: User = Depends(require_role("teacher")), db: Session = Depends(get_db)) -> dict:
-    teacher: User | None = user if user.role == "teacher" else None
-    school_id = user.school_id
-    if user.role == "admin":
-        teacher = db.get(User, payload.teacher_id) if payload.teacher_id else None
-        if payload.teacher_id and (not teacher or teacher.role != "teacher"):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "no_teacher")
-        school_id = payload.school_id or (teacher.school_id if teacher else None)
-        if teacher and teacher.school_id and teacher.school_id != school_id:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "teacher_other_school")
+def create_class(payload: ClassIn, user: User = Depends(require_role()), db: Session = Depends(get_db)) -> dict:
+    """Классы создаёт только админ; учителя и ученики входят в класс по коду, который им отправляет админ."""
+    teacher = db.get(User, payload.teacher_id) if payload.teacher_id else None
+    if payload.teacher_id and (not teacher or teacher.role != "teacher"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "no_teacher")
+    school_id = payload.school_id or (teacher.school_id if teacher else None)
+    if teacher and teacher.school_id and teacher.school_id != school_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "teacher_other_school")
     if not school_id or not db.get(School, school_id):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "no_school")
     if teacher and not teacher.school_id:
@@ -308,3 +315,50 @@ def patch_user(user_id: int, payload: UserPatch, user: User = Depends(require_ro
     audit(db, user, "user.update", "user", u.id, role=payload.role, reset=payload.reset_password)
     db.commit()
     return {"id": u.id, "role": u.role, "school_id": u.school_id, **out}
+
+
+# ---------- Расписание учителя: недельная сетка уроков его классов ----------
+
+def _mins(hhmm: str) -> int:
+    h, m = hhmm.split(":")
+    return int(h) * 60 + int(m)
+
+
+def _lesson_out(x: ScheduleLesson, c: SchoolClass) -> dict:
+    return {"id": x.id, "class_id": c.id, "class_name": c.name, "grade": c.grade, "subject": c.subject,
+            "weekday": x.weekday, "start": x.start, "minutes": x.minutes, "room": x.room}
+
+
+@router.get("/schedule")
+def schedule(user: User = Depends(require_role("teacher")), db: Session = Depends(get_db)) -> list[dict]:
+    classes = {c.id: c for c in visible_classes(db, user)}
+    rows = db.scalars(select(ScheduleLesson).where(ScheduleLesson.class_id.in_(list(classes) or [-1])))
+    return sorted((_lesson_out(x, classes[x.class_id]) for x in rows), key=lambda o: (o["weekday"], o["start"]))
+
+
+@router.post("/schedule", status_code=status.HTTP_201_CREATED)
+def add_lesson(payload: ScheduleIn, user: User = Depends(require_role("teacher")), db: Session = Depends(get_db)) -> dict:
+    c = get_class(db, user, payload.class_id)  # учитель — только в свой класс
+    begin, end = _mins(payload.start), _mins(payload.start) + payload.minutes
+    if end > 24 * 60:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "bad_time")
+    # у одного учителя два урока в одно время быть не может
+    mine = [k.id for k in visible_classes(db, user)] if user.role == "teacher" else [c.id]
+    for x in db.scalars(select(ScheduleLesson).where(ScheduleLesson.class_id.in_(mine), ScheduleLesson.weekday == payload.weekday)):
+        if begin < _mins(x.start) + x.minutes and _mins(x.start) < end:
+            raise HTTPException(status.HTTP_409_CONFLICT, "overlap")
+    x = ScheduleLesson(class_id=c.id, weekday=payload.weekday, start=payload.start, minutes=payload.minutes,
+                       room=payload.room.strip())
+    db.add(x)
+    db.commit()
+    return _lesson_out(x, c)
+
+
+@router.delete("/schedule/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_lesson(lesson_id: int, user: User = Depends(require_role("teacher")), db: Session = Depends(get_db)) -> None:
+    x = db.get(ScheduleLesson, lesson_id)
+    if not x:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    get_class(db, user, x.class_id)  # чужой урок — 404
+    db.delete(x)
+    db.commit()
