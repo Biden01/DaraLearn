@@ -7,30 +7,44 @@ export const useApp = () => useContext(Ctx);
 export const pick = (v, lang) => (v == null ? "" : typeof v === "string" ? v : v[lang] ?? v.kk ?? "");
 
 // Қарапайым бөлшектерді («1/6», «π/3», «7·√3/6», «(x+2)/(x+1)») кітаптағыдай
-// үстінде-астында (numerator/denominator) көрсетеді. Үлкен/күрделі өрнектегі
-// «/» (мыс. жай мәтінде кездейсоқ) түртпейді — тек сан/бір әріп/√.../жақшалы
-// жай топтарды таниды, сол арқылы қате тани алмайтын жерге тимейді.
+// үстінде-астында (numerator/denominator), ал «a_n», «S_n», «a_(n+1)» түрдегі
+// индекстерді нағыз subscript етіп көрсетеді. Үлкен/күрделі өрнектегі «/»
+// (мыс. жай мәтінде кездейсоқ) түртпейді — тек сан/бір әріп/√.../жақшалы жай
+// топтарды таниды, сол арқылы қате тани алмайтын жерге тимейді.
 const MATH_TOKEN = "(?:\\([^()]*\\)|√\\([^()]*\\)|√\\d+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?[a-zA-Zα-ωΑ-Ω]|π|[a-zA-Zα-ωΑ-Ω]|\\d+(?:\\.\\d+)?)";
 const MATH_CHAIN = `${MATH_TOKEN}(?:·${MATH_TOKEN})*`;
 const FRACTION_RE = new RegExp(`(-)?(${MATH_CHAIN})/(${MATH_CHAIN})`, "gu");
+const SUB_RE = /([a-zA-Zα-ωΑ-Ω])_(\([^()]*\)|[a-zA-Z0-9]+)/gu;
 const declamp = (s) => (/^\([^()]*\)$/.test(s) ? s.slice(1, -1) : s);
+
+// regex-ті тек жол (string) бөліктеріне қолданады, бұрын шыққан элементтерді өзгертпейді.
+function splitBy(parts, regex, render) {
+  const out = [];
+  for (const part of parts) {
+    if (typeof part !== "string") { out.push(part); continue; }
+    let last = 0;
+    for (const m of part.matchAll(regex)) {
+      if (m.index > last) out.push(part.slice(last, m.index));
+      out.push(render(m));
+      last = m.index + m[0].length;
+    }
+    if (last < part.length) out.push(part.slice(last));
+  }
+  return out;
+}
 
 export const MathText = ({ children }) => {
   const text = children == null ? "" : String(children);
-  const out = [];
-  let last = 0;
-  for (const m of text.matchAll(FRACTION_RE)) {
-    if (m.index > last) out.push(text.slice(last, m.index));
-    out.push(
-      <span className="frac" key={m.index}>
-        {m[1] && "−"}
-        <span className="frac-stack"><span className="num">{declamp(m[2])}</span><span className="den">{declamp(m[3])}</span></span>
-      </span>,
-    );
-    last = m.index + m[0].length;
-  }
-  if (last < text.length) out.push(text.slice(last));
-  return out;
+  let parts = splitBy([text], SUB_RE, (m) => (
+    <span key={`s${m.index}`}>{m[1]}<sub>{declamp(m[2])}</sub></span>
+  ));
+  parts = splitBy(parts, FRACTION_RE, (m) => (
+    <span className="frac" key={`f${m.index}`}>
+      {m[1] && "−"}
+      <span className="frac-stack"><span className="num">{declamp(m[2])}</span><span className="den">{declamp(m[3])}</span></span>
+    </span>
+  ));
+  return parts;
 };
 
 // Иконки 24×24 — собственный набор DaraLearn (пресет Soft: линия 2px, скругления 3–4px, поля 2.5px);
