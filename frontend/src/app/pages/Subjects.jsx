@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bar, Box, Crumb, Icon, Loading, useApp } from "../ui.jsx";
+import { Bar, BookCard, Box, Crumb, Icon, Loading, useApp } from "../ui.jsx";
 
-// Мои предметы: по карточке на предмет — прогресс, счётчики, следующая тема и кнопка «Продолжить».
-// Без отдельной панели «подробнее»: при одном предмете она повторяла ту же карточку.
+// Мои предметы: сверху каталог «карточка-книга» (картинка/иконка, название, «Перейти») —
+// один источник данных (/content/subjects), поэтому новый предмет появляется тут сам,
+// без правок этой страницы. Ниже — подробная карточка прогресса для предметов, где
+// уже есть уроки (сейчас это то же множество, но проверка на progress.total оставлена
+// на будущее, если появятся предметы без прогресса).
 export default function Subjects() {
   const { t, L, user } = useApp();
   const [list, setList] = useState(null);
@@ -12,13 +15,19 @@ export default function Subjects() {
 
   const sp = t.subjects;
   const shown = list.filter((x) => x.active && x.progress?.total > 0);
-  if (!shown.length) return <><Crumb items={[[t.nav.subjects]]} /><h1>{t.nav.subjects}</h1><p className="subtitle">{sp.soonText}</p></>;
+  if (!list.length) return <><Crumb items={[[t.nav.subjects]]} /><h1>{t.nav.subjects}</h1><p className="subtitle">{sp.soonText}</p></>;
   return (
     <>
       <Crumb items={[[t.nav.subjects]]} />
       <h1>{t.nav.subjects}</h1>
       <p className="subtitle">{sp.sub}</p>
-      <div className="subj-list">
+      <p className="card-title" style={{ margin: "0 0 16px" }}>{sp.all}</p>
+      <div className="book-grid" style={{ marginBottom: 32 }}>
+        {list.map((x) => (
+          <BookCard key={x.slug} sym={x.sym} c={x.color} title={L(x.title)} href={`#/courses/${x.slug}`} cta={sp.go} />
+        ))}
+      </div>
+      {shown.length > 0 && <div className="subj-list">
         {shown.map((x) => (
           <article key={x.slug} className="card subj-card">
             <div className="subj-head">
@@ -43,11 +52,11 @@ export default function Subjects() {
             )}
             <div className="subj-actions">
               {x.next && <a href={`#/lesson/${x.next.slug}`} className="btn">{sp.cont} <Icon n="arrow" s={16} /></a>}
-              <a href="#/courses" className="btn ghost">{sp.go}</a>
+              <a href={`#/courses/${x.slug}`} className="btn ghost">{sp.go}</a>
             </div>
           </article>
         ))}
-      </div>
+      </div>}
     </>
   );
 }

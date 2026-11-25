@@ -17,20 +17,25 @@ export function Chain({ lessons, current }) {
 }
 
 export default function Courses() {
-  const { t, L, startTest } = useApp();
+  const { t, L, startTest, route } = useApp();
+  // Пән слагы URL-ден келеді (#/courses/<slug>); параметрсіз #/courses — бұрынғыша «math».
+  // Жаңа пән қосылғанда бұл бетке өзгеріс керек емес: деректі backend /content/courses береді.
+  const subject = route.param || "math";
   const [list, setList] = useState(null);
-  useEffect(() => { api("/content/courses?subject=math").then(setList).catch(() => setList([])); }, []);
+  useEffect(() => { setList(null); api(`/content/courses?subject=${subject}`).then(setList).catch(() => setList([])); }, [subject]);
   if (!list) return <Loading />;
 
   const c = t.courses;
+  const subjectTitle = list[0] ? L(list[0].subject_title) : t.nav.courses;
   // рекомендуемый — первый курс, где ещё не всё освоено
   const rec = list.find((x) => x.progress.mastered < x.progress.total) || list[0];
   const recNext = rec?.lessons.find((l) => l.status !== "mastered") || rec?.lessons[0];
   return (
     <>
-      <Crumb items={[[t.nav.courses]]} />
-      <h1>{t.nav.courses}</h1>
+      <Crumb items={[[t.nav.subjects, "#/subjects"], [subjectTitle]]} />
+      <h1>{subjectTitle}</h1>
       <p className="subtitle">{c.sub}</p>
+      {!list.length && <p className="muted">{t.subjects.soonText}</p>}
       {rec && (
         <div className="card soft" style={{ marginBottom: 28 }}>
           <div className="muted small" style={{ marginBottom: 14 }}>{c.recommended} · {L(rec.subject_title)} · {t.grade(rec.grade)}</div>

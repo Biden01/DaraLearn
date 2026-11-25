@@ -161,6 +161,17 @@ export const Box = ({ sym, c = "", size = 44, icon }) => {
   const n = icon || SYM[sym];
   return <div className={`icon-box ${c}`} style={{ width: size, height: size }}>{n ? <Icon n={n} s={Math.round(size * 0.52)} /> : sym}</div>;
 };
+// Пән/кітап карточкасы: сурет орнына үлкейтілген белгі, атауы, «Өту» батырмасы.
+// Жаңа пән data.py-де sym/color-мен тіркелсе, осы карточка қосымша өзгеріссіз жұмыс істейді.
+export const BookCard = ({ sym, c = "", title, href, cta }) => (
+  <a href={href} className="book-card">
+    <div className={`book-media ${c}`}><SymIcon sym={sym} s={44} /></div>
+    <div className="book-body">
+      <h3 className="book-title">{title}</h3>
+      <span className="btn block">{cta} <Icon n="arrow" s={16} /></span>
+    </div>
+  </a>
+);
 export const Bar = ({ p }) => <div className="bar"><span style={{ width: `${Math.max(0, Math.min(100, p))}%` }} /></div>;
 export const Ring = ({ p, size = 92 }) => (
   <div className="ring" style={{ "--p": p, "--size": `${size}px` }} role="img" aria-label={`${p}%`}><b>{p}%</b></div>

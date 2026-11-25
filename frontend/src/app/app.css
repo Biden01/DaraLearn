@@ -315,6 +315,16 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
 .subj-next:hover { background: #e2ebff; }
 .subj-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .subj-tile.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* пән/кітап каталогы: сурет орнына түсті тақта (болашақ пәндер де сол схемамен қосылады) */
+.book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.book-card { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); overflow: hidden; transition: box-shadow .15s, transform .15s; }
+.book-card:hover { box-shadow: 0 8px 24px rgba(17, 19, 41, .08); transform: translateY(-2px); }
+.book-media { height: 132px; display: grid; place-items: center; background: var(--accent); color: #fff; }
+.book-media.orange { background: var(--orange); } .book-media.purple { background: var(--purple); }
+.book-media.red { background: var(--red); } .book-media.green { background: var(--green); }
+.book-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.book-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--fg); }
 .lesson-list .li { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 8px; font-size: 13px; }
 .lesson-list .li.cur { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .lesson-list .li .n { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-size: 11px; flex: none; background: #fff; }
