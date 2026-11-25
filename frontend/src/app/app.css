@@ -288,6 +288,12 @@ h1 { font-size: 33px; margin: 0 0 8px; letter-spacing: -.5px; }
 .option.sel { border-color: var(--accent); background: var(--accent-soft); }
 .option .l { width: 30px; height: 30px; border-radius: 8px; background: #f1f3f6; display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; }
 .option.sel .l { background: var(--accent); color: #fff; }
+/* Админдегі тапсырма алдын ала қарауы: дұрыс жауап жасыл, батырма емес — тек көрсету үшін. */
+.option.correct { border-color: var(--green); background: #e7f6ef; cursor: default; }
+.option.correct .l { background: var(--green); color: #fff; }
+.option.preview { cursor: default; }
+.option.preview:hover { border-color: var(--line); }
+.option.correct:hover { border-color: var(--green); }
 .qnums { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .qnums button { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; }
 .qnums button.done { background: var(--accent-soft); color: var(--accent); border-color: #cfe0fd; }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Crumb, Loading, useApp } from "../ui.jsx";
+import { Crumb, Loading, pick, useApp } from "../ui.jsx";
 
 const lines = (s) => s.split("\n").map((x) => x.trimEnd()).filter((x) => x.trim());
 const optText = (o) => (typeof o === "string" ? o : `${o.kk} || ${o.ru}`);
@@ -15,6 +15,7 @@ function TaskForm({ task, draft, lesson, onSaved, onDiscard }) {
     options: (src?.options || ["", "", "", ""]).map(optText).join("\n"), answer: (src?.answer ?? 0) + 1,
     ekk: src?.explanation.kk || "", eru: src?.explanation.ru || "", errors: src?.option_errors || [],
   }));
+  const [preview, setPreview] = useState(false);
   const optCount = lines(f.options).length;
   const setErr = (i) => (e) => { const errors = [...f.errors]; errors[i] = e.target.value; setF({ ...f, errors }); };
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -60,12 +61,42 @@ function TaskForm({ task, draft, lesson, onSaved, onDiscard }) {
         <label className="field">{a.exKk}<textarea rows={2} value={f.ekk} onChange={set("ekk")} /></label>
         <label className="field">{a.exRu}<textarea rows={2} value={f.eru} onChange={set("eru")} /></label>
       </div>
+      {preview && <TaskPreview f={f} optCount={optCount} a={a} />}
       <div className="row">
         <button className="btn sm">{draft ? a.gen.accept : t.save}</button>
+        <button type="button" className="btn sm ghost" onClick={() => setPreview((p) => !p)}>{preview ? a.hidePreview : a.preview}</button>
         {draft && <button type="button" className="btn sm ghost" onClick={onDiscard}>{a.gen.discard}</button>}
         {task && task.purpose !== "archived" && <button type="button" className="btn sm ghost" onClick={archive}>{a.archive}</button>}
       </div>
     </form>
+  );
+}
+
+// Тапсырманың сақталмаған күйін (форма деректерінен) оқушы көретін түрде көрсетеді —
+// нақты Quiz/TestRun бетіндегі .question/.option стильдерімен, бірақ батырма емес.
+function TaskPreview({ f, optCount, a }) {
+  const opts = lines(f.options).map(optParse);
+  const answerIdx = Number(f.answer) - 1;
+  return (
+    <div className="grid g-2 preview-box" style={{ gap: 16, border: "1px dashed var(--line)", borderRadius: 12, padding: 16 }}>
+      {["kk", "ru"].map((lang) => (
+        <div key={lang}>
+          <p className="muted small" style={{ marginTop: 0, textTransform: "uppercase" }}>{lang}</p>
+          <div className="question">{(lang === "kk" ? f.qkk : f.qru) || "—"}</div>
+          {opts.map((o, j) => (
+            <div key={j} className={`option preview ${j === answerIdx ? "correct" : ""}`}>
+              <span className="l">{"ABCD"[j] || j + 1}</span>{pick(o, lang)}
+            </div>
+          ))}
+          {optCount === 0 && <p className="muted small">—</p>}
+          {(f.ekk || f.eru) && (
+            <p className="muted small" style={{ marginTop: 10, lineHeight: 1.5 }}>
+              <b>{a.previewExplanation}:</b> {(lang === "kk" ? f.ekk : f.eru) || f.ekk}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
