@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { Bar, useApp } from "./ui.jsx";
+import { avatarSrc } from "./Avatars.jsx";
 
 // Ранги ученика: рамка аватарки (своя у каждого ранга), карточка ранга и поздравление с новым рангом.
 // Данные — GET /xp/me (или /xp/students/{id} для учителя и родителя).
 
-export function RankAvatar({ name, rank, size = 40, style }) {
+export function RankAvatar({ name, rank, size = 40, style, avatar }) {
   const letter = (name || "?")[0].toUpperCase();
-  const inner = <div className="avatar" style={{ width: size, height: size, fontSize: Math.round(size * 0.4), ...style }}>{letter}</div>;
+  const inner = avatar
+    ? <img className="avatar ava-img" src={avatarSrc(avatar)} alt="" width={size} height={size} style={{ width: size, height: size }} />
+    : <div className="avatar" style={{ width: size, height: size, fontSize: Math.round(size * 0.4), ...style }}>{letter}</div>;
   if (!rank) return inner;
   return <div className={`rank-frame r${rank}`} style={{ "--rf": `${Math.max(3, Math.round(size / 14))}px` }}>{inner}</div>;
 }
@@ -24,7 +27,7 @@ export function RankCard({ x, title, name: who }) {
     <div className="card rank-card">
       <p className="card-title" style={{ marginBottom: 14 }}>{title || s.title}</p>
       <div className="row" style={{ gap: 16, marginBottom: 14 }}>
-        <RankAvatar name={who || user.name} rank={x.rank} size={56} />
+        <RankAvatar name={who || user.name} avatar={who ? null : user.avatar} rank={x.rank} size={56} />
         <div className="grow">
           <div className="muted small">{s.rank(x.rank)}</div>
           <div className="t-strong" style={{ fontSize: 18 }}>{name(x.rank)}</div>
@@ -79,7 +82,7 @@ export function RankUp({ x }) {
   return (
     <div className="dev-modal rank-up" role="dialog" aria-modal="true" onClick={() => setShown(null)}>
       <div className="card" onClick={(e) => e.stopPropagation()}>
-        <div className="rank-up-ava"><RankAvatar name={user.name} rank={shown} size={88} /></div>
+        <div className="rank-up-ava"><RankAvatar name={user.name} avatar={user.avatar} rank={shown} size={88} /></div>
         <h2 style={{ margin: "0 0 6px" }}>{t.xp.up}</h2>
         <p className="muted" style={{ margin: "0 0 18px" }}>{t.xp.upText(name)}</p>
         <button type="button" className="btn" onClick={() => setShown(null)}>{t.xp.upOk}</button>

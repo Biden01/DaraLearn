@@ -30,6 +30,8 @@ class User(Base):
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     weekly_goal: Mapped[int] = mapped_column(Integer, default=30)  # заданий в неделю
     family_code: Mapped[str | None] = mapped_column(String(8), unique=True, index=True, nullable=True)  # код ученика для привязки родителя
+    gender: Mapped[str | None] = mapped_column(String(1), nullable=True)  # f | m — выбирает сам ученик, по нему набор аватарок
+    avatar: Mapped[str | None] = mapped_column(String(8), nullable=True)  # id картинки из /avatars (g01, b07…); пусто — буква имени
     streak_freezes: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # запас заморозок серии, максимум 2
     freeze_milestone: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # до какого рубежа (серия // 7) уже начислено
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

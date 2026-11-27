@@ -75,6 +75,8 @@ class ProfileIn(BaseModel):
     grade: int | None = Field(default=None, ge=5, le=11)
     lang: Literal["kk", "ru"] | None = None
     weekly_goal: int | None = Field(default=None, ge=5, le=300)
+    gender: Literal["f", "m"] | None = None
+    avatar: str | None = Field(default=None, pattern=r"^[gb]\d{2}$")
 
 
 class UserOut(BaseModel):
@@ -88,6 +90,8 @@ class UserOut(BaseModel):
     lang: str
     role: str
     weekly_goal: int
+    gender: str | None = None
+    avatar: str | None = None
 
     model_config = {"from_attributes": True}
 

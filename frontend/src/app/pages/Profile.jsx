@@ -31,7 +31,11 @@ export default function Profile() {
     <>
       <div className="card" style={{ background: "linear-gradient(135deg, var(--accent) 0%, #4f8bff 100%)", color: "#fff", border: 0, marginBottom: 20, padding: 26 }}>
         <div className="row wrap" style={{ gap: 20 }}>
-          <RankAvatar name={user.name} rank={student ? xp?.rank : null} size={76} style={{ background: "#fff", color: "var(--accent)", boxShadow: "none" }} />
+          {student
+            ? <a href="#/settings" className="ava-edit" aria-label={t.avatar.change} title={t.avatar.change}>
+              <RankAvatar name={user.name} avatar={user.avatar} rank={xp?.rank} size={76} style={{ background: "#fff", color: "var(--accent)", boxShadow: "none" }} />
+            </a>
+            : <RankAvatar name={user.name} size={76} style={{ background: "#fff", color: "var(--accent)", boxShadow: "none" }} />}
           <div className="grow" style={{ minWidth: 200 }}>
             <h1 style={{ margin: "0 0 4px", color: "#fff" }}>{user.name}</h1>
             <div style={{ opacity: 0.9 }}>{sub}</div>

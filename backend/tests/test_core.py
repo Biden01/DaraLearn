@@ -361,3 +361,15 @@ def test_misconceptions_reach_teacher_feed(admin, school, db):
     finally:
         t.option_errors = old
         db.commit()
+
+
+def test_avatar_choice():
+    s = register()
+    me = s.ok("GET", "/api/auth/me")
+    assert me["gender"] is None and me["avatar"] is None
+    me = s.ok("PATCH", "/api/auth/me", json={"gender": "f", "avatar": "g03"})
+    assert (me["gender"], me["avatar"]) == ("f", "g03")
+    assert s.ok("GET", "/api/auth/me")["avatar"] == "g03"
+    # только id из набора: g/b + две цифры; пол — f или m
+    assert s.patch("/api/auth/me", json={"avatar": "../x"}).status_code == 422
+    assert s.patch("/api/auth/me", json={"gender": "x"}).status_code == 422

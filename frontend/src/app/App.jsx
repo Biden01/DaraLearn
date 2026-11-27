@@ -8,6 +8,7 @@ import Auth from "./pages/Auth.jsx";
 import Home from "./pages/Home.jsx";
 import Achievements from "./pages/Achievements.jsx";
 import { RankAvatar, RankUp } from "./Rank.jsx";
+import { AvatarAsk } from "./Avatars.jsx";
 import Plan from "./pages/Plan.jsx";
 import Subjects from "./pages/Subjects.jsx";
 import Courses from "./pages/Courses.jsx";
@@ -287,6 +288,7 @@ export default function App() {
         <Header alerts={alerts} onSeen={markSeen} onMenu={onMenu} collapsed={collapsed} />
         <main className="main" id="app"><Page key={route.page + route.param} /></main>
         {user.role === "student" && <RankUp x={xp} />}
+        <AvatarAsk />
         {tabs && (
           <nav className="tabbar" aria-label={t.menu}>
             {tabs.map((k) => (
@@ -560,7 +562,7 @@ function Header({ alerts, onSeen, onMenu, collapsed }) {
           <Bell alerts={alerts} onSeen={onSeen} />
         )}
         <a href="#/profile" className="user">
-          <RankAvatar name={user.name} rank={user.role === "student" ? xp?.rank : null} size={40} />
+          <RankAvatar name={user.name} avatar={user.avatar} rank={user.role === "student" ? xp?.rank : null} size={40} />
           <div className="user-info"><div className="user-name">{user.name}</div>
             <div className="user-sub">{user.role === "student" ? t.grade(user.grade) : t.roles[user.role]}</div></div>
         </a>
