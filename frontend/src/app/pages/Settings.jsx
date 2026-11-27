@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Crumb, useApp } from "../ui.jsx";
+import { AvatarPicker } from "../Avatars.jsx";
 
 const GOALS = [20, 40, 60, 100];
 
@@ -53,6 +54,7 @@ export default function Settings() {
       <h1>{t.nav.settings}</h1>
       <p className="subtitle">{s.sub}</p>
       <div className="stack">
+        {student && <Section title={t.avatar.title} help={t.avatar.help}><AvatarPicker /></Section>}
         <Section title={s.profile} help={s.profileHelp}>
           <form className="stack" style={{ gap: 12 }} onSubmit={saveProfile}>
             <label className="field">{s.name}<input name="name" defaultValue={user.name} required maxLength={200} /></label>
