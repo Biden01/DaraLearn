@@ -23,6 +23,9 @@ class Attempt(Base):
     time_limit: Mapped[int] = mapped_column(Integer)  # секунд
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # защита от списывания: свой порядок вариантов у каждой попытки и сигналы честности (см. integrity.py)
+    option_order: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {task_id: [исходный индекс в позиции i]}
+    integrity: Mapped[dict | None] = mapped_column(JSON, nullable=True)     # {away_count, away_seconds, late, fast, repeats}
 
 
 class Check(Base):

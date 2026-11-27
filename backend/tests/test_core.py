@@ -2,7 +2,7 @@ import io
 
 from openpyxl import Workbook, load_workbook
 
-from tests.conftest import client, diagnostic, register, uid
+from tests.conftest import answer_all, client, diagnostic, register, uid
 
 
 def test_auth_and_roles(admin):
@@ -193,8 +193,7 @@ def test_practice_check_outcome(db):
     _make_due(db, me["id"])
     assert s.ok("GET", "/api/state/me")["checks_due"] == 1
     a = s.ok("POST", "/api/verification/attempts", 201, json={"kind": "verification", "check_id": checks[0]["id"]})
-    key = {x.id: x.answer for x in db.query(Task).filter(Task.id.in_([x["id"] for x in a["tasks"]]))}
-    r = s.ok("POST", f"/api/verification/attempts/{a['id']}/submit", json={"answers": {str(k): v for k, v in key.items()}})
+    r = s.ok("POST", f"/api/verification/attempts/{a['id']}/submit", json={"answers": answer_all(a["tasks"])})
     assert r["outcome"] and r["outcome"]["helped"] is True and r["outcome"]["after"] > r["outcome"]["before"]
     # дальше ждёт только интервальное повторение (если навык подтверждён), и оно ещё не наступило
     assert all(c["reason"] == "review" and not c["due"] for c in s.ok("GET", "/api/verification/checks"))
@@ -203,8 +202,7 @@ def test_practice_check_outcome(db):
 def _pass_check(s, db, check_id):
     from app.modules.content.models import Task
     a = s.ok("POST", "/api/verification/attempts", 201, json={"kind": "verification", "check_id": check_id})
-    key = {x.id: x.answer for x in db.query(Task).filter(Task.id.in_([x["id"] for x in a["tasks"]]))}
-    return s.ok("POST", f"/api/verification/attempts/{a['id']}/submit", json={"answers": {str(k): v for k, v in key.items()}})
+    return s.ok("POST", f"/api/verification/attempts/{a['id']}/submit", json={"answers": answer_all(a["tasks"])})
 
 
 def test_spaced_review_after_mastery(db):
@@ -250,8 +248,7 @@ def test_tutor_stages_and_teacher_rule(db):
         assert chk["session"]["stage"] == 7 and len(chk["tasks"]) == 3
         assert s.post(f"/api/tutor/sessions/{sess['id']}/messages", json={"text": "подскажи"}).status_code == 409
         from app.modules.content.models import Task
-        wrong = {str(x["id"]): (db.get(Task, x["id"]).answer + 1) % 4 for x in chk["tasks"]}
-        fin = s.ok("POST", f"/api/tutor/sessions/{sess['id']}/check", json={"answers": wrong})
+        fin = s.ok("POST", f"/api/tutor/sessions/{sess['id']}/check", json={"answers": answer_all(chk["tasks"], ok=False)})
         assert fin["session"]["result"] == "failed" and fin["session"]["stage"] == 9
     recs = {r["lesson"]: r for r in s.ok("GET", "/api/decisions/me")["recommendations"]}
     assert recs["sqrt"]["action"] != "teacher"  # автоэскалации по числу попыток нет: только low confidence или кнопка

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Bar, Box, Crumb, Icon, Loading, Ring, useApp } from "../ui.jsx";
+import { TrustBadge, TrustReasons, TrustSummary } from "../Trust.jsx";
 
 export default function Progress() {
   const { t, L } = useApp();
@@ -65,14 +66,18 @@ export default function Progress() {
                 <div className="topic-meta">
                   <span className={`topic-st st-${l.status}`}>{t.status[l.status]}</span>
                   <span className="muted">{pp.practice} {Math.round(l.practice * 100)}%</span>
+                  {l.trust?.level !== "insufficient" && <TrustBadge trust={l.trust} />}
                 </div>
+                {l.trust?.level === "low" && <TrustReasons trust={l.trust} compact />}
                 <Bar p={l.proof * 100} />
               </div>
               <b className="topic-pct" title={pp.proof}>{Math.round(l.proof * 100)}%</b>
             </a>
           ))}
         </div>
-        <div className="card" style={{ alignSelf: "start" }}>
+        <div className="stack" style={{ alignSelf: "start" }}>
+        <TrustSummary trust={d.trust} help={t.trust.studentHelp} />
+        <div className="card">
           <div className="card-head"><p className="card-title">{pp.achievements}</p><span className="muted small">{t.of(got, 6)}</span></div>
           <div className="ach-grid">
             {Object.entries(pp.ach).map(([k, [h, desc]]) => (
@@ -82,6 +87,7 @@ export default function Progress() {
               </div>
             ))}
           </div>
+        </div>
         </div>
       </div>
     </>

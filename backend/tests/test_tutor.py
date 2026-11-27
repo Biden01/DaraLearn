@@ -1,6 +1,6 @@
 from app.modules.content.models import Task
 from app.modules.tutor import gateway
-from tests.conftest import diagnostic, register
+from tests.conftest import answer_all, diagnostic, register
 
 
 def _session(s, lesson="sqrt"):
@@ -34,8 +34,7 @@ def test_wrong_attempt_opens_hint_ladder_and_record(db):
     s.ok("POST", f"/api/tutor/sessions/{sid}/stage", json={"stage": 6})
     chk = s.ok("GET", f"/api/tutor/sessions/{sid}/check")
     assert [t["step"] for t in chk["tasks"]] == [7, 8, 9]
-    answers = {str(t["id"]): db.get(Task, t["id"]).answer for t in chk["tasks"]}
-    assert s.ok("POST", f"/api/tutor/sessions/{sid}/check", json={"answers": answers})["session"]["result"] == "passed"
+    assert s.ok("POST", f"/api/tutor/sessions/{sid}/check", json={"answers": answer_all(chk["tasks"])})["session"]["result"] == "passed"
     rec = s.ok("GET", f"/api/tutor/sessions/{sid}/record")
     assert rec["first_attempt_correct"] is False and rec["hints_used"] == 4 and rec["verification_result"] == "passed"
     assert rec["style_used"] == "worked_example" and rec["student_id"].startswith("pseudo-") and rec["escalated"] is False

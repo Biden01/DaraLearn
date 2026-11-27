@@ -10,7 +10,7 @@ from openpyxl import Workbook
 from app.modules.content.models import Task
 from app.modules.plan import rules as plan_rules
 from app.modules.verification.models import Check
-from tests.conftest import register, uid
+from tests.conftest import answer_all, register, uid
 
 
 def _xlsx(rows: list[list]) -> bytes:
@@ -23,7 +23,7 @@ def _xlsx(rows: list[list]) -> bytes:
 
 
 def _answer_all(client, db, tasks) -> dict:
-    return {str(t["id"]): db.get(Task, t["id"]).answer for t in tasks}
+    return answer_all(tasks)
 
 
 def test_fake_pilot_full_cycle(school, db):

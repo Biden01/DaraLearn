@@ -227,7 +227,13 @@ export default function App() {
       try {
         const a = await api("/verification/attempts", { method: "POST", body });
         window.location.hash = `#/test/${a.id}`;
-      } catch { toast(t.error); }
+      } catch (e) {
+        if (e.status === 429 && e.code?.startsWith("retake_cooldown:")) {
+          const at = new Date(e.code.slice("retake_cooldown:".length));
+          const when = `${at.toLocaleDateString(lang === "kk" ? "kk-KZ" : "ru-RU", { day: "2-digit", month: "2-digit" })} ${at.toLocaleTimeString(lang === "kk" ? "kk-KZ" : "ru-RU", { hour: "2-digit", minute: "2-digit" })}`;
+          toast(t.trust.cooldown(when));
+        } else toast(t.error);
+      }
     },
   }), [t, lang, setLang, user, toast, route, alerts, xp]);
 

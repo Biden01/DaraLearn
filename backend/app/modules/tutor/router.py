@@ -14,6 +14,7 @@ from app.modules.content.service import lessons_of, subject_by_slug, task_public
 from app.modules.decisions.models import Recommendation
 from app.modules.decisions.service import sync_student
 from app.modules.events.models import LearningEvent
+from app.modules.verification import integrity
 from app.modules.verification.results import wrong_on_task
 from app.modules.verification.service import schedule_check
 from app.modules.school.models import User
@@ -99,7 +100,8 @@ class StageIn(BaseModel):
 
 
 class CheckIn(BaseModel):
-    answers: dict[str, int]
+    answers: dict[str, int]  # {task_id: индекс варианта, как его видел ученик}
+    signals: integrity.Signals | None = None
 
 
 class MessageIn(BaseModel):
@@ -252,10 +254,17 @@ def _own_session(db: Session, user: User, session_id: int) -> TutorSession:
     return s
 
 
-def _check_tasks(db: Session, lesson_id: int) -> list[Task]:
-    tasks = list(db.scalars(select(Task).where(Task.lesson_id == lesson_id, Task.purpose == "verification").order_by(Task.id)))
-    tasks += list(db.scalars(select(Task).where(Task.lesson_id == lesson_id, Task.purpose == "diagnostic").order_by(Task.id)))
-    return tasks[:CHECK_TASKS]
+def _check_tasks(db: Session, s: TutorSession) -> list[Task]:
+    """Задания этапов 7–9: выбираются один раз на занятие — сначала те, что ученик ещё не видел, варианты перемешаны."""
+    if s.check_task_ids:
+        by_id = {t.id: t for t in db.scalars(select(Task).where(Task.id.in_(s.check_task_ids)))}
+        return [by_id[i] for i in s.check_task_ids if i in by_id]
+    pool = list(db.scalars(select(Task).where(Task.lesson_id == s.lesson_id, Task.purpose == "verification").order_by(Task.id)))
+    pool += list(db.scalars(select(Task).where(Task.lesson_id == s.lesson_id, Task.purpose == "diagnostic").order_by(Task.id)))
+    tasks, _ = integrity.pick_tasks(db, s.user_id, pool, CHECK_TASKS)
+    s.check_task_ids, s.check_order = [t.id for t in tasks], integrity.make_order(tasks)
+    s.check_started_at = datetime.now(timezone.utc)
+    return tasks
 
 
 @router.post("/sessions/{session_id}/stage")
@@ -279,8 +288,8 @@ def start_check(session_id: int, user: User = Depends(current_user), db: Session
     if not s.finished_at:
         s.style_used = STYLES.get(s.stage, s.style_used)
         s.stage = 7
-        db.commit()
-    tasks = [{**task_public(t), "step": 7 + i} for i, t in enumerate(_check_tasks(db, s.lesson_id))]
+    tasks = [{**integrity.public(t, s.check_order), "step": 7 + i} for i, t in enumerate(_check_tasks(db, s))]
+    db.commit()
     return {"session": _session_out(db, s), "tasks": tasks}
 
 
@@ -292,14 +301,20 @@ def finish_check(session_id: int, payload: CheckIn, user: User = Depends(current
     if s.stage < 7 or not s.lesson_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "check_not_started")
     results, score = [], 0
-    for t in _check_tasks(db, s.lesson_id):
-        choice = payload.answers.get(str(t.id))
+    tasks = _check_tasks(db, s)
+    seen = integrity.seen_task_ids(db, user.id)
+    repeats = {t.id for t in tasks if t.id in seen}
+    base = integrity.flags_for(payload.signals, s.check_started_at, len(tasks), None)
+    for t in tasks:
+        shown = payload.answers.get(str(t.id))
+        choice = integrity.to_original(s.check_order, t, shown)
         correct = choice == t.answer
         if choice is not None:
             score += correct
             db.add(LearningEvent(user_id=user.id, lesson_id=t.lesson_id, task_id=t.id, source="verification",
-                                 correct=correct, choice=choice))
-        results.append({"task_id": t.id, "choice": choice, "answer": t.answer, "correct": correct, "explanation": t.explanation})
+                                 correct=correct, choice=choice, flags=integrity.event_flags(base, t.id, repeats)))
+        results.append({"task_id": t.id, "choice": shown, "answer": integrity.to_shown(s.check_order, t, t.answer),
+                        "correct": correct, "explanation": t.explanation})
     s.stage, s.finished_at = 9, datetime.now(timezone.utc)
     s.result = "passed" if score >= PASS else "failed"
     db.flush()
