@@ -39,6 +39,7 @@ import LessonEdit from "./staff/LessonEdit.jsx";
 import { Leads, Support, Audit } from "./staff/Lists.jsx";
 import DevBoard from "./staff/DevBoard.jsx";
 import Docs from "./staff/Docs.jsx";
+import HowItWorks from "./staff/HowItWorks.jsx";
 import TeacherTime from "./staff/TeacherTime.jsx";
 import Schedule from "./staff/Schedule.jsx";
 import StudentsProgress from "./staff/StudentsProgress.jsx";
@@ -80,12 +81,12 @@ const ROLES = {
     pages: { "": Cases, classes: Classes, feed: Feed, pilot: Pilot, ...STAFF_VIEW },
   },
   admin: {
-    nav: [["", "metrics", "chart"], ["schools", "schools", "home"], ["users", "users", "user"], ["classes", "classes", "case"],
+    nav: [["", "metrics", "chart"], ["how", "how", "spark"], ["schools", "schools", "home"], ["users", "users", "user"], ["classes", "classes", "case"],
       ["content", "content", "book"], ["leads", "leads", "doc"], ["support", "support", "help"],
       ["audit", "audit", "clip"], ["dev", "dev", "board"], ["docs", "docs", "bulb"]],
-    groups: [[null, [""]], ["manage", ["schools", "users", "classes"]], ["learn", ["content"]], ["contact", ["leads", "support"]],
+    groups: [[null, ["", "how"]], ["manage", ["schools", "users", "classes"]], ["learn", ["content"]], ["contact", ["leads", "support"]],
       ["system", ["audit", "dev", "docs"]]],
-    pages: { "": Metrics, schools: Schools, users: Users, classes: Classes, content: Content, edit: LessonEdit, leads: Leads,
+    pages: { "": Metrics, how: HowItWorks, schools: Schools, users: Users, classes: Classes, content: Content, edit: LessonEdit, leads: Leads,
       support: Support, audit: Audit, dev: DevBoard, docs: Docs, feed: Feed, import: ImportResults, ...STAFF_VIEW },
   },
   parent: {
