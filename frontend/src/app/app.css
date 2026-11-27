@@ -1352,3 +1352,13 @@ svg.i .d { fill: currentColor; fill-opacity: var(--ico-fill, .14); }
 .ava-ask .card { max-width: 480px; width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; }
 @media (max-width: 600px) { .ava-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } }
 @media (prefers-reduced-motion: reduce) { .ava-opt { transition: none; } .ava-opt:hover { transform: none; } }
+
+/* «Как работает сайт» (админ): шаги по порядку */
+.how-intro { margin-bottom: 20px; font-size: 15px; }
+.how-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.how-step { display: flex; gap: 16px; align-items: flex-start; }
+.how-n { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; }
+.how-step h2 { margin: 6px 0 8px; font-size: 17px; }
+.how-step .md ul, .how-step ul { margin: 0; }
+.how-step ul + p { margin-top: 14px; }
+@media (max-width: 600px) { .how-step { gap: 12px; } .how-n { width: 30px; height: 30px; font-size: 13px; } }
