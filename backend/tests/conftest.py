@@ -69,6 +69,29 @@ def school(admin):
     return {"school": s, "teacher": teacher, "curator": curator, "class": cls, "admin": admin}
 
 
+def shown(t: dict, original: int) -> int:
+    """Варианты в попытке перемешаны: исходный индекс варианта → индекс, который видит ученик."""
+    from app.modules.content.models import Task
+    with SessionLocal() as s:
+        task = s.get(Task, t["id"])
+        return t["options"].index(task.options[original])
+
+
+def right(t: dict) -> int:
+    """Индекс верного варианта в порядке этой попытки."""
+    from app.modules.content.models import Task
+    with SessionLocal() as s:
+        return shown(t, s.get(Task, t["id"]).answer)
+
+
+def wrong(t: dict) -> int:
+    return (right(t) + 1) % len(t["options"])
+
+
+def answer_all(tasks: list[dict], ok: bool = True) -> dict:
+    return {str(t["id"]): right(t) if ok else wrong(t) for t in tasks}
+
+
 def tasks_key():
     """slug урока → индекс верного ответа диагностического задания (из data.py)."""
     from app.modules.content.data import COURSES
@@ -81,5 +104,5 @@ def diagnostic(c: Client, wrong: set[str] = frozenset()) -> dict:
     order = [l["slug"] for co in COURSES for l in co["lessons"]]
     key = tasks_key()
     a = c.ok("POST", "/api/verification/attempts", 201, json={"kind": "diagnostic", "subject": "math"})
-    ans = {str(t["id"]): (key[slug] + 1) % 4 if slug in wrong else key[slug] for t, slug in zip(a["tasks"], order)}
+    ans = {str(t["id"]): shown(t, (key[slug] + 1) % 4 if slug in wrong else key[slug]) for t, slug in zip(a["tasks"], order)}
     return c.ok("POST", f"/api/verification/attempts/{a['id']}/submit", json={"answers": ans})

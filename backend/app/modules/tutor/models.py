@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -27,6 +27,10 @@ class TutorSession(Base):
     style_used: Mapped[str] = mapped_column(String(20), default="", server_default="")  # hints | explanation | worked_example
     escalated: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     prompt_version: Mapped[str] = mapped_column(String(20), default="", server_default="")
+    # этапы 7–9: задания выбираются один раз (ещё не виденные) и с перемешанными вариантами
+    check_task_ids: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    check_order: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    check_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class TutorMessage(Base):

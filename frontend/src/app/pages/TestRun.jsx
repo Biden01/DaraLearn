@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { Bar, Icon, Loading, MathText, useApp } from "../ui.jsx";
+import { AwayNote, useAwayTracker } from "../Trust.jsx";
 
 const SKIP = -1; // «Не знаю»: вопрос пройден, но ответа нет — это не ошибка, а отсутствие данных
 
@@ -12,6 +13,7 @@ export default function TestRun({ id }) {
   const [left, setLeft] = useState(null);
   const [sending, setSending] = useState(false);
   const sent = useRef(false);
+  const away = useAwayTracker(!!a);
   const q = t.quiz;
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function TestRun({ id }) {
     setSending(true);
     const answers = Object.fromEntries(Object.entries(ans).filter(([, v]) => v !== SKIP));
     try {
-      await api(`/verification/attempts/${a.id}/submit`, { method: "POST", body: { answers } });
+      await api(`/verification/attempts/${a.id}/submit`, { method: "POST", body: { answers, signals: away.signals() } });
       window.location.hash = `#/result/${a.id}`;
     } catch (e) {
       if (e.status === 409) { window.location.hash = `#/result/${a.id}`; return; }
@@ -92,6 +94,7 @@ export default function TestRun({ id }) {
         ))}
         <button className={`option ${ans[task.id] === SKIP ? "sel" : ""}`} style={{ justifyContent: "center", color: "var(--muted)" }} onClick={() => { choose(SKIP); if (!last) setI(i + 1); }}>{q.dontKnow}</button>
         <p className="muted small" style={{ textAlign: "center", marginTop: 18 }}><Icon n="lock" s={14} /> {q.noAi}</p>
+        <AwayNote count={away.count} />
       </div>
       <div className="focus-foot">
         <div className="focus-foot-in">

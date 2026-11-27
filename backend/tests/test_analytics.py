@@ -1,5 +1,5 @@
 from app.modules.content.models import Task
-from tests.conftest import diagnostic, register, uid
+from tests.conftest import answer_all, diagnostic, register, uid
 
 
 def _tutor_pass(kid, db, lesson="sqrt"):
@@ -9,7 +9,7 @@ def _tutor_pass(kid, db, lesson="sqrt"):
     kid.ok("POST", f"/api/tutor/sessions/{sid}/stage", json={"stage": 6})
     chk = kid.ok("GET", f"/api/tutor/sessions/{sid}/check")
     kid.ok("POST", f"/api/tutor/sessions/{sid}/check",
-           json={"answers": {str(t["id"]): db.get(Task, t["id"]).answer for t in chk["tasks"]}})
+           json={"answers": answer_all(chk["tasks"])})
 
 
 def test_pilot_metrics_treatment_vs_control(school, db):

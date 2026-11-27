@@ -1362,3 +1362,18 @@ svg.i .d { fill: currentColor; fill-opacity: var(--ico-fill, .14); }
 .how-step .md ul, .how-step ul { margin: 0; }
 .how-step ul + p { margin-top: 14px; }
 @media (max-width: 600px) { .how-step { gap: 12px; } .how-n { width: 30px; height: 30px; font-size: 13px; } }
+
+/* доверие к результату (state/trust.py) и честность проверки */
+.trust-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.tr-high { background: #DCFCE7; color: #166534; }
+.tr-medium { background: #FEF3C7; color: #92400E; }
+.tr-low { background: #FEE2E2; color: #B91C1C; }
+.tr-insufficient { background: #EEF1F5; color: var(--fg2, #475569); }
+.trust-why { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.trust-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-top: 6px; }
+.trust-line .trust-why { display: inline; margin: 0; }
+.trust-counts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.trust-counts span { padding: 4px 10px; border-radius: 8px; font-size: 12px; }
+.trust-counts b { font-size: 14px; }
+.away-note { margin: 10px auto 0; max-width: 520px; text-align: center; font-size: 13px; color: var(--muted); }
+.away-note.warn { padding: 8px 12px; border-radius: 10px; background: #FEF2F2; color: #B91C1C; font-weight: 600; }

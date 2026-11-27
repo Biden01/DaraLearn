@@ -18,4 +18,6 @@ class LearningEvent(Base):
     source: Mapped[str] = mapped_column(String(20))  # diagnostic | practice | verification
     correct: Mapped[bool] = mapped_column(Boolean)
     choice: Mapped[int] = mapped_column(Integer)
+    # отметки честности ответа через запятую: away (уходил с вкладки), fast, late, repeat (задание уже видел)
+    flags: Mapped[str | None] = mapped_column(String(60), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)

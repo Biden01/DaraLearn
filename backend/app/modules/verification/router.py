@@ -1,5 +1,5 @@
 """Verification / Outcome Engine: диагностика и проверочные тесты без AI, результат обновляет Student State."""
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,13 +10,14 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.security import current_user, require_role
 from app.modules.content.models import Course, Lesson, Subject, Task
-from app.modules.content.service import lessons_of, subject_by_slug, task_public
+from app.modules.content.service import lessons_of, subject_by_slug
 from app.modules.decisions.service import rec_out, sync_student
 from app.modules.events.models import LearningEvent
 from app.modules.school.access import class_students, get_class, get_student, visible_classes
 from app.modules.school.models import ClassMember, SchoolClass, User
 from app.modules.school.router import audit
 from app.modules.state.engine import SkillState, compute_states
+from app.modules.verification import integrity
 from app.modules.verification.bookwork_router import router as bookwork_router
 from app.modules.verification.models import AdviserCase, Attempt, Check
 from app.modules.verification.service import complete_check, pending_checks, refresh_cases, schedule_check
@@ -36,7 +37,10 @@ class AttemptIn(BaseModel):
 
 
 class SubmitIn(BaseModel):
-    answers: dict[str, int]
+    answers: dict[str, int]  # {task_id: индекс варианта, как его видел ученик}
+    signals: integrity.Signals | None = None
+
+MIN_CHECK_TASKS = 3  # если новых заданий меньше — добавляем давно виденные (с отметкой repeat)
 
 
 def _tasks_for(db: Session, payload: AttemptIn, subj: Subject) -> tuple[list[Task], Course | None, Lesson | None]:
@@ -74,14 +78,31 @@ def _attempt_out(db: Session, a: Attempt) -> dict:
            "subject": {"slug": subj.slug, "title": subj.title, "sym": subj.sym},
            "course": {"slug": course.slug, "title": course.title} if course else None,
            "lesson": {"slug": lesson.slug, "title": lesson.title} if lesson else None,
-           "tasks": [task_public(tasks[i]) for i in a.task_ids if i in tasks]}
+           "tasks": [integrity.public(tasks[i], a.option_order) for i in a.task_ids if i in tasks]}
     if a.finished_at:
+        # в базе — исходные индексы вариантов, ученику — в порядке его попытки
+        shown = {i: integrity.to_shown(a.option_order, tasks[i], a.answers.get(str(i))) for i in a.task_ids if i in tasks}
         out["score"] = a.score
-        out["answers"] = a.answers
-        out["results"] = [{"task_id": i, "answer": tasks[i].answer, "explanation": tasks[i].explanation,
-                           "choice": a.answers.get(str(i)), "correct": a.answers.get(str(i)) == tasks[i].answer}
+        out["answers"] = {str(i): c for i, c in shown.items() if c is not None}
+        out["results"] = [{"task_id": i, "answer": integrity.to_shown(a.option_order, tasks[i], tasks[i].answer),
+                           "explanation": tasks[i].explanation,
+                           "choice": shown[i], "correct": a.answers.get(str(i)) == tasks[i].answer}
                           for i in a.task_ids if i in tasks]
+        out["integrity"] = a.integrity
     return out
+
+
+def _check_retake(db: Session, user_id: int, course: Course | None, lesson: Lesson | None) -> None:
+    """Самостоятельную проверку одного урока (курса) — не чаще раза в сутки: перебором ответы не подобрать."""
+    since = datetime.now(timezone.utc) - timedelta(hours=integrity.RETAKE_HOURS)
+    q = select(Attempt.finished_at).where(Attempt.user_id == user_id, Attempt.kind == "verification",
+                                          Attempt.finished_at >= since)
+    q = q.where(Attempt.lesson_id == lesson.id) if lesson else q.where(Attempt.course_id == course.id, Attempt.lesson_id.is_(None))
+    last = db.scalar(q.order_by(Attempt.finished_at.desc()).limit(1))
+    if last:
+        last = last if last.tzinfo else last.replace(tzinfo=timezone.utc)
+        retry = last + timedelta(hours=integrity.RETAKE_HOURS)
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, f"retake_cooldown:{retry.isoformat()}")
 
 
 @router.post("/attempts", status_code=status.HTTP_201_CREATED)
@@ -99,9 +120,16 @@ def start(payload: AttemptIn, user: User = Depends(current_user), db: Session = 
     tasks, course, lesson = _tasks_for(db, payload, subj)
     if not tasks:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    if payload.kind == "verification":
+        if not check:
+            _check_retake(db, user.id, course, lesson)
+        # сначала невиденные задания; давно виденные — только чтобы набрать минимум
+        seen = integrity.seen_task_ids(db, user.id)
+        fresh = sum(t.id not in seen for t in tasks)
+        tasks, _ = integrity.pick_tasks(db, user.id, tasks, max(fresh, min(MIN_CHECK_TASKS, len(tasks))))
     a = Attempt(user_id=user.id, kind=payload.kind, subject_id=subj.id, course_id=course.id if course else None,
                 lesson_id=lesson.id if lesson else None, task_ids=[t.id for t in tasks], answers={},
-                total=len(tasks), time_limit=len(tasks) * SECONDS_PER_TASK)
+                total=len(tasks), time_limit=len(tasks) * SECONDS_PER_TASK, option_order=integrity.make_order(tasks))
     db.add(a)
     db.flush()
     if check:
@@ -142,16 +170,25 @@ def submit(attempt_id: int, payload: SubmitIn, user: User = Depends(current_user
     if a.finished_at:
         raise HTTPException(status.HTTP_409_CONFLICT, "already_finished")
     tasks = {t.id: t for t in db.scalars(select(Task).where(Task.id.in_(a.task_ids)))}
+    # повтор считаем до записи ответов этой попытки
+    seen = integrity.seen_task_ids(db, user.id)
+    repeats = {tid for tid in a.task_ids if tid in seen}
+    base = integrity.flags_for(payload.signals, a.started_at, len(a.task_ids), a.time_limit)
     answers, score = {}, 0
     for tid in a.task_ids:
-        choice = payload.answers.get(str(tid))
-        if choice is None or tid not in tasks:
+        if tid not in tasks:
+            continue
+        choice = integrity.to_original(a.option_order, tasks[tid], payload.answers.get(str(tid)))
+        if choice is None:
             continue  # без ответа — не событие, а отсутствие данных
         correct = choice == tasks[tid].answer
         score += correct
         answers[str(tid)] = choice
         db.add(LearningEvent(user_id=user.id, lesson_id=tasks[tid].lesson_id, task_id=tid, attempt_id=a.id,
-                             source=a.kind, correct=correct, choice=choice))
+                             source=a.kind, correct=correct, choice=choice, flags=integrity.event_flags(base, tid, repeats)))
+    sig = payload.signals or integrity.Signals()
+    a.integrity = {"away_count": sig.away_count, "away_seconds": sig.away_seconds,
+                   "flags": base, "repeats": sum(str(t) in answers for t in repeats)}
     a.answers, a.score, a.finished_at = answers, score, datetime.now(timezone.utc)
     db.commit()
 

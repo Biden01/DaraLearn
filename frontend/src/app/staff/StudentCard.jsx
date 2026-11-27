@@ -6,6 +6,7 @@ import StudentMonth from "./StudentMonth.jsx";
 import AttendanceCard from "../Attendance.jsx";
 import FamilyCode from "../pages/FamilyCode.jsx";
 import { RankCard } from "../Rank.jsx";
+import { TrustBadge, TrustReasons, TrustSummary } from "../Trust.jsx";
 
 export default function StudentCard() {
   const { t, L, route } = useApp();
@@ -42,6 +43,7 @@ export default function StudentCard() {
         </div>
         <div className="stack" style={{ alignSelf: "start" }}>
         {xp && <RankCard x={xp} title={t.xp.student} name={d.student.name} />}
+        <TrustSummary trust={d.trust} help={t.trust.teacherHelp} />
         <AttendanceCard a={att} />
         <FamilyCode studentId={route.param} />
         <div className="card">
@@ -50,7 +52,10 @@ export default function StudentCard() {
             <div className="list-item" key={l.slug}>
               <span className={`dot ${l.status}`} />
               <div className="grow"><div className="row between"><span className="small" style={{ fontWeight: 600 }}>{L(l.title)}</span><span className={`small st-${l.status}`}>{t.status[l.status]}</span></div>
-                <div style={{ marginTop: 5 }}><Bar p={l.proof * 100} /></div></div>
+                <div style={{ marginTop: 5 }}><Bar p={l.proof * 100} /></div>
+                {l.trust && l.trust.level !== "insufficient" && (
+                  <div className="trust-line"><TrustBadge trust={l.trust} /><TrustReasons trust={l.trust} /></div>
+                )}</div>
             </div>
           ))}
         </div>

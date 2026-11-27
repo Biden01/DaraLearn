@@ -17,6 +17,7 @@ from app.modules.plan.attendance import attendance_for
 from app.modules.school.access import class_students, get_class, get_student, visible_classes
 from app.modules.school.models import User
 from app.modules.state.engine import SkillState, compute_states
+from app.modules.state.trust import Trust, compute_trust, overall as trust_overall
 from app.modules.verification.models import Attempt
 from app.modules.verification.service import count_checks_due, outcome_stats, plan_rate
 
@@ -80,6 +81,8 @@ def build_dashboard(db: Session, user: User, subject: str = "math") -> dict:
     by_id = {l.id: l for l in lessons}
     recs = [rec_out(r, by_id, states) for r in recs_db]
     st = [states.get(l.id, SkillState()) for l in lessons]
+    trusts = compute_trust(db, user.id)
+    tr = [trusts.get(l.id, Trust()) for l in lessons]
 
     # активность: число ответов по дням
     today = datetime.now(LOCAL_TZ).date()
@@ -114,7 +117,8 @@ def build_dashboard(db: Session, user: User, subject: str = "math") -> dict:
     mastered = sum(s.status == "mastered" for s in st)
     week_done = sum(week)
     return {
-        "lessons": [{"slug": l.slug, "title": l.title, **s.as_dict()} for l, s in zip(lessons, st)],
+        "lessons": [{"slug": l.slug, "title": l.title, **s.as_dict(), "trust": t.as_dict()} for l, s, t in zip(lessons, st, tr)],
+        "trust": trust_overall(tr),
         "progress": {"total": len(lessons), "mastered": mastered,
                      "percent": round(100 * mastered / (len(lessons) or 1)),
                      "known": sum(s.status != "unknown" for s in st)},

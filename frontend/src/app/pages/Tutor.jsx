@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { Bar, Box, Crumb, Dara, Icon, MathText, Rich, fox, useApp } from "../ui.jsx";
 import TutorTask from "./TutorTask.jsx";
+import { AwayNote, useAwayTracker } from "../Trust.jsx";
 
 const hhmm = (iso) => new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 const BotAva = () => <div className="avatar bot-ava"><Dara s={26} /></div>;
@@ -21,6 +22,7 @@ export default function Tutor() {
   const wantedRec = route.query.get("rec");
   const wantedTask = Number(route.query.get("task")) || null; // разбор ошибки из «Мои достижения»
   const [check, setCheck] = useState(null); // этапы 7–9: {tasks, answers, result}
+  const away = useAwayTracker(!!check && !check.result); // этапы 7–9 — без помощи: уход со страницы снижает доверие
   const [task, setTask] = useState(null);          // задача первой попытки (карточка в ленте)
   const [taskSeen, setTaskSeen] = useState(true);  // карточка задачи сейчас в кадре
   const taskRef = useRef();
@@ -88,7 +90,7 @@ export default function Tutor() {
 
   async function finishCheck() {
     try {
-      const r = await api(`/tutor/sessions/${session.id}/check`, { method: "POST", body: { answers: check.answers } });
+      const r = await api(`/tutor/sessions/${session.id}/check`, { method: "POST", body: { answers: check.answers, signals: away.signals() } });
       setSession((s) => ({ ...s, ...r.session, messages: s.messages }));
       setCheck((c) => ({ ...c, result: r }));
     } catch { toast(t.error); }
@@ -209,10 +211,13 @@ export default function Tutor() {
                     <button className="btn sm" onClick={() => newSession(session.lesson?.slug)}>{sg.newSession}</button>
                   </div>
                 ) : (
+                  <>
+                  <AwayNote count={away.count} />
                   <div className="row between wrap">
                     <span className="muted">{tp.answered(Object.keys(check.answers).length, check.tasks.length)}</span>
                     <button className="btn" disabled={Object.keys(check.answers).length < check.tasks.length} onClick={finishCheck}>{sg.submit}</button>
                   </div>
+                  </>
                 )}
               </div>
             ) : msgs.length === 0 && !busy && !hasLesson ? (
