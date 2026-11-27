@@ -769,7 +769,10 @@ h2 { letter-spacing: -.3px; }
 .stu .lang button { font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; color: var(--fg2); transition: background .15s, color .15s; }
 .stu .lang button:hover { color: var(--fg); }
 .stu .lang button[aria-pressed="true"] { background: #fff; color: var(--fg); box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 1px 6px rgba(15,23,42,.06); }
-.stu .bell { color: var(--fg2); }
+/* колокольчик ярче остальных иконок шапки: синий на голубой подложке */
+.stu .bell { color: var(--accent); background: #DBE6FE; }
+.stu .bell:hover { background: #C7D9FD; }
+.stu .bell[aria-expanded="true"] { background: var(--accent); color: #fff; }
 .stu .user { border-left: 0; padding-left: 0; gap: 10px; border-radius: 12px; }
 .stu .avatar { background: #DBE6FE; color: var(--accent); width: 40px; height: 40px; }
 .stu .user-name { font-size: 14px; font-weight: 600; color: var(--fg); }
